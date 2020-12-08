@@ -169,11 +169,63 @@ class Product_Table extends \WP_List_Table
 		return "Нет";
 	}
 	
+	function extra_tablenav( $which )
+	{
+		global $wpdb;
+		if ( $which == "top" )
+		{
+			$categories = $wpdb->get_results
+			(
+				$wpdb->prepare
+				(
+					"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'"
+				),
+				ARRAY_A
+			);
+			
+			$selected_category = isset($_POST['category']) ? $_POST['category'] : "";
+			$in_catalog = isset($_POST['in_catalog']) ? $_POST['in_catalog'] : "";
+			?>
+			
+			<input type="text" name='product_name' style='vertical-align: middle; display: inline-block;'
+				value='<?=esc_attr(isset($_POST['product_name']) ? $_POST['product_name'] : "");?>'
+				placeholder='Название товара'
+			/>
+			
+			<select class='product_select_category' name='category' value='<?= esc_attr($selected_category) ?>'
+				style='vertical-align: middle; display: inline-block;'
+			>
+				<option value="">Все категории</option>
+				<?php foreach ($categories as $cat) {
+					$selected = "";
+					if ($selected_category == $cat['ID'])
+					{
+						$selected = "selected='selected'";
+					}
+				?>
+					<option value="<?= esc_attr($cat['ID']) ?>" <?= $selected ?>>
+						<?= esc_html($cat['post_title']) ?>
+					</option>
+				<?php } ?>
+			</select>
+			
+			<select name="in_catalog" value="<?php echo esc_attr($in_catalog)?>">
+				<option value="">В каталоге</option>
+				<option value="0" <?= $in_catalog == "0" ? "selected" : "" ?>>Нет</option>
+				<option value="1" <?= $in_catalog == "1" ? "selected" : "" ?>>Да</option>
+			</select>
+			
+			<input type="submit" name="filter_action" id="post-query-submit" class="button" value="Фильтр">
+			<?php
+		}
+	}
+	
 	// Создает элементы таблицы
 	function prepare_items()
 	{
 		global $wpdb;
 		$table_name = $this->get_table_name();
+		$table_name_categories = $this->get_table_name_categories();
 		
 		$per_page = 10; 
 
@@ -196,16 +248,53 @@ class Product_Table extends \WP_List_Table
 		if ($orderby == ""){ $orderby = "id"; }
 		if ($order == ""){ $order = "asc"; }
 		
-		$where = "";
-		if ($is_deleted == "true") $where = "where is_deleted = 1";
-		else $where = "where is_deleted = 0";
+		$inner_join = [];
+		$args = [];
+		$where = [];
+		if ($is_deleted == "true") $where[] = "is_deleted = 1";
+		else $where[] = "is_deleted = 0";
+		
+		/* Add category filter */
+		$selected_category = isset($_POST['category']) ? $_POST['category'] : "";
+		if ($selected_category)
+		{
+			$inner_join[] = "inner join $table_name_categories as cat on (cat.product_id=t.id)";
+			$where[] = "cat.category_id = %d";
+			$args[] = $selected_category;
+		}
+		
+		/* Add search filter */
+		$product_name = isset($_POST['product_name']) ? $_POST['product_name'] : "";
+		if ($product_name)
+		{
+			$where[] = "search LIKE %s";
+			$args[] = "%" . $product_name . "%";
+		}
+		
+		/* Add in_catalog filter */
+		$in_catalog = isset($_POST['in_catalog']) ? $_POST['in_catalog'] : "";
+		if ($in_catalog != "")
+		{
+			$where[] = "in_catalog=%d";
+			$args[] = $in_catalog;
+		}
+		
+		$inner_join = implode(" ", $inner_join);
+		$where = implode(" and ", $where);
+		if ($where != "") $where = "where " . $where;
+		
+		$args[] = $per_page;
+		$args[] = $paged * $per_page;
+		
+		$sql = $wpdb->prepare
+		(
+			"SELECT t.* FROM $table_name as t $inner_join $where
+			ORDER BY $orderby $order LIMIT %d OFFSET %d",
+			$args
+		);
 		
 		$this->items = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT t.* FROM $table_name as t $where
-				ORDER BY $orderby $order LIMIT %d OFFSET %d",
-				$per_page, $paged * $per_page
-			),
+			$sql,
 			ARRAY_A
 		);
 
@@ -271,6 +360,16 @@ class Product_Table extends \WP_List_Table
 		{
 			$item["alias"] = sanitize_title($item["name"]);
 		}
+		
+		$search = [];
+		$langs = \Elberos\wp_langs();
+		foreach ($langs as $key => $lang)
+		{
+			$locale = $lang['locale'];
+			$name = isset($_POST["text"]["name"][$locale]) ? $_POST["text"]["name"][$locale] : "";
+			$search[] = $name;
+		}
+		$item["search"] = trim(implode(" ", $search));
 		
 		return $item;
 	}
