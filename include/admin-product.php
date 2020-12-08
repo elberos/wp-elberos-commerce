@@ -60,10 +60,10 @@ class Product_Table extends \WP_List_Table
 		return $wpdb->prefix . 'elberos_products_text';
 	}
 	
-	function get_table_name_categories()
+	function get_table_name_posts()
 	{
 		global $wpdb;
-		return $wpdb->prefix . 'elberos_products_categories';
+		return $wpdb->prefix . 'elberos_products_posts';
 	}
 	
 	// Вывод значений по умолчанию
@@ -225,7 +225,7 @@ class Product_Table extends \WP_List_Table
 	{
 		global $wpdb;
 		$table_name = $this->get_table_name();
-		$table_name_categories = $this->get_table_name_categories();
+		$table_name_posts = $this->get_table_name_posts();
 		
 		$per_page = 10; 
 
@@ -258,8 +258,8 @@ class Product_Table extends \WP_List_Table
 		$selected_category = isset($_POST['category']) ? $_POST['category'] : "";
 		if ($selected_category)
 		{
-			$inner_join[] = "inner join $table_name_categories as cat on (cat.product_id=t.id)";
-			$where[] = "cat.category_id = %d";
+			$inner_join[] = "inner join $table_name_posts as cat on (cat.product_id=t.id)";
+			$where[] = "cat.post_id = %d";
 			$args[] = $selected_category;
 		}
 		
@@ -305,7 +305,6 @@ class Product_Table extends \WP_List_Table
 		));
 	}
 	
-	
 	function process_bulk_action()
 	{
 		global $wpdb;
@@ -338,6 +337,59 @@ class Product_Table extends \WP_List_Table
 
 			if (!empty($ids)) {
 				$wpdb->query("DELETE FROM $table_name WHERE id IN($ids)");
+			}
+		}
+	}
+	
+	function get_posts($item_id, $post_type)
+	{
+		global $wpdb;
+		
+		$table_name_posts = $this->get_table_name_posts();
+		$sql = $wpdb->prepare
+		(
+			"SELECT t.* FROM $table_name_posts as t
+			INNER JOIN {$wpdb->prefix}posts as p on (t.post_id=p.ID and p.post_type=%s)
+			WHERE t.product_id = %d", $post_type, $item_id
+		);
+		$items = $wpdb->get_results($sql, ARRAY_A);
+		return $items;
+	}
+	
+	function update_posts($item_id, $post_type, $arr)
+	{
+		global $wpdb;
+		
+		$arr = gettype($arr) == 'array' ? array_keys($arr) : [];
+		
+		$table_name_posts = $this->get_table_name_posts();
+		$posts = $this->get_posts($item_id, $post_type);
+		
+		/* Add */
+		foreach ($arr as $post_id)
+		{
+			$find = false;
+			foreach ($posts as $c)
+			{
+				if ($c['post_id'] == $post_id)
+				{
+					$find = true;
+					break;
+				}
+			}
+			if (!$find)
+			{
+				$wpdb->insert($table_name_posts, ['product_id' => $item_id, 'post_id' => $post_id]);
+			}
+		}
+		
+		/* Delete */
+		foreach ($posts as $c)
+		{
+			$post_id = $c['post_id'];
+			if (!in_array($post_id, $arr))
+			{
+				$wpdb->delete($table_name_posts, ['product_id' => $item_id, 'post_id' => $post_id]);
 			}
 		}
 	}
@@ -405,47 +457,16 @@ class Product_Table extends \WP_List_Table
 			}
 			
 			/* Save category */
-			$table_name_categories = $this->get_table_name_categories();
-			$cat = $_POST["cat"];
-			$cat = gettype($cat) == 'array' ? array_keys($cat) : [];
+			$this->update_posts($item['id'], "catalog", isset($_POST["cat"]) ? $_POST["cat"] : []);
 			
-			$categories = $wpdb->get_results
-			(
-				$wpdb->prepare("SELECT * FROM $table_name_categories WHERE product_id = %d", $item['id']), ARRAY_A
-			);
-			
-			/* Add */
-			foreach ($cat as $cat_id)
-			{
-				$find = false;
-				foreach ($categories as $c)
-				{
-					if ($c['category_id'] == $cat_id)
-					{
-						$find = true;
-						break;
-					}
-				}
-				if (!$find)
-				{
-					$wpdb->insert($table_name_categories, ['product_id'=>$item['id'], 'category_id' => $cat_id]);
-				}
-			}
-			
-			/* Delete */
-			foreach ($categories as $c)
-			{
-				$cat_id = $c['category_id'];
-				if (!in_array($cat_id, $cat))
-				{
-					$wpdb->delete($table_name_categories, ['product_id'=>$item['id'], 'category_id' => $cat_id]);
-				}
-			}
+			/* Save photos */
+			$this->update_posts($item['id'], "attachment", isset($_POST["photos"]) ? $_POST["photos"] : []);
 		}
 	}
 	
 	function css()
 	{
+		wp_enqueue_media();
 		?>
 		<style>
 		.cursor, a.cursor
@@ -463,6 +484,7 @@ class Product_Table extends \WP_List_Table
 		</style>
 		<?php
 	}
+	
 	
 	function display_add_or_edit()
 	{
@@ -488,12 +510,13 @@ class Product_Table extends \WP_List_Table
 		/* Read categories */
 		if ($item['id'] > 0)
 		{
-			$table_name_categories = $this->get_table_name_categories();
-			$categories = $wpdb->get_results
-			(
-				$wpdb->prepare("SELECT * FROM $table_name_categories WHERE product_id = %d", $item['id']), ARRAY_A
-			);
-			$item['categories'] = $categories;
+			$item['categories'] = $this->get_posts($item['id'], 'catalog');
+		}
+		
+		/* Read photos */
+		if ($item['id'] > 0)
+		{
+			$item['photos'] = $this->get_posts($item['id'], 'attachment');
 		}
 		
 		$settings = isset($item['settings']) ? $item['settings'] : "";
@@ -717,7 +740,7 @@ class Product_Table extends \WP_List_Table
 						$find_category = null;
 						foreach ($categories as $cat)
 						{
-							if ($cat['ID'] == $row['category_id'])
+							if ($cat['ID'] == $row['post_id'])
 							{
 								$find_category = $cat;
 							}
@@ -826,8 +849,108 @@ class Product_Table extends \WP_List_Table
 	function display_form_photos($item)
 	{
 		?>
-		<div>
-			<h2>Фотографии</h2>
+		<style>
+		.product_photos
+		{
+			font-size: 0;
+		}
+		.product_photo
+		{
+			position: relative;
+			display: inline-block;
+			vertical-align: top;
+			margin: 5px;
+		}
+		.product_photo .button-delete
+		{
+			position: absolute;
+			cursor: pointer;
+			top: 0px;
+			right: 10px;
+			font-size: 30px;
+		}
+		</style>
+		
+		<h2>Фотографии</h2>
+		<div style='padding: 8px 12px;'>
+			<input type='button' class='button add-photo-button' value='Добавить фото'>
+			
+			<div class='product_photos'>
+			<?php
+			foreach ($item['photos'] as $photo)
+			{
+				$image = wp_get_attachment_image_src($photo['post_id'], 'thumbnail');
+				$post = get_post( $photo['post_id'] );
+				$href = $image[0] . "?_=" . strtotime($post->post_modified_gmt);
+				?>
+				<div class='product_photo' data-id='<?= esc_attr($post->ID) ?>'>
+					<img src='<?= esc_attr($href) ?>' />
+					<span class="dashicons dashicons-no-alt button-delete" data-id='<?= esc_attr($post->ID) ?>'></span>
+					<input type='hidden' name='photos[<?= esc_attr($post->ID) ?>]' value='1' />
+				</div>
+				<?php
+			}
+			?>
+			</div>
+			
+			<script>
+				jQuery(document).on('click', '.product_photos .button-delete', '', function(){
+					var data_id = jQuery(this).attr('data-id');
+					var $items = jQuery('.product_photo');
+					for (var i=0; i<$items.length; i++)
+					{
+						var $item = jQuery($items[i]);
+						var item_data_id = jQuery($item).attr('data-id');
+						if (item_data_id == data_id)
+						{
+							$item.remove();
+						}
+					}
+				});
+				
+				jQuery('.add-photo-button').click(function(){
+					var uploader = wp.media
+					({
+						title: "Фотографии",
+						button: {
+							text: "Выбрать фото"
+						},
+						multiple: true
+					})
+					.on('select', function() {
+						var attachments = uploader.state().get('selection').toJSON();
+						
+						for (var i=0; i<attachments.length; i++)
+						{
+							var photo = attachments[i];
+							
+							var div = jQuery(document.createElement('div'))
+							.addClass('product_photo')
+							.attr('data-id', photo.id)
+							.append
+							(
+								jQuery(document.createElement('img'))
+								.attr('src', photo.sizes.thumbnail.url + "?_=" + photo.date.getTime())
+							)
+							.append
+							(
+								jQuery(document.createElement('span'))
+								.attr('class', 'dashicons dashicons-no-alt')
+								.attr('data-id', photo.id)
+							)
+							.append
+							(
+								jQuery(document.createElement('input'))
+								.attr('type', 'hidden')
+								.attr('name', 'photos[' + photo.id + ']')
+								.attr('value', '1')
+							)
+							jQuery('.product_photos').append(div);
+						}
+					})
+					.open();
+				});
+			</script>
 		</div>	
 		<?php
 	}
