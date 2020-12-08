@@ -60,6 +60,12 @@ class Product_Table extends \WP_List_Table
 		return $wpdb->prefix . 'elberos_products_text';
 	}
 	
+	function get_table_name_categories()
+	{
+		global $wpdb;
+		return $wpdb->prefix . 'elberos_products_categories';
+	}
+	
 	// Вывод значений по умолчанию
 	function get_default()
 	{
@@ -277,6 +283,7 @@ class Product_Table extends \WP_List_Table
 		{
 			$table_name_text = $this->get_table_name_text();
 			
+			/* Save langs */
 			$langs = \Elberos\wp_langs();
 			foreach ($langs as $key => $lang)
 			{
@@ -296,7 +303,44 @@ class Product_Table extends \WP_List_Table
 				$sql = "INSERT INTO {$table_name_text} (product_id,locale,name,description) VALUES (%d,%s,%s,%s) ON DUPLICATE KEY UPDATE name = %s, description = %s";
 				$sql = $wpdb->prepare($sql,$item['id'],$locale,$name,$description,$name,$description);
 				$wpdb->query($sql);
-				
+			}
+			
+			/* Save category */
+			$table_name_categories = $this->get_table_name_categories();
+			$cat = $_POST["cat"];
+			$cat = gettype($cat) == 'array' ? array_keys($cat) : [];
+			
+			$categories = $wpdb->get_results
+			(
+				$wpdb->prepare("SELECT * FROM $table_name_categories WHERE product_id = %d", $item['id']), ARRAY_A
+			);
+			
+			/* Add */
+			foreach ($cat as $cat_id)
+			{
+				$find = false;
+				foreach ($categories as $c)
+				{
+					if ($c['category_id'] == $cat_id)
+					{
+						$find = true;
+						break;
+					}
+				}
+				if (!$find)
+				{
+					$wpdb->insert($table_name_categories, ['product_id'=>$item['id'], 'category_id' => $cat_id]);
+				}
+			}
+			
+			/* Delete */
+			foreach ($categories as $c)
+			{
+				$cat_id = $c['category_id'];
+				if (!in_array($cat_id, $cat))
+				{
+					$wpdb->delete($table_name_categories, ['product_id'=>$item['id'], 'category_id' => $cat_id]);
+				}
 			}
 		}
 	}
@@ -342,6 +386,17 @@ class Product_Table extends \WP_List_Table
 			$item['text'] = $text;
 		}
 		
+		/* Read categories */
+		if ($item['id'] > 0)
+		{
+			$table_name_categories = $this->get_table_name_categories();
+			$categories = $wpdb->get_results
+			(
+				$wpdb->prepare("SELECT * FROM $table_name_categories WHERE product_id = %d", $item['id']), ARRAY_A
+			);
+			$item['categories'] = $categories;
+		}
+		
 		$settings = isset($item['settings']) ? $item['settings'] : "";
 		if ($settings != "")
 		{
@@ -373,9 +428,15 @@ class Product_Table extends \WP_List_Table
 				<div class="metabox-holder" id="poststuff">
 					<div id="post-body">
 						<div id="post-body-content">
-							<div class="add_or_edit_form" style="width: 60%">
+							<div class="add_or_edit_form"
+								style="width: 60%; display: inline-block; vertical-align: topl">
 								<? $this->display_form($item) ?>
 							</div>
+							<div style="width: calc(40% - 5px); display: inline-block; vertical-align: top;">
+								<? $this->display_form_category($item) ?>
+								<? $this->display_form_photos($item) ?>
+							</div>
+							<div style='clear: both'></div>
 							<input type="submit" class="button-primary" value="<?php _e('Save', 'elberos-commerce')?>" >
 						</div>
 					</div>
@@ -416,6 +477,7 @@ class Product_Table extends \WP_List_Table
 				if ($arr['locale'] == $lang['locale'])
 				{
 					$item_text = $arr;
+					break;
 				}
 			}
 			
@@ -483,7 +545,7 @@ class Product_Table extends \WP_List_Table
 		</script>
 		
 		<p>
-			<label for="alias"><?php _e('Синоним (необязательно):', 'elberos-commerce')?></label>
+			<label for="alias"><?php _e('Ярлык (необязательно):', 'elberos-commerce')?></label>
 		<br>
 			<input id="alias" name="alias" type="text" style="width: 100%"
 				value="<?php echo esc_attr($item['alias'])?>" >
@@ -497,13 +559,177 @@ class Product_Table extends \WP_List_Table
 		<p>
 			<label for="in_catalog"><?php _e('Разместить в каталоге:', 'elberos-commerce')?></label>
 		<br>
-			<select id="in_catalog" name="in_catalog" type="text" style="width: 100%"
+			<select id="in_catalog" name="in_catalog" style="width: 100%"
 				value="<?php echo esc_attr($item['in_catalog'])?>">
 				<option value="0" <?= $item['in_catalog'] == 0 ? "selected" : "" ?>>Нет</option>
 				<option value="1" <?= $item['in_catalog'] == 1 ? "selected" : "" ?>>Да</option>
 			</select>
 		</p>
 		
+		<?php
+	}
+	
+	function display_form_category($item)
+	{
+		global $wpdb;
+		$categories = $wpdb->get_results
+		(
+			$wpdb->prepare
+			(
+				"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'"
+			),
+			ARRAY_A
+		);
+		?>
+		
+		<style>
+		.product_category
+		{
+			font-size: 0;
+			padding-bottom: 5px;
+		}
+		.product_category_name, .product_category_buttons
+		{
+			display: inline-block;
+			vertical-align: top;
+			font-size: 14px;
+		}
+		.product_category_name
+		{
+			width: calc(100% - 65px);
+		}
+		.product_category_buttons
+		{
+			width: 60px;
+		}
+		.product_category_buttons button
+		{
+			cursor: pointer;
+		}
+		</style>
+		
+		<h2>Категории</h2>
+		<div style='padding: 8px 12px;'>
+			
+			<div class='product_categories'>
+				<?php 
+					if (isset($item['categories'])) foreach ($item['categories'] as $row)
+					{
+						$find_category = null;
+						foreach ($categories as $cat)
+						{
+							if ($cat['ID'] == $row['category_id'])
+							{
+								$find_category = $cat;
+							}
+						}
+						if ($find_category)
+						{
+				?>
+				
+				<div class='product_category' data-id='<?= esc_attr($find_category['ID']) ?>'>
+					<div class='product_category_name'><?= esc_html($find_category['post_title']) ?></div>
+					<div class='product_category_buttons'>
+						<button data-id='<?= esc_attr($find_category['ID']) ?>' type='button'>
+							Delete
+						</button>
+					</div>
+					<input type='hidden' name='cat[<?= esc_attr($find_category['ID']) ?>]' value='1'>
+				</div>
+				
+				<?php 
+						}
+					}
+				?>
+			</div>
+			
+			<p>
+				<select class='product_select_category' style="width: 100%">
+					<option value="">Выберите категорию</option>
+					<?php foreach ($categories as $cat) { ?>
+						<option value="<?= esc_attr($cat['ID']) ?>"><?= esc_html($cat['post_title']) ?></option>
+					<?php } ?>
+				</select>
+			</p>
+			
+			<script>
+				jQuery('.product_select_category').change(function(){
+					var value = jQuery(this).val();
+					var value_name = jQuery(this).find('option[value='+value+']').text();
+					
+					var find = false;
+					var $items = jQuery('.product_category');
+					for (var i=0; i<$items.length; i++)
+					{
+						var $item = jQuery($items[i]);
+						var item_data_id = jQuery($item).attr('data-id');
+						if (item_data_id == value)
+						{
+							find = true;
+							break;
+						}
+					}
+					
+					if (!find)
+					{
+						var div = jQuery(document.createElement('div'))
+						.addClass('product_category')
+						.attr('data-id', value)
+						.append
+						(
+							jQuery(document.createElement('div'))
+							.addClass('product_category_name')
+							.text(value_name)
+						)
+						.append
+						(
+							jQuery(document.createElement('div'))
+							.addClass('product_category_buttons')
+							.append
+							(
+								jQuery(document.createElement('button'))
+								.attr('type', 'button')
+								.attr('data-id', value)
+								.text('Delete')
+							)
+						)
+						.append
+						(
+							jQuery(document.createElement('input'))
+							.attr('type', 'hidden')
+							.attr('name', 'cat[' + value + ']')
+							.attr('value', '1')
+						)
+						jQuery('.product_categories').append(div);
+					}
+					
+					jQuery(this).val("");
+				});
+				jQuery(document).on('click', '.product_category button', '', function(){
+					var data_id = jQuery(this).attr('data-id');
+					var $items = jQuery('.product_category');
+					for (var i=0; i<$items.length; i++)
+					{
+						var $item = jQuery($items[i]);
+						var item_data_id = jQuery($item).attr('data-id');
+						if (item_data_id == data_id)
+						{
+							$item.remove();
+						}
+					}
+				});
+			</script>
+			
+		</div>
+		<?php
+	}
+	
+	function display_form_photos($item)
+	{
+		?>
+		<div>
+			<h2>Фотографии</h2>
+		</div>	
 		<?php
 	}
 	

@@ -103,11 +103,11 @@ class Elberos_Commerce_Plugin
 			'rest_base'           => null, // $post_type. C WP 4.7
 			'menu_position'       => 4,
 			'menu_icon'           => null,
-			'capability_type'   => 'post',
+			//'capability_type'   => 'post',
 			//'capabilities'      => 'post', // массив дополнительных прав для этого типа записи
 			//'map_meta_cap'      => null, // Ставим true чтобы включить дефолтный обработчик специальных прав
 			'hierarchical'        => true,
-			'supports'            => [ 'title', 'editor','thumbnail' ], // 'title','editor','author','thumbnail','excerpt','trackbacks','custom-fields','comments','revisions','page-attributes','post-formats'
+			'supports'            => [ 'title', 'editor','thumbnail','page-attributes' ], // 'title','editor','author','thumbnail','excerpt','trackbacks','custom-fields','comments','revisions','page-attributes','post-formats'
 			'taxonomies'          => [],
 			'has_archive'         => 'catalog',
 			'rewrite'             => false,
