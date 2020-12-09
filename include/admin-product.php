@@ -178,7 +178,7 @@ class Product_Table extends \WP_List_Table
 			(
 				$wpdb->prepare
 				(
-					"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'"
+					"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'", []
 				),
 				ARRAY_A
 			);
@@ -293,10 +293,7 @@ class Product_Table extends \WP_List_Table
 			$args
 		);
 		
-		$this->items = $wpdb->get_results(
-			$sql,
-			ARRAY_A
-		);
+		$this->items = $wpdb->get_results($sql, ARRAY_A);
 
 		$this->set_pagination_args(array(
 			'total_items' => $total_items, 
@@ -485,7 +482,6 @@ class Product_Table extends \WP_List_Table
 		<?php
 	}
 	
-	
 	function display_add_or_edit()
 	{
 		global $wpdb;
@@ -552,11 +548,11 @@ class Product_Table extends \WP_List_Table
 						<div id="post-body-content">
 							<div class="add_or_edit_form"
 								style="width: 60%; display: inline-block; vertical-align: topl">
-								<? $this->display_form($item) ?>
+								<?php $this->display_form($item) ?>
 							</div>
 							<div style="width: calc(40% - 5px); display: inline-block; vertical-align: top;">
-								<? $this->display_form_category($item) ?>
-								<? $this->display_form_photos($item) ?>
+								<?php $this->display_form_category($item) ?>
+								<?php $this->display_form_photos($item) ?>
 							</div>
 							<div style='clear: both'></div>
 							<input type="submit" class="button-primary" value="<?php _e('Save', 'elberos-commerce')?>" >
@@ -694,14 +690,11 @@ class Product_Table extends \WP_List_Table
 	function display_form_category($item)
 	{
 		global $wpdb;
-		$categories = $wpdb->get_results
+		$sql = $wpdb->prepare
 		(
-			$wpdb->prepare
-			(
-				"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'"
-			),
-			ARRAY_A
+			"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'", []
 		);
+		$categories = $wpdb->get_results($sql, ARRAY_A);
 		?>
 		
 		<style>
