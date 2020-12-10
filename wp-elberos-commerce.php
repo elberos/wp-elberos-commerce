@@ -56,14 +56,34 @@ class Elberos_Commerce_Plugin
 	{
 		add_menu_page
 		(
-			'Товары', 'Товары',
+			'Магазин', 'Магазин',
 			'manage_options', 'elberos-commerce',
 			function ()
 			{
 				\Elberos\Commerce\Product::show();
 			},
 			null,
-			7
+			30
+		);
+		
+		add_submenu_page(
+			'elberos-commerce', 
+			'Товары', 'Товары',
+			'manage_options', 'elberos-commerce-product',
+			function()
+			{
+				\Elberos\Commerce\Product::show();
+			}
+		);
+		
+		add_submenu_page(
+			'elberos-commerce', 
+			'Заказы в магазине', 'Заказы в магазине', 
+			'manage_options', 'elberos-commerce-invoice',
+			function()
+			{
+				echo "Invoices";
+			}
 		);
 	}
 	
@@ -97,11 +117,11 @@ class Elberos_Commerce_Plugin
 			'exclude_from_search' => true, // зависит от public
 			'show_ui'             => true, // зависит от public
 			'show_in_nav_menus'   => true, // зависит от public
-			'show_in_menu'        => true, // показывать ли в меню адмнки
+			'show_in_menu'        => 'elberos-commerce', // показывать ли в меню адмнки
 			'show_in_admin_bar'   => true, // зависит от show_in_menu
 			'show_in_rest'        => true, // добавить в REST API. C WP 4.7
 			'rest_base'           => null, // $post_type. C WP 4.7
-			'menu_position'       => 4,
+			'menu_position'       => 30,
 			'menu_icon'           => null,
 			//'capability_type'   => 'post',
 			//'capabilities'      => 'post', // массив дополнительных прав для этого типа записи
