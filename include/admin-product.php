@@ -1,9 +1,8 @@
 <?php
-
 /*!
  *  Elberos Commerce
  *
- *  (c) Copyright 2019-2020 "Ildar Bikmamatov" <support@elberos.org>
+ *  (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,7 +19,6 @@
 
 
 namespace Elberos\Commerce;
-
 
 if ( !class_exists( Product::class ) ) 
 {
@@ -147,13 +145,13 @@ class Product_Table extends \WP_List_Table
 	{
 		$actions = array(
 			'edit' => sprintf(
-				'<a href="?page=elberos-commerce&action=edit&id=%s">%s</a>',
+				'<a href="?page=elberos-commerce-product&action=edit&id=%s">%s</a>',
 				$item['id'], 
 				__('Edit', 'elberos-commerce')
 			),
 			/*
 			'delete' => sprintf(
-				'<a href="?page=elberos-commerce&action=show_delete&id=%s">%s</a>',
+				'<a href="?page=elberos-commerce-product&action=show_delete&id=%s">%s</a>',
 				$item['id'],
 				__('Delete', 'elberos-commerce')
 			),*/
@@ -538,7 +536,7 @@ class Product_Table extends \WP_List_Table
 				<div id="message" class="updated"><p><?php echo $message ?></p></div>
 			<?php endif;?>
 			
-			<a type="button" class='button-primary' href='?page=elberos-commerce'> Back </a>
+			<a type="button" class='button-primary' href='?page=elberos-commerce-product'> Back </a>
 			
 			<form id="form" method="POST">
 				<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
@@ -944,7 +942,7 @@ class Product_Table extends \WP_List_Table
 					.open();
 				});
 			</script>
-		</div>	
+		</div>
 		<?php
 	}
 	
@@ -959,7 +957,7 @@ class Product_Table extends \WP_List_Table
 			<h1 class="wp-heading-inline">
 				<?php echo get_admin_page_title() ?>
 			</h1>
-			<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=elberos-commerce&action=add');?>"
+			<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=elberos-commerce-product&action=add');?>"
 				class="page-title-action"
 			>
 				<?php _e('Add new', 'template')?>
@@ -971,11 +969,11 @@ class Product_Table extends \WP_List_Table
 			
 			<ul class="subsubsub">
 				<li>
-					<a href="admin.php?page=elberos-commerce"
+					<a href="admin.php?page=elberos-commerce-product"
 						class="<?= ($is_deleted != "true" ? "current" : "")?>"  >Все</a> |
 				</li>
 				<li>
-					<a href="admin.php?page=elberos-commerce&is_deleted=true"
+					<a href="admin.php?page=elberos-commerce-product&is_deleted=true"
 						class="<?= ($is_deleted == "true" ? "current" : "")?>" >Корзина</a>
 				</li>
 			</ul>
