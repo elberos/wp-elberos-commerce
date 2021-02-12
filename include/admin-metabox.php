@@ -28,15 +28,44 @@ class Metabox
 	/**
 	 * Title
 	 */
-	public static function show_title($post, $meta)
+	public static function show_title($post, $options)
 	{
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_title' );
 		
+		// Get langs
 		$langs = \Elberos\wp_langs();
+		
+		// Get products text
+		$product_text = get_post_meta( $post->ID, 'product_text', '' );
+		$product_text = isset($product_text[0]) ? $product_text[0] : '';
+		$product_text = @unserialize($product_text);
+		
+		// In catalog
+		$product_in_catalog = get_post_meta( $post->ID, 'product_in_catalog', '' );
+		$product_in_catalog = isset($product_in_catalog[0]) ? $product_in_catalog[0] : '';
+		$product_price = get_post_meta( $post->ID, 'product_price', '' );
+		$product_price = isset($product_price[0]) ? $product_price[0] : '';
 		
 		?>
 		<div class="elberos-commerce">
+			
+			<p>
+				<label for="in_catalog"><?php _e('Разместить в каталоге:', 'elberos-commerce')?></label>
+			<br>
+				<select id="in_catalog" name="product_in_catalog" style="width: 100%"
+					value="<?php echo esc_attr($product_in_catalog)?>">
+					<option value="0" <?= $product_in_catalog == 0 ? "selected" : "" ?>>Нет</option>
+					<option value="1" <?= $product_in_catalog == 1 ? "selected" : "" ?>>Да</option>
+				</select>
+			</p>
+			<p>
+				<label for="price"><?php _e('Цена:', 'elberos-commerce')?></label>
+			<br>
+				<input id="price" name="product_price" type="text" style="width: 100%"
+					value="<?php echo esc_attr($product_price)?>" >
+			</p>
+			
 			<p><nav class="nav-tab-wrapper">
 				<?php
 				foreach ($langs as $key => $lang)
@@ -54,18 +83,8 @@ class Metabox
 			<?php
 			foreach ($langs as $key => $lang)
 			{
-				$item_text = null;
-				/*
-				foreach ($item['text'] as $arr)
-				{
-					if ($arr['locale'] == $lang['locale'])
-					{
-						$item_text = $arr;
-						break;
-					}
-				}
-				*/
-				
+				$locale = $lang['locale'];
+				$item_text = isset($product_text[$locale]) ? $product_text[$locale] : null;
 				$text_name = (isset($item_text) && isset($item_text['name'])) ? $item_text['name'] : "";
 				$text_description = (isset($item_text) && isset($item_text['description'])) ?
 					$item_text['description'] : "";
@@ -82,7 +101,7 @@ class Metabox
 							</label>
 						<br>
 							<input id="name[<?= esc_attr($lang['locale']) ?>]" 
-								name="text[name][<?= esc_attr($lang['locale']) ?>]"
+								name="product_text[<?= esc_attr($lang['locale']) ?>][name]"
 								type="text" style="width: 100%"
 								value="<?php echo esc_attr($text_name)?>" >
 						</p>
@@ -93,7 +112,7 @@ class Metabox
 							</label>
 						<br>
 							<textarea id="description[<?= esc_attr($lang['locale']) ?>]"
-								name="text[description][<?= esc_attr($lang['locale']) ?>]"
+								name="product_text[<?= esc_attr($lang['locale']) ?>][description]"
 								type="text" style="width: 100%; height: 300px;"><?= esc_html($text_description) ?></textarea>
 						</p>
 						
@@ -147,6 +166,17 @@ class Metabox
 		if( ! current_user_can( 'edit_post', $post_id ) )
 			return;
 		
+		// Save text
+		$product_text = isset($_POST['product_text']) ? $_POST['product_text'] : [];
+		update_post_meta( $post_id, 'product_text', serialize($product_text) );
+		
+		// Save price
+		$product_in_catalog = isset($_POST['product_in_catalog']) ? $_POST['product_in_catalog'] : 0;
+		update_post_meta( $post_id, 'product_in_catalog', $product_in_catalog );
+		
+		// Save in catalog
+		$product_price = isset($_POST['product_price']) ? $_POST['product_price'] : '';
+		update_post_meta( $post_id, 'product_price', $product_price );
 	}
 	
 	
@@ -154,13 +184,13 @@ class Metabox
 	/**
 	 * Categories
 	 */
-	public static function show_categories($post, $meta)
+	public static function show_categories($post, $options)
 	{
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_categories' );
 		
 		// Get products categories
-		$products_catalog = get_post_meta( $post->ID, 'products_catalog', '' );
+		$product_catalog = get_post_meta( $post->ID, 'product_catalog', '' );
 		
 		global $wpdb;
 		$sql = $wpdb->prepare
@@ -174,7 +204,7 @@ class Metabox
 			
 			<div class='product_categories'>
 				<?php 
-					if (gettype($products_catalog) == 'array') foreach ($products_catalog as $cat_id)
+					if (gettype($product_catalog) == 'array') foreach ($product_catalog as $cat_id)
 					{
 						$find_category = null;
 						foreach ($categories as $cat)
@@ -195,7 +225,7 @@ class Metabox
 									Delete
 								</button>
 							</div>
-							<input type='hidden' name='products_catalog[<?= esc_attr($find_category['ID']) ?>]'
+							<input type='hidden' name='product_catalog[<?= esc_attr($find_category['ID']) ?>]'
 								value='<?= esc_attr($find_category['ID']) ?>'>
 						</div>
 						
@@ -258,7 +288,7 @@ class Metabox
 						(
 							jQuery(document.createElement('input'))
 							.attr('type', 'hidden')
-							.attr('name', 'products_catalog[' + value + ']')
+							.attr('name', 'product_catalog[' + value + ']')
 							.attr('value', value)
 						)
 						jQuery('.product_categories').append(div);
@@ -300,9 +330,9 @@ class Metabox
 		if( ! current_user_can( 'edit_post', $post_id ) )
 			return;
 		
-		$products_catalog = isset($_POST['products_catalog']) ? $_POST['products_catalog'] : [];
-		$categories = array_values($products_catalog);
-		\Elberos\update_post_meta_arr( $post_id, 'products_catalog', $categories );
+		$product_catalog = isset($_POST['product_catalog']) ? $_POST['product_catalog'] : [];
+		$categories = array_values($product_catalog);
+		\Elberos\update_post_meta_arr( $post_id, 'product_catalog', $categories );
 	}
 	
 	
@@ -310,7 +340,7 @@ class Metabox
 	/**
 	 * Meta params
 	 */
-	public static function show_meta_params($post, $meta)
+	public static function show_meta_params($post, $options)
 	{
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_meta_params' );
@@ -337,22 +367,21 @@ class Metabox
 	/**
 	 * Photos
 	 */
-	public static function show_photos($post, $meta)
+	public static function show_photos($post, $options)
 	{
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_photos' );
 		
 		// Get products photos
-		$products_photos = get_post_meta( $post->ID, 'products_photos', '' );
+		$product_photo = get_post_meta( $post->ID, 'product_photo', '' );
 		?>
 		<div class='elberos-commerce'>
 			<input type='button' class='button add-photo-button' value='Добавить фото'>
 			
 			<div class='product_photos'>
 			<?php
-			if (gettype($products_photos) == 'array') foreach ($products_photos as $photo)
+			if (gettype($product_photo) == 'array') foreach ($product_photo as $photo)
 			{
-				$photo = @json_decode($photo, true);
 				if (!isset($photo['ID'])) continue;
 				$image = wp_get_attachment_image_src($photo['ID'], 'thumbnail');
 				$post = get_post( $photo['ID'] );
@@ -361,7 +390,7 @@ class Metabox
 				<div class='product_photo' data-id='<?= esc_attr($post->ID) ?>'>
 					<img src='<?= esc_attr($href) ?>' />
 					<span class="dashicons dashicons-no-alt button-delete" data-id='<?= esc_attr($post->ID) ?>'></span>
-					<input type='hidden' name='products_photos[<?= esc_attr($post->ID) ?>][ID]'
+					<input type='hidden' name='product_photo[<?= esc_attr($post->ID) ?>][ID]'
 						value='<?= esc_attr($post->ID) ?>' />
 				</div>
 				<?php
@@ -372,7 +401,7 @@ class Metabox
 			<script>
 				jQuery(document).on('click', '.product_photos .button-delete', '', function(){
 					var data_id = jQuery(this).attr('data-id');
-					var $items = jQuery('.product_photo');
+					var $items = jQuery('.product_photos');
 					for (var i=0; i<$items.length; i++)
 					{
 						var $item = jQuery($items[i]);
@@ -420,7 +449,7 @@ class Metabox
 							(
 								jQuery(document.createElement('input'))
 								.attr('type', 'hidden')
-								.attr('name', 'products_photos[' + photo.id + '][ID]')
+								.attr('name', 'product_photo[' + photo.id + '][ID]')
 								.attr('value', photo.id)
 							)
 							jQuery('.product_photos').append(div);
@@ -447,8 +476,11 @@ class Metabox
 		if( ! current_user_can( 'edit_post', $post_id ) )
 			return;
 		
-		$photos = isset($_POST['products_photos']) ? $_POST['products_photos'] : [];
-		\Elberos\update_post_meta_arr( $post_id, 'products_photos', $photos, 'ID' );
+		$photos = isset($_POST['product_photo']) ? $_POST['product_photo'] : [];
+		\Elberos\update_post_meta_arr( $post_id, 'product_photo', $photos, 'ID' );
+		
+		$photos_id = array_map(function($item){ return $item["ID"]; }, $photos);
+		\Elberos\update_post_meta_arr( $post_id, 'product_photo_id', $photos_id );
 	}
 	
 	

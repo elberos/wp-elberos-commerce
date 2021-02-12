@@ -50,6 +50,8 @@ class Elberos_Commerce_Plugin
 		add_action('save_post', '\\Elberos\\Commerce\\Metabox::save_metabox' );
 		add_action('admin_head', '\\Elberos\\Commerce\\CSS::show_css');
 		add_filter('post_type_link', 'Elberos_Commerce_Plugin::post_type_link', false, true);
+		add_filter('manage_products_posts_columns', 'Elberos_Commerce_Plugin::products_columns');
+		add_action('manage_products_posts_custom_column', 'Elberos_Commerce_Plugin::products_columns_custom', 0, 2);
 	}
 	
 	
@@ -113,7 +115,7 @@ class Elberos_Commerce_Plugin
 		add_meta_box
 		(
 			'product_title',
-			'Название',
+			'Описание товара',
 			'\Elberos\Commerce\Metabox::show_title',
 			[
 				"products",
@@ -226,6 +228,46 @@ class Elberos_Commerce_Plugin
 		);
 		
 		add_rewrite_rule('^(ru|en)/products/([0-9]*)-([^/]*)$', 'index.php?products=$matches[3]', 'top');
+	}
+	
+	
+	
+	/**
+	 * Products columns
+	 */
+	public static function products_columns($columns)
+	{
+		return
+		[
+			"cb" => isset($columns["cb"]) ? $columns["cb"] : "",
+			"title" => isset($columns["title"]) ? $columns["title"] : "",
+			"price" =>  __('Цена', 'elberos-commerce'),
+			"in_catalog" =>  __('В каталоге', 'elberos-commerce'),
+			"date" => isset($columns["date"]) ? $columns["date"] : "",
+		];
+		return $columns;
+	}
+	
+	
+	
+	/**
+	 * Products columns custom
+	 */
+	public static function products_columns_custom($column, $post_id)
+	{
+		if ($column == "price")
+		{
+			$product_price = get_post_meta( $post_id, 'product_price', '' );
+			$product_price = isset($product_price[0]) ? $product_price[0] : '';
+			echo $product_price;
+		}
+		if ($column == "in_catalog")
+		{
+			$product_in_catalog = get_post_meta( $post_id, 'product_in_catalog', '' );
+			$product_in_catalog = isset($product_in_catalog[0]) ? $product_in_catalog[0] : '';
+			if ($product_in_catalog == 0) echo "Нет";
+			else if ($product_in_catalog == 1) echo "Да";
+		}
 	}
 	
 	
