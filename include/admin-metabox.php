@@ -1,6 +1,7 @@
 <?php
+
 /*!
- *  Elberos Commerce
+ *  Elberos Framework
  *
  *  (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
  *
@@ -26,9 +27,9 @@ if ( !class_exists( Metabox::class ) )
 class Metabox
 {
 	/**
-	 * Title
+	 * Products title
 	 */
-	public static function show_title($post, $options)
+	public static function show_products_title($post, $options)
 	{
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_title' );
@@ -48,7 +49,7 @@ class Metabox
 		$product_price = isset($product_price[0]) ? $product_price[0] : '';
 		
 		?>
-		<div class="elberos-commerce">
+		<div class="elberos-commerce products_text">
 			
 			<p>
 				<label for="in_catalog"><?php _e('Разместить в каталоге:', 'elberos-commerce')?></label>
@@ -124,7 +125,7 @@ class Metabox
 			
 			?>
 			<script>
-			jQuery('.nav-tab').click(function(){
+			jQuery('.products_text .nav-tab').click(function(){
 				var data_key = jQuery(this).attr('data-key');
 				var data_tab = jQuery(this).attr('data-tab');
 				jQuery(this).parent('.nav-tab-wrapper').find('.nav-tab').removeClass('nav-tab-active');
@@ -152,7 +153,7 @@ class Metabox
 		<?php
 	}
 	
-	public static function save_title($post_id)
+	public static function save_products_title($post_id)
 	{
 		// проверяем nonce
 		if ( ! wp_verify_nonce( $_POST['elberos_commerce_title'], plugin_basename(__FILE__) ) )
@@ -177,6 +178,137 @@ class Metabox
 		// Save in catalog
 		$product_price = isset($_POST['product_price']) ? $_POST['product_price'] : '';
 		update_post_meta( $post_id, 'product_price', $product_price );
+	}
+	
+	
+	
+	/**
+	 * Products catalog title
+	 */
+	public static function show_products_catalog_title($post, $options)
+	{
+		// Используем nonce для верификации
+		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_products_catalog_title' );
+		
+		// Get langs
+		$langs = \Elberos\wp_langs();
+		
+		// Get products text
+		$product_catalog_text = get_post_meta( $post->ID, 'product_catalog_text', '' );
+		$product_catalog_text = isset($product_catalog_text[0]) ? $product_catalog_text[0] : '';
+		$product_catalog_text = @unserialize($product_catalog_text);
+		
+		?>
+		<div class="elberos-commerce product_catalog_text">
+			
+			<p><nav class="nav-tab-wrapper">
+				<?php
+				foreach ($langs as $key => $lang)
+				{
+					?><a class="nav-tab cursor <?= $key == 0 ? "nav-tab-active" : "" ?>"
+						data-tab="elberos_commerce_<?= esc_attr($lang['locale']) ?>"
+						data-key="elberos_commerce"
+					>
+						<?= esc_html($lang['name']) ?>
+					</a><?php
+				}
+				?>
+			</nav></p>
+			
+			<?php
+			foreach ($langs as $key => $lang)
+			{
+				$locale = $lang['locale'];
+				$item_text = isset($product_catalog_text[$locale]) ? $product_catalog_text[$locale] : null;
+				$text_name = (isset($item_text) && isset($item_text['name'])) ? $item_text['name'] : "";
+				$text_description = (isset($item_text) && isset($item_text['description'])) ?
+					$item_text['description'] : "";
+				
+				?>
+				<p class='nav-tab-data-wrapper'>
+					<div class='nav-tab-data <?= $key == 0 ? "nav-tab-data-active" : "" ?>'
+						data-tab="elberos_commerce_<?= esc_attr($lang['locale']) ?>"
+						data-key="elberos_commerce"
+					>
+						<p>
+							<label for="name[<?= esc_attr($lang['locale']) ?>]">
+								<?php _e('Название', 'elberos-commerce')?> (<?= esc_attr($lang['name']) ?>):
+							</label>
+						<br>
+							<input id="name[<?= esc_attr($lang['locale']) ?>]" 
+								name="product_catalog_text[<?= esc_attr($lang['locale']) ?>][name]"
+								type="text" style="width: 100%"
+								value="<?php echo esc_attr($text_name)?>" >
+						</p>
+						
+						<p>
+							<label for="description[<?= esc_attr($lang['locale']) ?>]">
+								<?php _e('Описание', 'elberos-commerce')?> (<?= esc_attr($lang['name']) ?>):
+							</label>
+						<br>
+							<textarea id="description[<?= esc_attr($lang['locale']) ?>]"
+								name="product_catalog_text[<?= esc_attr($lang['locale']) ?>][description]"
+								type="text" style="width: 100%; height: 300px;"><?= esc_html($text_description) ?></textarea>
+						</p>
+						
+					</div>
+				</p>
+				
+				<?php
+			}
+			
+			?>
+			<script>
+			jQuery('.product_catalog_text .nav-tab').click(function(){
+				var data_key = jQuery(this).attr('data-key');
+				var data_tab = jQuery(this).attr('data-tab');
+				jQuery(this).parent('.nav-tab-wrapper').find('.nav-tab').removeClass('nav-tab-active');
+				jQuery(this).addClass('nav-tab-active');
+				
+				var $items = jQuery('.nav-tab-data');
+				for (var i=0; i<$items.length; i++)
+				{
+					var $item = jQuery($items[i]);
+					var item_data_key = jQuery($item).attr('data-key');
+					var item_data_tab = jQuery($item).attr('data-tab');
+					if (data_key == item_data_key)
+					{
+						$item.removeClass('nav-tab-data-active');
+						if (data_tab == item_data_tab)
+						{
+							$item.addClass('nav-tab-data-active');
+						}
+					}
+				}
+				
+			});
+			</script>
+		</div>
+		<?php
+	}
+	
+	
+	
+	/**
+	 * Save products catalog title
+	 */
+	public static function save_products_catalog_title($post_id)
+	{
+		// проверяем nonce
+		if ( ! wp_verify_nonce( $_POST['elberos_commerce_products_catalog_title'], plugin_basename(__FILE__) ) )
+			return;
+
+		// если это автосохранение ничего не делаем
+		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) 
+			return;
+
+		// проверяем права юзера
+		if( ! current_user_can( 'edit_post', $post_id ) )
+			return;
+		
+		// Save text
+		$product_catalog_text = isset($_POST['product_catalog_text']) ? $_POST['product_catalog_text'] : [];
+		update_post_meta( $post_id, 'product_catalog_text', serialize($product_catalog_text) );
 	}
 	
 	
@@ -490,10 +622,12 @@ class Metabox
 	 */
 	public static function save_metabox($post_id)
 	{
-		static::save_title($post_id);
+		static::save_products_title($post_id);
+		static::save_products_catalog_title($post_id);
 		static::save_categories($post_id);
 		static::save_photos($post_id);
 		static::save_meta_params($post_id);
+		static::save_products_seo($post_id);
 	}
 }
 	

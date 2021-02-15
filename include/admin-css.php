@@ -1,6 +1,7 @@
 <?php
+
 /*!
- *  Elberos Commerce
+ *  Elberos Framework
  *
  *  (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
  *
@@ -29,7 +30,10 @@ class CSS
 		$screen = get_current_screen();
 		$post_type = $screen ? $screen->post_type : "";
 		
-		if ($pagenow == "post.php" && in_array($post_type, ["products", "products_catalog"]))
+		if (
+			$pagenow == "post.php" && in_array($post_type, ["products", "products_catalog"]) or
+			in_array($pagenow, ["elberos-commerce-product-params"])
+		)
 		{
 			wp_enqueue_media();
 			?>

@@ -5,20 +5,22 @@
  * Version:     0.1.0
  * Author:      Elberos Team <support@elberos.org>
  * License:     Apache License 2.0
+ *  
+ * Elberos Framework
+ * 
+ * (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
  *
- *  (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 
@@ -40,7 +42,7 @@ class Elberos_Commerce_Plugin
 			function()
 			{
 				require_once __DIR__ . "/include/admin-css.php";
-				require_once __DIR__ . "/include/admin-product.php";
+				require_once __DIR__ . "/include/admin-product-params.php";
 				require_once __DIR__ . "/include/admin-metabox.php";
 			}
 		);
@@ -52,6 +54,7 @@ class Elberos_Commerce_Plugin
 		add_filter('post_type_link', 'Elberos_Commerce_Plugin::post_type_link', false, true);
 		add_filter('manage_products_posts_columns', 'Elberos_Commerce_Plugin::products_columns');
 		add_action('manage_products_posts_custom_column', 'Elberos_Commerce_Plugin::products_columns_custom', 0, 2);
+		add_action('plugins_loaded', 'Elberos_Commerce_Plugin::rank_math_loaded');
 	}
 	
 	
@@ -75,11 +78,11 @@ class Elberos_Commerce_Plugin
 		
 		add_submenu_page(
 			'elberos-commerce', 
-			'Товары', 'Товары(old)',
-			'manage_options', 'elberos-commerce-product',
+			'Параметры товаров', 'Параметры товаров',
+			'manage_options', 'elberos-commerce-product-params',
 			function()
 			{
-				\Elberos\Commerce\Product::show();
+				\Elberos\Commerce\ProductParams::show();
 			}
 		);
 		
@@ -114,12 +117,23 @@ class Elberos_Commerce_Plugin
 	{
 		add_meta_box
 		(
+			'products_catalog_title',
+			'Описание категории',
+			'\Elberos\Commerce\Metabox::show_products_catalog_title',
+			[
+				'products_catalog',
+			],
+			"normal",
+			"high",
+		);
+		
+		add_meta_box
+		(
 			'product_title',
 			'Описание товара',
-			'\Elberos\Commerce\Metabox::show_title',
+			'\Elberos\Commerce\Metabox::show_products_title',
 			[
-				"products",
-				"products_catalog",
+				'products',
 			],
 			"normal",
 			"high",
@@ -131,7 +145,7 @@ class Elberos_Commerce_Plugin
 			'Категории',
 			'\Elberos\Commerce\Metabox::show_categories',
 			[
-				"products",
+				'products',
 			],
 			"side",
 			"default",
@@ -143,7 +157,7 @@ class Elberos_Commerce_Plugin
 			'Фотографии',
 			'\Elberos\Commerce\Metabox::show_photos',
 			[
-				"products",
+				'products',
 			],
 			"normal",
 			"default",
@@ -155,7 +169,7 @@ class Elberos_Commerce_Plugin
 			'Параметры товара или услуги',
 			'\Elberos\Commerce\Metabox::show_meta_params',
 			[
-				"products",
+				'products',
 			],
 			"normal",
 			"default",
@@ -176,8 +190,8 @@ class Elberos_Commerce_Plugin
 				'name'               => 'Товары и услуги', // основное название для типа записи
 				'singular_name'      => 'Товары и услуги', // название для одной записи этого типа
 				'add_new'            => 'Добавить товар или услугу', // для добавления новой записи
-				'add_new_item'       => 'Добавление товара или услуги', // заголовка у вновь создаваемой записи в админ-панели.
-				'edit_item'          => 'Редактирование товара или услуги', // для редактирования типа записи
+				'add_new_item'       => 'Добавление товара', // заголовка у вновь создаваемой записи в админ-панели.
+				'edit_item'          => 'Редактирование товара', // для редактирования типа записи
 				'new_item'           => 'Новый товар', // текст новой записи
 				'view_item'          => 'Смотреть товар', // для просмотра записи этого типа.
 				'search_items'       => 'Искать товар', // для поиска по этим типам записи
@@ -214,7 +228,7 @@ class Elberos_Commerce_Plugin
 		
 		add_permastruct
 		(
-			"products",
+			'products',
 			"products/%product_id%-%products%",
 			[
 				'with_front' => false,
@@ -321,7 +335,7 @@ class Elberos_Commerce_Plugin
 		
 		add_permastruct
 		(
-			"products_catalog",
+			'products_catalog',
 			"catalog/%products_catalog%",
 			[
 				'with_front' => false,
@@ -334,76 +348,13 @@ class Elberos_Commerce_Plugin
 			]
 		);
 		
-		add_rewrite_rule('^(ru|en)/catalog/([^/]*)$', 'index.php?products_catalog=$matches[2]', 'top');
-	}
-	
-	
-	
-	/**
-	 * Register catalog
-	 */
-	public static function register_catalog_taxonomy()
-	{
-		register_taxonomy( 'products_catalog',
-			[ 'products' ],
-			[
-				// 'label'  => null,
-				'labels' => [
-					'name'               => 'Категория товара', // основное название для типа записи
-					'singular_name'      => 'Категория товара', // название для одной записи этого типа
-					'add_new'            => 'Добавить категорию', // для добавления новой записи
-					'add_new_item'       => 'Добавление категории', // заголовка у вновь создаваемой записи в админ-панели.
-					'edit_item'          => 'Редактирование категории', // для редактирования типа записи
-					'new_item'           => 'Новая категория', // текст новой записи
-					'view_item'          => 'Смотреть категории', // для просмотра записи этого типа.
-					'search_items'       => 'Искать категорию', // для поиска по этим типам записи
-					'not_found'          => 'Не найдено', // если в результате поиска ничего не было найдено
-					'not_found_in_trash' => 'Не найдено в корзине', // если не было найдено в корзине
-					'parent_item_colon'  => '', // для родителей (у древовидных типов)
-					'menu_name'          => 'Категория', // название меню
-				],
-				'description'         => 'Категория товаров',
-				'public'              => true,
-				// 'publicly_queryable'  => true, // зависит от public
-				// 'exclude_from_search' => true, // зависит от public
-				'show_ui'             => true, // зависит от public
-				'show_in_nav_menus'   => true, // зависит от public
-				'show_in_menu'        => true, // показывать ли в меню адмнки
-				// 'show_in_admin_bar'   => true, // зависит от show_in_menu
-				// 'show_in_rest'        => true, // добавить в REST API. C WP 4.7
-				// 'rest_base'           => null, // $post_type. C WP 4.7
-				// 'menu_position'       => 30,
-				// 'menu_icon'           => null,
-				//'capability_type'   => 'post',
-				//'capabilities'      => 'post', // массив дополнительных прав для этого типа записи
-				//'map_meta_cap'      => null, // Ставим true чтобы включить дефолтный обработчик специальных прав
-				'hierarchical'        => true,
-				// 'supports'            => [ 'title', 'editor','thumbnail','page-attributes' ], // 'title','editor','author','thumbnail','excerpt','trackbacks','custom-fields','comments','revisions','page-attributes','post-formats'
-				// 'taxonomies'          => [],
-				'has_archive'         => 'products_catalog',
-				'rewrite'             => false,
-				'query_var'           => true,
-			]
-		);
-		
-		add_permastruct
+		add_rewrite_rule
 		(
-			"products_catalog",
-			"catalog/%products_catalog%",
-			[
-				'with_front' => false,
-				'ep_mask' => EP_NONE,
-				'paged' => true,
-				'feed' => true,
-				'forcomments' => false,
-				'walk_dirs' => true,
-				'endpoints' => true,
-			]
+			'^(ru|en)/catalog/(.+)/?$',
+			'index.php?post_type=products_catalog&products_catalog=$matches[2]',
+			'top'
 		);
-		
-		add_rewrite_rule('^(ru|en)/catalog/([^/]*)$', 'index.php?products_catalog=$matches[2]', 'top');
 	}
-	
 	
 	
 	/**
@@ -429,6 +380,32 @@ class Elberos_Commerce_Plugin
 		return $post_link;
 	}
 	
+	
+	
+	/**
+	 * Rank math loaded
+	 */
+	static function rank_math_loaded()
+	{
+		if (class_exists(RankMath::class))
+		{
+			$rank_math = RankMath::get();
+			$rank_math->settings->set("titles", "pt_products_add_meta_box", false);
+			$rank_math->settings->set("titles", "pt_products_link_suggestions", false);
+			$rank_math->settings->set("titles", "pt_products_catalog_add_meta_box", false);
+			$rank_math->settings->set("titles", "pt_products_catalog_link_suggestions", false);
+		}
+	}
+	
+	
+	
+	/**
+	 * Rank Math titles
+	 */
+	static function rank_math_titles($titles)
+	{
+		return $titles;
+	}
 }
 
 
