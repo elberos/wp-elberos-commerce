@@ -36,6 +36,8 @@ class CSS
 		)
 		{
 			wp_enqueue_media();
+			wp_enqueue_script( 'vue', '/wp-content/plugins/wp-elberos-core/assets/vue.min.js', false );
+			// wp_enqueue_script( 'vue', '/wp-content/plugins/wp-elberos-core/assets/vue/vue.runtime.global.prod.js', false );
 			?>
 			<style>
 			.elberos-commerce .cursor, .elberos-commerce a.cursor
@@ -55,7 +57,7 @@ class CSS
 				font-size: 0;
 				padding-bottom: 5px;
 			}
-			.elberos-commerce .product_category_name, .product_category_buttons
+			.elberos-commerce .product_category_name, .elberos-commerce .product_category_buttons
 			{
 				display: inline-block;
 				vertical-align: top;
@@ -70,6 +72,48 @@ class CSS
 				width: 60px;
 			}
 			.elberos-commerce .product_category_buttons button
+			{
+				cursor: pointer;
+			}
+			.elberos-commerce .product_param
+			{
+				position: relative;
+				font-size: 0;
+				padding-bottom: 5px;
+			}
+			.elberos-commerce .product_param_name,
+			.elberos-commerce .product_param_value,
+			.elberos-commerce .product_param_buttons
+			{
+				position: relative;
+				display: inline-block;
+				vertical-align: middle;
+				font-size: 14px;
+			}
+			.elberos-commerce .product_param_name
+			{
+				width: 100px;
+				text-align: right;
+				padding-bottom: 5px;
+			}
+			.elberos-commerce .product_param_value
+			{
+				width: calc(100% - 170px);
+				font-size: 14px;
+				padding-left: 5px;
+				padding-right: 5px;
+			}
+			.elberos-commerce .product_param_value input,
+			.elberos-commerce .product_param_value select
+			{
+				width: 100%;
+				max-width: 100%;
+			}
+			.elberos-commerce .product_param_buttons
+			{
+				width: 60px;
+			}
+			.elberos-commerce .product_param_buttons button
 			{
 				cursor: pointer;
 			}

@@ -388,9 +388,9 @@ class Elberos_Commerce_Plugin
 	 */
 	static function rank_math_loaded()
 	{
-		if (class_exists(RankMath::class))
+		if (class_exists(\RankMath::class))
 		{
-			$rank_math = RankMath::get();
+			$rank_math = \RankMath::get();
 			$rank_math->settings->set("titles", "pt_products_add_meta_box", false);
 			$rank_math->settings->set("titles", "pt_products_link_suggestions", false);
 			$rank_math->settings->set("titles", "pt_products_catalog_add_meta_box", false);

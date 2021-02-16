@@ -325,7 +325,11 @@ class Metabox
 		$product_catalog = get_post_meta( $post->ID, 'product_catalog', '' );
 		
 		global $wpdb;
-		$sql = "SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'";
+		$sql = $wpdb->prepare
+		(
+			"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = %s and post_status=%s",
+			['catalog', 'publish']
+		);
 		$categories = $wpdb->get_results($sql, ARRAY_A);
 		?>
 		
@@ -364,9 +368,8 @@ class Metabox
 				?>
 			</div>
 			
-			
-			<select class='product_select_category' style="width: 100%">
-				<option value="">Выберите категорию</option>
+			<select class='product_select_category' style='width: 100%'>
+				<option value=''>Выберите категорию</option>
 				<?php foreach ($categories as $cat) { ?>
 					<option value="<?= esc_attr($cat['ID']) ?>"><?= esc_html($cat['post_title']) ?></option>
 				<?php } ?>
@@ -471,8 +474,156 @@ class Metabox
 	 */
 	public static function show_meta_params($post, $options)
 	{
+		global $wpdb;
+		
+		// Current product params
+		$product_current_params = [];
+		
+		// Params
+		$sql = "SELECT * FROM {$wpdb->prefix}elberos_products_params";
+		$products_params = $wpdb->get_results($sql, ARRAY_A);
+		$products_params_index = \Elberos\make_index($products_params, "alias");
+		
+		// Params values
+		$sql = "SELECT * FROM {$wpdb->prefix}elberos_products_params_values";
+		$products_params_values = $wpdb->get_results($sql, ARRAY_A);
+		
+		// Select product params
+		$sql = $wpdb->prepare
+		(
+			"SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = %d",
+			[$post->ID]
+		);
+		$options = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($options as $meta)
+		{
+			if (strpos($meta['meta_key'], 'product_param_') === 0)
+			{
+				$param_key = substr($meta['meta_key'], 14);
+				if (isset($params[$param_key])) $params[$param_key] = [ 'alias' => $param_key, 'values' => [] ];
+				$product_current_params[$param_key]['alias'] = $param_key;
+				$product_current_params[$param_key]['values'][] = $meta['meta_value'];
+			}
+		}
+		
 		// Используем nonce для верификации
 		wp_nonce_field( plugin_basename(__FILE__), 'elberos_commerce_meta_params' );
+		?>
+		
+		<div class='elberos-commerce elberos-commerce--meta-params' style='display: none;'>
+			
+			<div class='product_params'>
+				
+				<div class='product_param' v-for='current_param in product_current_params' :data-key='current_param.alias'>
+					<div class='product_param_name'>
+						{{ info(current_param.alias).name }}
+					</div>
+					<div class='product_param_value'>
+						
+						<div v-if='info(current_param.alias).type == "text"'>
+						</div>
+						
+						<div v-if='info(current_param.alias).type == "list"'>
+							<select v-model='product_current_params[current_param.alias]["values"][0]'
+								:name='"product_param[" + info(current_param.alias).alias + "]"'
+							>
+								<option value=''>Выберите параметр</option>
+								<option :value='value.alias'
+									v-for='value in products_params_values'
+									v-if='value.param_id == info(current_param.alias).id'
+								>{{ value.name }}</option>
+							</select>
+						</div>
+						
+						<div v-if='info(current_param.alias).type == "multilist"'>
+						</div>
+						
+					</div>
+					<div class='product_param_buttons'>
+						<button type='button' :data-alias='info(current_param.alias).alias' v-on:click='onDelete'>
+							Delete
+						</button>
+					</div>
+				</div>
+				
+			</div>
+			
+			<br/>
+			<b style='padding-bottom: 5px; display: block;'>Добавление параметра:</b>
+			<select class='product_select_params' style='width: 100%'>
+				<option value=''>Выберите параметр</option>
+				<?php foreach ($products_params as $params) { ?>
+					<option value="<?= esc_attr($params['alias']) ?>"><?= esc_html($params['name']) ?></option>
+				<?php } ?>
+			</select>
+			
+		</div>
+		
+		<script>
+			jQuery(document).on('change', '.product_select_params', '', function(){
+				var alias_key = jQuery(this).val();
+				product_app.addParam(alias_key);
+				jQuery(this).val('');
+			});
+			
+			function get_products_params()
+			{
+				var products_params = JSON.parse(atob("<?= base64_encode(json_encode($products_params)) ?>"));
+				var products_params_index = JSON.parse(atob("<?= base64_encode(json_encode($products_params_index)) ?>"));
+				var products_params_values = JSON.parse(atob("<?= base64_encode(json_encode($products_params_values)) ?>"));
+				var product_current_params = JSON.parse(atob("<?= base64_encode(json_encode($product_current_params)) ?>"));
+				var obj = {
+					"products_params": products_params,
+					"products_params_index": products_params_index,
+					"products_params_values": products_params_values,
+					"product_current_params": product_current_params,
+				};
+				return obj;
+			}
+			
+			jQuery(document).ready(function(){
+				var product_app = new Vue({
+					el: '.elberos-commerce--meta-params',
+					data: get_products_params(),
+					methods:
+					{
+						info: function(alias_key)
+						{
+							for (var i=0; i<this.products_params.length; i++)
+							{
+								if (this.products_params[i]['alias'] == alias_key)
+								{
+									return this.products_params[i];
+								}
+							}
+							return {};
+						},
+						onDelete: function(e)
+						{
+							var alias_key = e.target.getAttribute('data-alias');
+							delete this.$data.product_current_params[alias_key];
+							this.$forceUpdate();
+						},
+						addParam: function(alias_key)
+						{
+							if (this.$data.product_current_params[alias_key] == undefined)
+							{
+								this.$data.product_current_params[alias_key] =
+								{
+									alias: alias_key,
+									values: [""],
+								};
+								this.$forceUpdate();
+							}
+						},
+					},
+				});
+				window["product_app"] = product_app;
+				jQuery('.elberos-commerce--meta-params').show();
+			});
+		</script>
+		
+		<?php
 	}
 	
 	public static function save_meta_params($post_id)
@@ -489,6 +640,11 @@ class Metabox
 		if( ! current_user_can( 'edit_post', $post_id ) )
 			return;
 		
+		$product_param = isset($_POST['product_param']) ? $_POST['product_param'] : [];
+		foreach ($product_param as $key => $value)
+		{
+			update_post_meta( $post_id, 'product_param_' . $key, $value );
+		}
 	}
 	
 	
