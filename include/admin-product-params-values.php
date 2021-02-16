@@ -24,26 +24,9 @@ namespace Elberos\Commerce;
 if ( !class_exists( Product::class ) ) 
 {
 
-class ProductParams
+class Product_Params_Values_Table extends \WP_List_Table 
 {
-	public static function show()
-	{
-		if (isset($_GET["param_id"]))
-		{
-			$table = new Product_Params_Values_Table();
-			$table->display();
-		}
-		else
-		{
-			$table = new Product_Params_Table();
-			$table->display();
-		}
-	}
-}
-
-
-class Product_Params_Table extends \WP_List_Table 
-{
+	var $param_value = null;
 	
 	function __construct()
 	{
@@ -58,7 +41,7 @@ class Product_Params_Table extends \WP_List_Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->prefix . 'elberos_products_params';
+		return $wpdb->prefix . 'elberos_products_params_values';
 	}
 	
 	
@@ -83,8 +66,7 @@ class Product_Params_Table extends \WP_List_Table
 	{
 		$columns = array(
 			'cb' => '<input type="checkbox" />',
-			'name' => __('Название', 'elberos-commerce'),
-			'type' => __('Тип', 'elberos-commerce'),
+			'name' => __('Значение', 'elberos-commerce'),
 			'alias' => __('Ярлык', 'elberos-commerce'),
 			'buttons' => __('', 'elberos-commerce'),
 		);
@@ -97,7 +79,6 @@ class Product_Params_Table extends \WP_List_Table
 		$sortable_columns = array(
 			'alias' => array('alias', true),
 			'name' => array('name', true),
-			'type' => array('type', true),
 		);
 		return $sortable_columns;
 	}
@@ -137,41 +118,17 @@ class Product_Params_Table extends \WP_List_Table
 		);
 	}
 	
-	// Колонка type
-	function column_type($item)
-	{
-		$type = isset($item["type"]) ? $item["type"] : "";
-		if ($type == "text") return "Текст";
-		if ($type == "list") return "Список";
-		if ($type == "multilist") return "Мультисписок";
-		return "";
-	}
-	
 	// Колонка name
 	function column_buttons($item)
 	{
+		$param_id = isset($_GET['param_id']) ? $_GET['param_id'] : '';
 		$actions = array(
 			'edit' => sprintf(
-				'<a href="?page=elberos-commerce-product-params&action=edit&id=%s">%s</a>',
-				$item['id'], 
+				'<a href="?page=elberos-commerce-product-params&action=edit&param_id=%s&id=%s">%s</a>',
+				$param_id, $item['id'],
 				__('Edit', 'elberos-commerce')
 			),
-			/*
-			'delete' => sprintf(
-				'<a href="?page=elberos-commerce-product-params&action=show_delete&id=%s">%s</a>',
-				$item['id'],
-				__('Delete', 'elberos-commerce')
-			),*/
 		);
-		
-		if (in_array($item["type"], ["list", "multilist"]))
-		{
-			$actions["values"] = sprintf(
-				'<a href="?page=elberos-commerce-product-params&param_id=%s">%s</a>',
-				$item['id'],
-				__('Значения', 'elberos-commerce')
-			);
-		}
 		
 		return $this->row_actions($actions, true);
 	}
@@ -206,6 +163,8 @@ class Product_Params_Table extends \WP_List_Table
 		$inner_join = [];
 		$args = [];
 		$where = [];
+		$where[] = "param_id = %d";
+		$args[] = $this->param_value["id"];
 		if ($is_deleted == "true") $where[] = "is_deleted = 1";
 		else $where[] = "is_deleted = 0";
 		
@@ -275,7 +234,6 @@ class Product_Params_Table extends \WP_List_Table
 			$item,
 			[
 				"alias",
-				"type",
 			]
 		);
 		
@@ -294,6 +252,7 @@ class Product_Params_Table extends \WP_List_Table
 		$item["text"] = serialize($item["text"]);
 		$item["name"] = isset($_POST["text"][$default_lang]) ? $_POST["text"][$default_lang] : "";
 		$item["alias"] = \Elberos\wp_get_alias($_POST["text"], $item["alias"]);
+		$item["param_id"] = $this->param_value["id"];
 		
 		return $item;
 	}
@@ -316,6 +275,7 @@ class Product_Params_Table extends \WP_List_Table
 		global $wpdb;
 		
 		$res = \Elberos\Update::wp_save_or_update($this, basename(__FILE__));
+		$param_id = isset($_GET['param_id']) ? $_GET['param_id'] : '';
 		
 		$message = $res['message'];
 		$notice = $res['notice'];
@@ -325,7 +285,11 @@ class Product_Params_Table extends \WP_List_Table
 		
 		<div class="wrap elberos-commerce">
 			<div class="icon32 icon32-posts-post" id="icon-edit"><br></div>
-			<h1><?php _e($item['id'] > 0 ? 'Редактирование параметра' : 'Добавление параметра', 'elberos-commerce')?></h1>
+			<h1>
+				<?php _e($item['id'] > 0 ? 'Редактировать' : 'Добавить', 'elberos-commerce')?>
+				'<?= esc_html($this->param_value["name"]) ?>'
+			</h1>
+			<hr class="wp-header-end" style="margin-bottom: 16px;">
 			
 			<?php if (!empty($notice)): ?>
 				<div id="notice" class="error"><p><?php echo $notice ?></p></div>
@@ -334,7 +298,7 @@ class Product_Params_Table extends \WP_List_Table
 				<div id="message" class="updated"><p><?php echo $message ?></p></div>
 			<?php endif;?>
 			
-			<a type="button" class='button-primary' href='?page=elberos-commerce-product-params'> Back </a>
+			<a type="button" class='button-primary' href='<?= esc_attr('?page=elberos-commerce-product-params&param_id='.$param_id) ?>'> Back </a>
 			
 			<form id="form" method="POST">
 				<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
@@ -359,25 +323,8 @@ class Product_Params_Table extends \WP_List_Table
 	
 	function display_form($item)
 	{
-		$type = isset($item['type']) ? $item['type'] : "";
 		$text = isset($item['text']) ? $item['text'] : "";
 		$text = @unserialize($text);
-		?>
-		
-		<p>
-			<label for="type"><?php _e('Тип:', 'elberos-commerce')?></label>
-		<br>
-			<select id="type" name="type" type="text" style="width: 100%; max-width: 100%;"
-				value="<?php echo esc_attr($type)?>"
-			>
-				<option value="" <?= $type == "" ? "selected" : "" ?>>Укажите тип</option>
-				<option value="text" <?= $type == "text" ? "selected" : "" ?>>Текст</option>
-				<option value="list" <?= $type == "list" ? "selected" : "" ?>>Список</option>
-				<option value="multilist" <?= $type == "multilist" ? "selected" : "" ?>>Мультисписок</option>
-			</select>
-		</p>
-		
-		<?php
 		
 		$langs = \Elberos\wp_langs();
 		foreach ($langs as $key => $lang)
@@ -414,17 +361,16 @@ class Product_Params_Table extends \WP_List_Table
 	
 	function display_table()
 	{
-		$is_deleted = isset($_REQUEST['is_deleted']) ? $_REQUEST['is_deleted'] : "";
+		$is_deleted = isset($_REQUEST['is_deleted']) ? $_REQUEST['is_deleted'] : '';
+		$param_id = isset($_GET['param_id']) ? $_GET['param_id'] : '';
 		
 		$this->prepare_items();
 		$message = "";
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline">
-				<?php echo get_admin_page_title() ?>
-			</h1>
+			<h1 class="wp-heading-inline">Значения параметра '<?= esc_html($this->param_value["name"]) ?>'</h1>
 			<a href="<?php echo get_admin_url(get_current_blog_id(),
-				'admin.php?page=elberos-commerce-product-params&action=add');?>"
+				'admin.php?page=elberos-commerce-product-params&param_id=' . $param_id . '&action=add');?>"
 				class="page-title-action"
 			>
 				<?php _e('Add new', 'template')?>
@@ -458,16 +404,42 @@ class Product_Params_Table extends \WP_List_Table
 	
 	function display()
 	{
-		$this->css();
-		$action = $this->current_action();
+		global $wpdb;
 		
-		if ($action == 'add' or $action == 'edit')
+		$table_name = $wpdb->prefix . 'elberos_products_params';
+		$param_id = (int) (isset($_GET['param_id']) ? $_GET['param_id'] : '');
+		if ($param_id > 0)
 		{
-			$this->display_add_or_edit();
+			$this->param_value = $wpdb->get_row
+			(
+				$wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $param_id), ARRAY_A
+			);
+		}
+		
+		if ($this->param_value == null)
+		{
+			?>
+			<p>
+			<a type="button" class='button-primary' href='<?= esc_attr('?page=elberos-commerce-product-params') ?>'> Back </a>
+			<br/>
+			<br/>
+			Элемент не найден
+			</p>
+			<?php
 		}
 		else
 		{
-			$this->display_table();
+			$this->css();
+			$action = $this->current_action();
+			
+			if ($action == 'add' or $action == 'edit')
+			{
+				$this->display_add_or_edit();
+			}
+			else
+			{
+				$this->display_table();
+			}
 		}
 	}
 	

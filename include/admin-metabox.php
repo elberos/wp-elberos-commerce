@@ -325,10 +325,7 @@ class Metabox
 		$product_catalog = get_post_meta( $post->ID, 'product_catalog', '' );
 		
 		global $wpdb;
-		$sql = $wpdb->prepare
-		(
-			"SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'", []
-		);
+		$sql = "SELECT * FROM {$wpdb->prefix}posts WHERE post_type = 'catalog' and post_status='publish'";
 		$categories = $wpdb->get_results($sql, ARRAY_A);
 		?>
 		
@@ -627,7 +624,6 @@ class Metabox
 		static::save_categories($post_id);
 		static::save_photos($post_id);
 		static::save_meta_params($post_id);
-		static::save_products_seo($post_id);
 	}
 }
 	

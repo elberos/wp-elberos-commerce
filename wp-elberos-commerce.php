@@ -43,6 +43,7 @@ class Elberos_Commerce_Plugin
 			{
 				require_once __DIR__ . "/include/admin-css.php";
 				require_once __DIR__ . "/include/admin-product-params.php";
+				require_once __DIR__ . "/include/admin-product-params-values.php";
 				require_once __DIR__ . "/include/admin-metabox.php";
 			}
 		);
