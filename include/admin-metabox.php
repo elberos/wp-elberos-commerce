@@ -572,6 +572,7 @@ class Metabox
 				var products_params_index = JSON.parse(atob("<?= base64_encode(json_encode($products_params_index)) ?>"));
 				var products_params_values = JSON.parse(atob("<?= base64_encode(json_encode($products_params_values)) ?>"));
 				var product_current_params = JSON.parse(atob("<?= base64_encode(json_encode($product_current_params)) ?>"));
+				if (product_current_params instanceof Array) product_current_params = {};
 				var obj = {
 					"products_params": products_params,
 					"products_params_index": products_params_index,
