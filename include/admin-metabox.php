@@ -155,10 +155,13 @@ class Metabox
 	
 	public static function save_products_title($post_id)
 	{
+		global $wpdb;
+		
 		// проверяем nonce
-		if ( ! wp_verify_nonce( $_POST['elberos_commerce_title'], plugin_basename(__FILE__) ) )
+		if ( ! isset($_POST['elberos_commerce_title']) or
+		     ! wp_verify_nonce( $_POST['elberos_commerce_title'], plugin_basename(__FILE__) ) )
 			return;
-
+		
 		// если это автосохранение ничего не делаем
 		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) 
 			return;
@@ -178,6 +181,29 @@ class Metabox
 		// Save in catalog
 		$product_price = isset($_POST['product_price']) ? $_POST['product_price'] : '';
 		update_post_meta( $post_id, 'product_price', $product_price );
+		
+		// Update content
+		$post_content = [];
+		foreach ($product_text as $arr)
+		{
+			$post_content[] = $arr["name"];
+		}
+		foreach ($product_text as $arr)
+		{
+			$post_content[] = $arr["description"];
+		}
+		
+		// Update post
+		$wpdb->update
+		(
+			"{$wpdb->prefix}posts",
+			[
+				"post_content" => implode("<br/>\n", $post_content),
+			],
+			[
+				"ID" => $post_id,
+			]
+		);
 	}
 	
 	
@@ -295,7 +321,8 @@ class Metabox
 	public static function save_products_catalog_title($post_id)
 	{
 		// проверяем nonce
-		if ( ! wp_verify_nonce( $_POST['elberos_commerce_products_catalog_title'], plugin_basename(__FILE__) ) )
+		if ( ! isset($_POST['elberos_commerce_products_catalog_title']) or
+		     ! wp_verify_nonce( $_POST['elberos_commerce_products_catalog_title'], plugin_basename(__FILE__) ) )
 			return;
 
 		// если это автосохранение ничего не делаем
@@ -451,7 +478,8 @@ class Metabox
 	public static function save_categories($post_id)
 	{
 		// проверяем nonce
-		if ( ! wp_verify_nonce( $_POST['elberos_commerce_categories'], plugin_basename(__FILE__) ) )
+		if ( ! isset($_POST['elberos_commerce_categories']) or
+		     ! wp_verify_nonce( $_POST['elberos_commerce_categories'], plugin_basename(__FILE__) ) )
 			return;
 
 		// если это автосохранение ничего не делаем
@@ -521,6 +549,10 @@ class Metabox
 					<div class='product_param_value'>
 						
 						<div v-if='info(current_param.alias).type == "text"'>
+							<input v-model='product_current_params[current_param.alias]["values"][0]'
+								:name='"product_param[" + info(current_param.alias).alias + "]"'
+								type='text'
+							/>
 						</div>
 						
 						<div v-if='info(current_param.alias).type == "list"'>
@@ -630,7 +662,8 @@ class Metabox
 	public static function save_meta_params($post_id)
 	{
 		// проверяем nonce
-		if ( ! wp_verify_nonce( $_POST['elberos_commerce_meta_params'], plugin_basename(__FILE__) ) )
+		if ( ! isset($_POST['elberos_commerce_meta_params']) or
+		     ! wp_verify_nonce( $_POST['elberos_commerce_meta_params'], plugin_basename(__FILE__) ) )
 			return;
 
 		// если это автосохранение ничего не делаем
@@ -644,7 +677,14 @@ class Metabox
 		$product_param = isset($_POST['product_param']) ? $_POST['product_param'] : [];
 		foreach ($product_param as $key => $value)
 		{
-			update_post_meta( $post_id, 'product_param_' . $key, $value );
+			if (gettype($value) == 'array')
+			{
+				\Elberos\update_post_meta_arr( $post_id, 'product_param_' . $key, $value );
+			}
+			else
+			{
+				update_post_meta( $post_id, 'product_param_' . $key, $value );
+			}
 		}
 	}
 	
@@ -751,7 +791,8 @@ class Metabox
 	public static function save_photos($post_id)
 	{
 		// проверяем nonce
-		if ( ! wp_verify_nonce( $_POST['elberos_commerce_photos'], plugin_basename(__FILE__) ) )
+		if ( ! isset($_POST['elberos_commerce_photos']) or
+		     ! wp_verify_nonce( $_POST['elberos_commerce_photos'], plugin_basename(__FILE__) ) )
 			return;
 
 		// если это автосохранение ничего не делаем

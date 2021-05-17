@@ -143,7 +143,7 @@ class Product_Params_Table extends \WP_List_Table
 		$type = isset($item["type"]) ? $item["type"] : "";
 		if ($type == "text") return "Текст";
 		if ($type == "list") return "Список";
-		if ($type == "multilist") return "Мультисписок";
+		/*if ($type == "multilist") return "Мультисписок";*/
 		return "";
 	}
 	

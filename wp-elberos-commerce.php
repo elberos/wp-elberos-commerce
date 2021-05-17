@@ -56,6 +56,24 @@ class Elberos_Commerce_Plugin
 		add_filter('manage_products_posts_columns', 'Elberos_Commerce_Plugin::products_columns');
 		add_action('manage_products_posts_custom_column', 'Elberos_Commerce_Plugin::products_columns_custom', 0, 2);
 		add_action('plugins_loaded', 'Elberos_Commerce_Plugin::rank_math_loaded');
+		
+		/* Remove plugin updates */
+		add_filter( 'site_transient_update_plugins', 'Elberos_Commerce_Plugin::filter_plugin_updates' );
+	}
+	
+	
+	
+	/**
+	 * Remove plugin updates
+	 */
+	public static function filter_plugin_updates($value)
+	{
+		$name = plugin_basename(__FILE__);
+		if (isset($value->response[$name]))
+		{
+			unset($value->response[$name]);
+		}
+		return $value;
 	}
 	
 	
@@ -154,9 +172,9 @@ class Elberos_Commerce_Plugin
 		
 		add_meta_box
 		(
-			'product_photos',
-			'Фотографии',
-			'\Elberos\Commerce\Metabox::show_photos',
+			'product_params',
+			'Параметры товара или услуги',
+			'\Elberos\Commerce\Metabox::show_meta_params',
 			[
 				'products',
 			],
@@ -166,9 +184,9 @@ class Elberos_Commerce_Plugin
 		
 		add_meta_box
 		(
-			'product_params',
-			'Параметры товара или услуги',
-			'\Elberos\Commerce\Metabox::show_meta_params',
+			'product_photos',
+			'Фотографии',
+			'\Elberos\Commerce\Metabox::show_photos',
 			[
 				'products',
 			],
