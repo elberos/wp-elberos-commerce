@@ -59,6 +59,10 @@ class Elberos_Commerce_Plugin
 		
 		/* Remove plugin updates */
 		add_filter( 'site_transient_update_plugins', 'Elberos_Commerce_Plugin::filter_plugin_updates' );
+		
+		/* Include api */
+		include __DIR__ . "/include/api.php";
+		\Elberos\Commerce\Api::init();
 	}
 	
 	

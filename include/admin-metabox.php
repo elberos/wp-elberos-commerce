@@ -40,7 +40,7 @@ class Metabox
 		// Get products text
 		$product_text = get_post_meta( $post->ID, 'product_text', '' );
 		$product_text = isset($product_text[0]) ? $product_text[0] : '';
-		$product_text = @unserialize($product_text);
+		//$product_text = @unserialize($product_text);
 		
 		// In catalog
 		$product_in_catalog = get_post_meta( $post->ID, 'product_in_catalog', '' );
@@ -172,7 +172,8 @@ class Metabox
 		
 		// Save text
 		$product_text = isset($_POST['product_text']) ? $_POST['product_text'] : [];
-		update_post_meta( $post_id, 'product_text', serialize($product_text) );
+		//update_post_meta( $post_id, 'product_text', serialize($product_text) );
+		update_post_meta( $post_id, 'product_text', $product_text );
 		
 		// Save price
 		$product_in_catalog = isset($_POST['product_in_catalog']) ? $_POST['product_in_catalog'] : 0;
@@ -222,7 +223,7 @@ class Metabox
 		// Get products text
 		$product_catalog_text = get_post_meta( $post->ID, 'product_catalog_text', '' );
 		$product_catalog_text = isset($product_catalog_text[0]) ? $product_catalog_text[0] : '';
-		$product_catalog_text = @unserialize($product_catalog_text);
+		//$product_catalog_text = @unserialize($product_catalog_text);
 		
 		?>
 		<div class="elberos-commerce product_catalog_text">
@@ -335,7 +336,8 @@ class Metabox
 		
 		// Save text
 		$product_catalog_text = isset($_POST['product_catalog_text']) ? $_POST['product_catalog_text'] : [];
-		update_post_meta( $post_id, 'product_catalog_text', serialize($product_catalog_text) );
+		//update_post_meta( $post_id, 'product_catalog_text', serialize($product_catalog_text) );
+		update_post_meta( $post_id, 'product_catalog_text', $product_catalog_text );
 	}
 	
 	
