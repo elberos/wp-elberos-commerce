@@ -51,6 +51,22 @@ class Api
 				return static::api_add_to_basket($site);
 			},
 		);
+		$site->add_api
+		(
+			"elberos_commerce", "remove_from_basket",
+			function ($site)
+			{
+				return static::api_remove_from_basket($site);
+			},
+		);
+		$site->add_api
+		(
+			"elberos_commerce", "clear_basket",
+			function ($site)
+			{
+				return static::api_clear_basket($site);
+			},
+		);
 	}
 	
 	
@@ -67,7 +83,7 @@ class Api
 			$basket_product_count = isset($row['product_count']) ? $row['product_count'] : 1;
 			
 			if ($product_id != $basket_product_id) continue;
-			if (\Elberos\equalArr($product_params, $basket_product_params)) continue;
+			if (!\Elberos\equalArr($product_params, $basket_product_params)) continue;
 			
 			return $index;
 		}
@@ -117,7 +133,7 @@ class Api
 		
 		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
 		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
-		$product_count = isset($_POST['product_count']) ? $_POST['product_count'] : [];
+		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
 		
 		$basket = static::addToBasket($basket, $product_id, $product_params, $product_count);
 		
@@ -136,19 +152,70 @@ class Api
 	
 	
 	/**
+	 * Remove from basket
+	 */
+	public static function api_remove_from_basket($site)
+	{
+		$basket_data = isset($_COOKIE["basket"]) ? $_COOKIE["basket"] : "";
+		$basket_data = @\Elberos\base64_decode_url($basket_data);
+		$basket = @json_decode($basket_data, true);
+		if (!$basket) $basket = [];
+		
+		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
+		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
+		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
+		
+		$basket_index = static::findBasketIndex($basket, $product_id, $product_params, $product_count);
+		if ($basket_index != -1)
+		{
+			unset($basket[$basket_index]);
+			
+			/* Set cookie */
+			$basket_data = \Elberos\base64_encode_url( json_encode($basket) );
+			setcookie('basket', $basket_data, time() + 30*24*60*60, '/');
+		}
+		
+		return
+		[
+			"message" => "OK",
+			"basket" => $basket,
+			"code" => 1,
+		];
+	}
+	
+	
+	
+	/**
+	 * Clear basket
+	 */
+	public static function api_clear_basket($site)
+	{
+		/* Set cookie */
+		$basket_data = \Elberos\base64_encode_url( json_encode([]) );
+		setcookie('basket', $basket_data, 0, '/');
+	}
+	
+	
+	
+	/**
 	 * Get products by ids
 	 */
 	public static function getProducts($products_id)
 	{
 		global $wpdb;
 		
-		$sql = $wpdb->prepare
-		(
-			"select * from {$wpdb->prefix}postmeta as postmeta " .
-			"where post_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
-			$products_id
-		);
-		$arr = $wpdb->get_results($sql, ARRAY_A);
+		$arr = [];
+		$products_count = count($products_id);
+		if ($products_count > 0)
+		{
+			$sql = $wpdb->prepare
+			(
+				"select * from {$wpdb->prefix}postmeta as postmeta " .
+				"where post_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				$products_id
+			);
+			$arr = $wpdb->get_results($sql, ARRAY_A);
+		}
 		
 		/* Meta */
 		$products_meta = [];
