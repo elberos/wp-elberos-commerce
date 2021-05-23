@@ -43,30 +43,10 @@ class Api
 	 */
 	public static function register_routes($site)
 	{
-		$site->add_api
-		(
-			"elberos_commerce", "add_to_basket",
-			function ($site)
-			{
-				return static::api_add_to_basket($site);
-			},
-		);
-		$site->add_api
-		(
-			"elberos_commerce", "remove_from_basket",
-			function ($site)
-			{
-				return static::api_remove_from_basket($site);
-			},
-		);
-		$site->add_api
-		(
-			"elberos_commerce", "clear_basket",
-			function ($site)
-			{
-				return static::api_clear_basket($site);
-			},
-		);
+		$site->add_api("elberos_commerce", "add_to_basket", "\\Elberos\\Commerce\\Api::api_add_to_basket");
+		$site->add_api("elberos_commerce", "remove_from_basket", "\\Elberos\\Commerce\\Api::api_remove_from_basket");
+		$site->add_api("elberos_commerce", "clear_basket", "\\Elberos\\Commerce\\Api::api_clear_basket");
+		$site->add_api("elberos_commerce", "send_basket", "\\Elberos\\Commerce\\Api::api_send_basket");
 	}
 	
 	
@@ -126,11 +106,10 @@ class Api
 	 */
 	public static function api_add_to_basket($site)
 	{
-		$basket_data = isset($_COOKIE["basket"]) ? $_COOKIE["basket"] : "";
-		$basket_data = @\Elberos\base64_decode_url($basket_data);
-		$basket = @json_decode($basket_data, true);
-		if (!$basket) $basket = [];
+		/* Get basket data */
+		$basket = static::getBasketData();
 		
+		/* Get product data */
 		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
 		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
 		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
@@ -156,11 +135,10 @@ class Api
 	 */
 	public static function api_remove_from_basket($site)
 	{
-		$basket_data = isset($_COOKIE["basket"]) ? $_COOKIE["basket"] : "";
-		$basket_data = @\Elberos\base64_decode_url($basket_data);
-		$basket = @json_decode($basket_data, true);
-		if (!$basket) $basket = [];
+		/* Get basket data */
+		$basket = static::getBasketData();
 		
+		/* Get product data */
 		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
 		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
 		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
@@ -193,6 +171,137 @@ class Api
 		/* Set cookie */
 		$basket_data = \Elberos\base64_encode_url( json_encode([]) );
 		setcookie('basket', $basket_data, 0, '/');
+		
+		return
+		[
+			"message" => "OK",
+			"code" => 1,
+		];
+	}
+	
+	
+	
+	/**
+	 * Send basket
+	 */
+	public static function api_send_basket($site)
+	{
+		global $wpdb;
+		
+		/* Get basket data */
+		$basket = static::getBasketData();
+		if (count($basket) == 0)
+		{
+			return
+			[
+				"message" => "Корзина пустая",
+				"code" => -1,
+			];
+		}
+		
+		/* Send data */
+		$send_data = isset($_POST['data']) ? $_POST['data'] : [];
+		
+		/* Get utm */
+		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
+		$utm = apply_filters( 'elberos_form_utm', $utm );
+		
+		/* Create secret code */
+		$secret_code = wp_generate_password(12, false, false);
+		
+		/* Calculate price */
+		$price = static::getBasketPrice($basket);
+		
+		/* Insert data */
+		// $wpdb->show_errors();
+		$table_invoice = $wpdb->prefix . 'elberos_commerce_invoice';
+		$wpdb->insert
+		(
+			$table_invoice,
+			[
+				"secret_code" => $secret_code,
+				"send_data" => json_encode($send_data),
+				"basket" => json_encode($basket),
+				"utm" => json_encode($utm),
+				"price" => $price,
+				"client_id" => null,
+				"gmtime_add" => \Elberos\dbtime(),
+			]
+		);
+		
+		/* Invoice id */
+		$invoice_id = $wpdb->invoice_id;
+		
+		/* Clear basket */
+		static::api_clear_basket($site);
+		
+		return
+		[
+			"invoice_id" => $invoice_id,
+			"message" => "OK",
+			"code" => 1,
+		];
+	}
+	
+	
+	
+	/**
+	 * Get basket
+	 */
+	public static function getBasketData()
+	{
+		$basket_data = isset($_COOKIE["basket"]) ? $_COOKIE["basket"] : "";
+		$basket_data = @\Elberos\base64_decode_url($basket_data);
+		$basket = @json_decode($basket_data, true);
+		if (!$basket) $basket = [];
+		return $basket;
+	}
+	
+	
+	
+	/**
+	 * Get basket products
+	 */
+	public static function getBasketProducts()
+	{
+		$basket = \Elberos\Commerce\Api::getBasketData();
+		
+		/* Get meta values */
+		$products_id = array_map
+		(
+			function($row) { return $row["product_id"]; },
+			$basket
+		);
+		
+		/* Get products by id */
+		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
+		
+		return [$basket, $products_meta];
+	}
+	
+	
+	
+	/**
+	 * Get basket products
+	 */
+	public static function getBasketPrice()
+	{
+		list($basket, $products_meta) = \Elberos\Commerce\Api::getBasketProducts();
+		
+		$price_total = 0;
+		foreach ($basket as $basket_data)
+		{
+			$product_count = intval( isset($basket_data["product_count"]) ? $basket_data["product_count"] : 0 );
+			$product_id = isset($basket_data["product_id"]) ? $basket_data["product_id"] : -1;
+			$product = isset($products_meta[$product_id]) ? $products_meta[$product_id] : null;
+			
+			if ($product == null) continue;
+			if ($product_count < 0) $product_count = 0;
+			
+			$price_total = $price_total + $product['price'] * $product_count;
+		}
+		
+		return $price_total;
 	}
 	
 	
