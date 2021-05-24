@@ -21,7 +21,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Product::class ) ) 
+if ( !class_exists( Product_Params_Values_Table::class ) ) 
 {
 
 class Product_Params_Values_Table extends \WP_List_Table 

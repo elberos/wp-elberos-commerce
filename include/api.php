@@ -199,8 +199,27 @@ class Api
 			];
 		}
 		
+		/* Get products data */
+		$products_meta = \Elberos\Commerce\Api::getBasketProducts($basket);
+		
 		/* Send data */
 		$send_data = isset($_POST['data']) ? $_POST['data'] : [];
+		
+		/* Validation */
+		$validation = apply_filters
+		(
+			'elberos_commerce_basket_validation',
+			null, $send_data, $basket, $products_meta
+		);
+		if ($validation != null)
+		{
+			return
+			[
+				"message" => "Ошибка валидации",
+				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
+				"code" => -1,
+			];
+		}
 		
 		/* Get utm */
 		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
@@ -210,7 +229,21 @@ class Api
 		$secret_code = wp_generate_password(12, false, false);
 		
 		/* Calculate price */
-		$price = static::getBasketPrice($basket);
+		$price = static::getBasketPrice($basket, $products_meta);
+		
+		/* Remove meta param */
+		foreach ($products_meta as &$arr)
+		{
+			if (isset($arr['meta'])) unset( $arr['meta'] );
+		}
+		
+		/* Find client */
+		$client_id = null;
+		$client_id = apply_filters
+		(
+			'elberos_commerce_basket_find_client',
+			$client_id, $send_data, $basket, $products_meta
+		);
 		
 		/* Insert data */
 		// $wpdb->show_errors();
@@ -221,10 +254,11 @@ class Api
 			[
 				"secret_code" => $secret_code,
 				"send_data" => json_encode($send_data),
+				"products_meta" => json_encode($products_meta),
 				"basket" => json_encode($basket),
 				"utm" => json_encode($utm),
 				"price" => $price,
-				"client_id" => null,
+				"client_id" => $client_id,
 				"gmtime_add" => \Elberos\dbtime(),
 			]
 		);
@@ -262,7 +296,7 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketProducts()
+	public static function getBasketProducts($basket)
 	{
 		$basket = \Elberos\Commerce\Api::getBasketData();
 		
@@ -275,8 +309,7 @@ class Api
 		
 		/* Get products by id */
 		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
-		
-		return [$basket, $products_meta];
+		return $products_meta;
 	}
 	
 	
@@ -284,10 +317,8 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketPrice()
+	public static function getBasketPrice($basket, $products_meta)
 	{
-		list($basket, $products_meta) = \Elberos\Commerce\Api::getBasketProducts();
-		
 		$price_total = 0;
 		foreach ($basket as $basket_data)
 		{

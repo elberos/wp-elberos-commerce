@@ -21,7 +21,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Product::class ) ) 
+if ( !class_exists( ProductParams::class ) ) 
 {
 
 class ProductParams

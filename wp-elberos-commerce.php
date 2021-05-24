@@ -42,6 +42,7 @@ class Elberos_Commerce_Plugin
 			function()
 			{
 				require_once __DIR__ . "/include/admin-css.php";
+				require_once __DIR__ . "/include/admin-invoices.php";
 				require_once __DIR__ . "/include/admin-product-params.php";
 				require_once __DIR__ . "/include/admin-product-params-values.php";
 				require_once __DIR__ . "/include/admin-metabox.php";
@@ -95,7 +96,7 @@ class Elberos_Commerce_Plugin
 			{
 				echo "1";
 			},
-			null,
+			'/wp-content/plugins/wp-elberos-commerce/images/commerce.png',
 			30
 		);
 		
@@ -115,7 +116,7 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-invoice',
 			function()
 			{
-				echo "Invoices";
+				\Elberos\Commerce\Invoices::show();
 			}
 		);
 	}
