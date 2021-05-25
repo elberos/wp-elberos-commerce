@@ -340,7 +340,7 @@ class Api
 	/**
 	 * Get products by ids
 	 */
-	public static function getProducts($products_id)
+	public static function getProducts($products_id, $load_images = false)
 	{
 		global $wpdb;
 		
@@ -384,18 +384,34 @@ class Api
 			
 			/* Product photos */
 			$product_photos = \Elberos\find_items($meta, "meta_key", "product_photo_id");
-			$product_photos = array_map( function($row) { return $row["meta_value"]; }, $product_photos );
+			$product_photos = array_map( function($row) { return [ "id" => $row["meta_value"] ]; }, $product_photos );
 			
-			$product_photo = isset($product_photos[0]) ? $product_photos[0] : "";
-			$product_photo_url = \Elberos\get_image_url($product_photo, "medium_large");
+			/* Load images */
+			if ($load_images)
+			{
+				foreach ($product_photos as &$photo)
+				{
+					$photo["url"] = \Elberos\get_image_url($photo["id"], "medium_large");
+				}
+			}
+			else
+			{
+				if (isset($product_photos[0]))
+				{
+					$product_photos[0]["url"] = \Elberos\get_image_url($product_photos[0]["id"], "medium_large");
+				}
+			}
 			
-			/* Array */
+			/* Result */
 			$products_arr["id"] = $post_id;
 			$products_arr["text"] = $product_text;
 			$products_arr["price"] = $product_price;
 			$products_arr["photos"] = $product_photos;
-			$products_arr["photo_id"] = $product_photo;
-			$products_arr["photo_url"] = $product_photo_url;
+			if (isset($product_photos[0]))
+			{
+				$products_arr["photo_id"] = $product_photos[0]["id"];
+				$products_arr["photo_url"] = $product_photos[0]["url"];
+			}
 		}
 		
 		return $products_meta;

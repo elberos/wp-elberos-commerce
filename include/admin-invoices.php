@@ -206,7 +206,7 @@ class Invoices_Table extends \WP_List_Table
 		);
 		
 		$this->items = $wpdb->get_results($sql, ARRAY_A);
-
+		
 		$this->set_pagination_args(array(
 			'total_items' => $total_items, 
 			'per_page' => $per_page,
@@ -277,7 +277,7 @@ class Invoices_Table extends \WP_List_Table
 					<div id="post-body">
 						<div id="post-body-content">
 							<div class="add_or_edit_form"
-								style="width: 60%; display: inline-block; vertical-align: topl">
+								style="width: 100%; display: inline-block; vertical-align: top;">
 								<?php $this->display_form($item) ?>
 							</div>
 							<div style='clear: both'></div>
@@ -299,6 +299,10 @@ class Invoices_Table extends \WP_List_Table
 		?>
 		
 		<style>
+		.page_basket_table table{
+			width: 100%;
+			border-spacing: 0;
+		}
 		.page_basket_table_row td {
 			padding-top: 10px;
 			padding-bottom: 10px;
@@ -313,6 +317,7 @@ class Invoices_Table extends \WP_List_Table
 		}
 		.page_basket_product_price {
 			font-weight: bold;
+			text-align: right;
 		}
 		.page_basket_table_row_total td {
 			padding-top: 20px;
@@ -322,8 +327,12 @@ class Invoices_Table extends \WP_List_Table
 			text-align: right;
 			padding-right: 20px;
 		}
+		.page_basket_table_row_total_3 {
+			text-align: right;
+		}
 		</style>
 		
+		<div class='page_basket_table'>
 		<p>
 			<?= $this->column_client($item); ?>
 		</p>
@@ -370,7 +379,7 @@ class Invoices_Table extends \WP_List_Table
 					$basket_sum_total = $basket_sum_total + $product['price'] * $product_count;
 					
 					?>
-					<tr class='page_basket_table_header'>
+					<tr class='page_basket_table_row'>
 						<td>
 							<div class='page_basket_product_image'>
 								<img src='<?= esc_attr($photo_url) ?>' />
@@ -380,7 +389,7 @@ class Invoices_Table extends \WP_List_Table
 									<?= esc_html($product['text']['ru_RU']['name']) ?>
 								</div>
 								<div class='page_basket_product_title_row'>Артикул: <span class='value'>646464</span></div>
-								<div class='page_basket_product_title_row'><span class='value'>340 шт/кор</span></div>
+								<div class='page_basket_product_title_row'>340 шт/кор</div>
 							</div>
 						</td>
 						<td>
@@ -418,6 +427,7 @@ class Invoices_Table extends \WP_List_Table
 		</table>
 		
 		</p>
+		</div>
 		<?php
 	}
 	
