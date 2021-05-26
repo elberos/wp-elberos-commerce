@@ -238,12 +238,29 @@ class Api
 		}
 		
 		/* Find client */
-		$client_id = null;
-		$client_id = apply_filters
+		$find_client_res =
+		[
+			'register' => false,
+			'client_id' => null,
+			'item' => null,
+		];
+		$find_client_res = apply_filters
 		(
 			'elberos_commerce_basket_find_client',
-			$client_id, $send_data, $basket, $products_meta
+			$find_client_res, $send_data, $basket, $products_meta
 		);
+		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
+		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
+		
+		/* Client not found */
+		if ($client_id == null)
+		{
+			return
+			[
+				"message" => "Клиент не найден",
+				"code" => -1,
+			];
+		}
 		
 		/* Insert data */
 		// $wpdb->show_errors();
@@ -264,14 +281,21 @@ class Api
 		);
 		
 		/* Invoice id */
-		$invoice_id = $wpdb->invoice_id;
+		$invoice_id = $wpdb->insert_id;
 		
 		/* Clear basket */
 		static::api_clear_basket($site);
 		
+		/* Auth client if need */
+		if ($client_register == true && isset($find_client_res['item']))
+		{
+			\Elberos\UserCabinet\Api::create_session($find_client_res['item']);
+		}
+		
 		return
 		[
 			"invoice_id" => $invoice_id,
+			"secret_code" => $secret_code,
 			"message" => "OK",
 			"code" => 1,
 		];
