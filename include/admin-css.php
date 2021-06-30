@@ -31,7 +31,8 @@ class CSS
 		$post_type = $screen ? $screen->post_type : "";
 		
 		if (
-			$pagenow == "post.php" && in_array($post_type, ["products", "products_catalog"]) or
+			($pagenow == "post.php" or $pagenow == "post-new.php") &&
+				in_array($post_type, ["products", "products_catalog"]) or
 			in_array($pagenow, ["elberos-commerce-product-params"])
 		)
 		{

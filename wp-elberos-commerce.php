@@ -64,6 +64,13 @@ class Elberos_Commerce_Plugin
 		/* Include api */
 		include __DIR__ . "/include/api.php";
 		\Elberos\Commerce\Api::init();
+		
+		/* Include 1C */
+		include __DIR__ . "/1c/Controller.php";
+		include __DIR__ . "/1c/Helper.php";
+		include __DIR__ . "/1c/Import.php";
+		include __DIR__ . "/1c/Task.php";
+		\Elberos\Commerce\_1C\Controller::init();
 	}
 	
 	
@@ -348,9 +355,9 @@ class Elberos_Commerce_Plugin
 			//'capabilities'      => 'post', // массив дополнительных прав для этого типа записи
 			//'map_meta_cap'      => null, // Ставим true чтобы включить дефолтный обработчик специальных прав
 			'hierarchical'        => true,
-			'supports'            => [ 'title' ],
-			//'title', 'editor', 'author', 'thumbnail', 'excerpt', 'trackbacks', 'custom-fields',
-			//'comments', 'revisions','post-formats', 'page-attributes'
+			'supports'            => [ 'title', 'page-attributes' ],
+			//'supports' => ['title', 'editor', 'author', 'thumbnail', 'excerpt', 'trackbacks', 'custom-fields',
+			//'comments', 'revisions','post-formats', 'page-attributes'],
 			'taxonomies'          => [],
 			'has_archive'         => 'catalog',
 			'rewrite'             => false,
