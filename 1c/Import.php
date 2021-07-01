@@ -86,6 +86,8 @@ class Import
 		$this->loadProducts();
 		$this->loadPriceTypes();
 		$this->loadProductParams();
+		$this->loadWarehouses();
+		$this->loadOffers();
 	}
 	
 	
@@ -121,47 +123,25 @@ class Import
 			
 			/* Ищем классификатор */
 			$classifier_code_1c = (string)$this->xml->Классификатор->Ид;
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name_classifiers " .
-				"where code_1c = :code_1c limit 1",
-				[
-					"code_1c" => $classifier_code_1c,
-				]
-			);
-			$classifier = $wpdb->get_row($sql, ARRAY_A);
-			$classifier_id = null;
-			if (!$classifier)
+			if ($classifier_code_1c != "")
 			{
-				$wpdb->insert
+				$classifier = \Elberos\wpdb_insert_or_update
 				(
 					$table_name_classifiers,
+					[
+						"code_1c" => $classifier_code_1c,
+					],
 					[
 						"code_1c" => $classifier_code_1c,
 						"name" => $name,
 					]
 				);
-				$classifier_id = $wpdb->insert_id;
-			}
-			else
-			{
-				$sql = \Elberos\wpdb_prepare
-				(
-					"update $table_name_classifiers " .
-					"set name=:name " .
-					"where id = :id",
-					[
-						"id" => $classifier['id'],
-						"name" => $name,
-					]
-				);
-				$wpdb->query($sql);
 				$classifier_id = $classifier['id'];
 			}
 		}
 		
 		/* Создаем каталог */
-		if ($this->isCatalog())
+		if ($this->xml->Каталог != null)
 		{
 			/* Получаем название */
 			$name = [];
@@ -177,48 +157,23 @@ class Import
 			
 			/* Ищем каталог */
 			$catalog_code_1c = (string)$this->xml->Каталог->Ид;
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name_catalogs " .
-				"where code_1c = :code_1c limit 1",
-				[
-					"code_1c" => $catalog_code_1c,
-				]
-			);
-			$catalog = $wpdb->get_row($sql, ARRAY_A);
-			$catalog_id = null;
-			if (!$catalog)
+			if ($catalog_code_1c != "")
 			{
-				$wpdb->insert
+				$catalog = \Elberos\wpdb_insert_or_update
 				(
 					$table_name_catalogs,
 					[
 						"code_1c" => $catalog_code_1c,
-						"name" => $name,
-						'classifier_id' => $classifier_id,
-					]
-				);
-				$catalog_id = $wpdb->insert_id;
-			}
-			else
-			{
-				$sql = \Elberos\wpdb_prepare
-				(
-					"update $table_name_catalogs " .
-					"set name=:name, classifier_id=:classifier_id " .
-					"where id = :id",
+					],
 					[
-						"id" => $catalog['id'],
+						"code_1c" => $catalog_code_1c,
 						"name" => $name,
-						"classifier_id" => $classifier_id,
 					]
 				);
-				$wpdb->query($sql);
 				$catalog_id = $catalog['id'];
 			}
 		}
 	}
-	
 	
 	
 	
@@ -399,7 +354,6 @@ class Import
 				}
 			}
 		}
-		
 	}
 	
 	
@@ -444,7 +398,105 @@ class Import
 				}
 			}
 		}
-		
 	}
+	
+	
+	
+	/**
+	 * Загрузка складов
+	 */
+	public function loadWarehouses()
+	{
+		global $wpdb;
+		
+		/* Таблица */
+		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		
+		$xml = $this->xml->ПакетПредложений;
+		if ($xml != null && $xml->getName() == 'ПакетПредложений')
+		{
+			$classifier_code_1c = (string)$this->xml->ПакетПредложений->ИдКлассификатора;
+			$classifier = Helper::findClassifierByCode( $classifier_code_1c );
+			$classifier_id = ($classifier != null) ? $classifier["id"] : 0;
+			
+			$catalog_code_1c = (string)$this->xml->ПакетПредложений->ИдКаталога;
+			$catalog = Helper::findCatalogByCode( $catalog_code_1c );
+			$catalog_id = ($catalog != null) ? $catalog["id"] : 0;
+			
+			$items = $xml->Склады;
+			if ($items != null && $items->getName() == 'Склады')
+			{
+				foreach ($items->children() as $item)
+				{
+					if ($item->getName() == 'Склад')
+					{
+						$wpdb->insert
+						(
+							$table_name_1c_task,
+							[
+								"import_id" => $this->import["id"],
+								"catalog_id" => $catalog_id,
+								"classifier_id" => $classifier_id,
+								"type" => "warehouse",
+								"data" => (string) $item->asXML(),
+								"status" => Helper::TASK_STATUS_PLAN,
+								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+							]
+						);
+					}
+				}
+			}
+		}
+	}
+	
+	
+	
+	/**
+	 * Загрузка предложений
+	 */
+	public function loadOffers()
+	{
+		global $wpdb;
+		
+		/* Таблица */
+		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		
+		$xml = $this->xml->ПакетПредложений;
+		if ($xml != null && $xml->getName() == 'ПакетПредложений')
+		{
+			$classifier_code_1c = (string)$this->xml->ПакетПредложений->ИдКлассификатора;
+			$classifier = Helper::findClassifierByCode( $classifier_code_1c );
+			$classifier_id = ($classifier != null) ? $classifier["id"] : 0;
+			
+			$catalog_code_1c = (string)$this->xml->ПакетПредложений->ИдКаталога;
+			$catalog = Helper::findCatalogByCode( $catalog_code_1c );
+			$catalog_id = ($catalog != null) ? $catalog["id"] : 0;
+			
+			$items = $xml->Предложения;
+			if ($items != null && $items->getName() == 'Предложения')
+			{
+				foreach ($items->children() as $item)
+				{
+					if ($item->getName() == 'Предложение')
+					{
+						$wpdb->insert
+						(
+							$table_name_1c_task,
+							[
+								"import_id" => $this->import["id"],
+								"catalog_id" => $catalog_id,
+								"classifier_id" => $classifier_id,
+								"type" => "offer",
+								"data" => (string) $item->asXML(),
+								"status" => Helper::TASK_STATUS_PLAN,
+								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+							]
+						);
+					}
+				}
+			}
+		}
+	}
+	
 	
 }

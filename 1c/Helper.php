@@ -35,7 +35,9 @@ class Helper
 	static $catalogs = [];
 	static $classifiers = [];
 	static $categories = [];
+	static $price_types = [];
 	static $product_params = [];
+	static $product_params_values = [];
 	
 	
 	/**
@@ -68,21 +70,21 @@ class Helper
 		
 		if (!array_key_exists($classifier_code_1c, static::$classifiers))
 		{
-			$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_classifiers";
+			$table_name = $wpdb->base_prefix . "elberos_commerce_classifiers";
 			$sql = \Elberos\wpdb_prepare
 			(
-				"select * from $table_name_catalogs " .
+				"select * from $table_name " .
 				"where code_1c = :code_1c limit 1",
 				[
 					"code_1c" => $classifier_code_1c,
 				]
 			);
-			$classifier = $wpdb->get_row($sql, ARRAY_A);
-			static::$classifiers[$classifier_code_1c] = $classifier;
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$classifiers[$classifier_code_1c] = $item;
 		}
 		
-		$classifier = static::$classifiers[$classifier_code_1c];
-		return $classifier;
+		$item = static::$classifiers[$classifier_code_1c];
+		return $item;
 	}
 	
 	
@@ -96,21 +98,21 @@ class Helper
 		
 		if (!array_key_exists($catalog_code_1c, static::$catalogs))
 		{
-			$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_catalogs";
+			$table_name = $wpdb->base_prefix . "elberos_commerce_catalogs";
 			$sql = \Elberos\wpdb_prepare
 			(
-				"select * from $table_name_catalogs " .
+				"select * from $table_name " .
 				"where code_1c = :code_1c limit 1",
 				[
 					"code_1c" => $catalog_code_1c,
 				]
 			);
-			$catalog = $wpdb->get_row($sql, ARRAY_A);
-			static::$catalogs[$catalog_code_1c] = $catalog;
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$catalogs[$catalog_code_1c] = $item;
 		}
 		
-		$catalog = static::$catalogs[$catalog_code_1c];
-		return $catalog;
+		$item = static::$catalogs[$catalog_code_1c];
+		return $item;
 	}
 	
 	
@@ -124,21 +126,21 @@ class Helper
 		
 		if (!array_key_exists($code_1c, static::$categories))
 		{
-			$table_name_categories = $wpdb->base_prefix . "elberos_commerce_categories";
+			$table_name = $wpdb->base_prefix . "elberos_commerce_categories";
 			$sql = \Elberos\wpdb_prepare
 			(
-				"select * from $table_name_categories " .
+				"select * from $table_name " .
 				"where code_1c = :code_1c limit 1",
 				[
 					"code_1c" => $code_1c,
 				]
 			);
-			$category = $wpdb->get_row($sql, ARRAY_A);
-			static::$categories[$classifier_code_1c] = $category;
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$categories[$classifier_code_1c] = $item;
 		}
 		
-		$category = static::$categories[$code_1c];
-		return $category;
+		$item = static::$categories[$code_1c];
+		return $item;
 	}
 	
 	
@@ -150,20 +152,20 @@ class Helper
 	{
 		global $wpdb;
 		
-		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+		$table_name = $wpdb->base_prefix . "elberos_commerce_products";
 		
 		$sql = \Elberos\wpdb_prepare
 		(
-			"select * from $table_name_products " .
+			"select * from $table_name " .
 			"where code_1c = :code_1c limit 1",
 			[
 				'code_1c' => $code_1c,
 			]
 		);
-		$product = $wpdb->get_row($sql, ARRAY_A);
-		if ($product)
+		$item = $wpdb->get_row($sql, ARRAY_A);
+		if ($item)
 		{
-			return $product;
+			return $item;
 		}
 		
 		return null;
@@ -178,22 +180,79 @@ class Helper
 	{
 		global $wpdb;
 		
-		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
-		$sql = \Elberos\wpdb_prepare
-		(
-			"select * from $table_name_products " .
-			"where code_1c = :code_1c limit 1",
-			[
-				'code_1c' => $code_1c,
-			]
-		);
-		$product_param = $wpdb->get_row($sql, ARRAY_A);
-		if ($product_param)
+		if (!array_key_exists($code_1c, static::$product_params))
 		{
-			return $product_param;
+			$table_name = $wpdb->base_prefix . "elberos_commerce_products_params";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name " .
+				"where code_1c = :code_1c limit 1",
+				[
+					"code_1c" => $code_1c,
+				]
+			);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$product_params[$code_1c] = $item;
 		}
 		
-		return null;
+		$item = static::$product_params[$code_1c];
+		return $item;
+	}
+	
+	
+	
+	/**
+	 * Find product param by 1c code
+	 */
+	static function findProductParamValueByCode($code_1c)
+	{
+		global $wpdb;
+		
+		if (!array_key_exists($code_1c, static::$product_params_values))
+		{
+			$table_name = $wpdb->base_prefix . "elberos_commerce_products_params_values";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name " .
+				"where code_1c = :code_1c limit 1",
+				[
+					"code_1c" => $code_1c,
+				]
+			);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$product_params_values[$code_1c] = $item;
+		}
+		
+		$item = static::$product_params_values[$code_1c];
+		return $item;
+	}
+	
+	
+	
+	/**
+	 * Find price type by 1c code
+	 */
+	static function findPriceTypeByCode($code_1c)
+	{
+		global $wpdb;
+		
+		if (!array_key_exists($code_1c, static::$price_types))
+		{
+			$table_name = $wpdb->base_prefix . "elberos_commerce_price_types";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name " .
+				"where code_1c = :code_1c limit 1",
+				[
+					"code_1c" => $code_1c,
+				]
+			);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$price_types[$code_1c] = $item;
+		}
+		
+		$item = static::$price_types[$code_1c];
+		return $item;
 	}
 	
 	

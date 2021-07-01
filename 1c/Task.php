@@ -25,7 +25,7 @@ class Task
 {
 	var $import = null;
 	var $task_count = 0;
-	var $task_run_limits = 3;
+	var $task_run_limits = 10;
 	
 	
 	/**
@@ -134,6 +134,16 @@ class Task
 			$task = $this->importPriceType($task, $xml);
 		}
 		
+		else if ($task["type"] == "warehouse")
+		{
+			$task = $this->importWarehouse($task, $xml);
+		}
+		
+		else if ($task["type"] == "offer")
+		{
+			$task = $this->importOffer($task, $xml);
+		}
+		
 		else
 		{
 			$task['status'] = Helper::TASK_STATUS_ERROR;
@@ -147,7 +157,6 @@ class Task
 	
 	
 	/* --------------------------------- Категории --------------------------------- */
-	
 	
 	
 	/**
@@ -186,7 +195,7 @@ class Task
 		$name_ru = isset($names['ru']) ? $names['ru'] : '';
 		
 		/* Вставляем категорию в базу данных */
-		$category = \Elberos\insert_or_update
+		$category = \Elberos\wpdb_insert_or_update
 		(
 			$table_name_categories,
 			[
@@ -198,6 +207,7 @@ class Task
 				"code_1c" => $code_1c,
 				"name" => $name_ru,
 				"xml" => $xml_str,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
 		
@@ -218,8 +228,8 @@ class Task
 	}
 	
 	
-	/* ----------------------------------- Товары ---------------------------------- */
 	
+	/* ----------------------------------- Товары ---------------------------------- */
 	
 	
 	/**
@@ -243,7 +253,7 @@ class Task
 		
 		/* Вставляем товар в базу данных */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-		$product = \Elberos\insert_or_update
+		$product = \Elberos\wpdb_insert_or_update
 		(
 			$table_name_products,
 			[
@@ -254,6 +264,7 @@ class Task
 				"code_1c" => $code_1c,
 				"name" => $name_ru,
 				"xml" => $xml_str,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
 		
@@ -298,7 +309,7 @@ class Task
 		$name_ru = isset($names['ru']) ? $names['ru'] : '';
 		
 		/* Вставляем параметр в базу данных */
-		$product_param = \Elberos\insert_or_update
+		$product_param = \Elberos\wpdb_insert_or_update
 		(
 			$table_name_products_params,
 			[
@@ -310,6 +321,7 @@ class Task
 				"alias" => sanitize_title($name_ru),
 				"name" => $name_ru,
 				"xml" => $xml_str,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 				"is_deleted" => 0,
 			]
 		);
@@ -329,7 +341,7 @@ class Task
 					$name_ru = isset($names['ru']) ? $names['ru'] : '';
 					
 					/* Вставляем значение параметра в базу данных */
-					$product_param_value = \Elberos\insert_or_update
+					$product_param_value = \Elberos\wpdb_insert_or_update
 					(
 						$table_name_products_params_values,
 						[
@@ -341,6 +353,7 @@ class Task
 							"alias" => sanitize_title($name_ru),
 							"name" => $name_ru,
 							"xml" => (string)$item->asXml(),
+							"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 							"is_deleted" => 0,
 						]
 					);
@@ -388,7 +401,7 @@ class Task
 		$name_ru = isset($names['ru']) ? $names['ru'] : '';
 		
 		/* Вставляем параметр в базу данных */
-		$product_param = \Elberos\insert_or_update
+		$product_param = \Elberos\wpdb_insert_or_update
 		(
 			$table_name_price_types,
 			[
@@ -399,6 +412,7 @@ class Task
 				"code_1c" => $code_1c,
 				"name" => $name_ru,
 				"xml" => $xml_str,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
 		
@@ -425,10 +439,43 @@ class Task
 	/**
 	 * Загружаем параметр товара в базу
 	 */
-	public function importWarehouseParam($task, $xml)
+	public function importWarehouse($task, $xml)
 	{
+		global $wpdb;
+		
+		$xml_str = $task['data'];
+		$classifier_id = $task['classifier_id'];
+		$code_1c = (string)$xml->Ид;
+		
+		/* Название таблиц */
+		$table_name_warehouses = $wpdb->base_prefix . "elberos_commerce_warehouses";
+		
+		/* Получаем название параметра */
+		$names = Helper::getNamesByXml($xml, 'Наименование');
+		$name_ru = isset($names['ru']) ? $names['ru'] : '';
+		
+		/* Вставляем параметр в базу данных */
+		$product_param = \Elberos\wpdb_insert_or_update
+		(
+			$table_name_warehouses,
+			[
+				"code_1c" => $code_1c,
+			],
+			[
+				"classifier_id" => $classifier_id,
+				"code_1c" => $code_1c,
+				"name" => $name_ru,
+				"xml" => $xml_str,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+			]
+		);
+		
+		/* Отмечаем задачу как обработанную */
+		$task["status"] = Helper::TASK_STATUS_DONE;
+		
 		return $task;
 	}
+	
 	
 	
 	/**
@@ -441,106 +488,137 @@ class Task
 	
 	
 	
-	/* ------------------------------------- Old ----------------------------------- */
+	/* ---------------------------------- Предложение ------------------------------ */
+	
 	
 	/**
-	 * Импорт категории в таблицу posts
+	 * Загружаем предложение в базу
 	 */
-	public function importCategoryPost($task, $category, $xml)
+	public function importOffer($task, $xml)
 	{
 		global $wpdb;
 		
-		$table_name_posts = $wpdb->prefix . "posts";
+		$xml_str = $task['data'];
+		$catalog_id = $task['catalog_id'];
+		$classifier_id = $task['classifier_id'];
 		
-		/* Ищем категорию родителя */
-		$parent_category_id = $category['parent_category_id'];
-		$parent_category_id_post = 0;
-		if ($parent_category_id > 0)
+		/* Название таблиц */
+		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+		
+		/* Получаем код товара */
+		$product_code_1c = "";
+		$offer_code_1c = (string)$xml->Ид;
+		$offer_code_1c_arr = explode("#", $offer_code_1c);
+		if (count($offer_code_1c_arr) > 0) $product_code_1c = $offer_code_1c_arr[0];
+		//var_dump($product_code_1c);
+		if ($product_code_1c == "")
 		{
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name_posts " .
-				"where post_type=:post_type and the_guid=:the_guid limit 1",
-				[
-					"the_guid" => "elberos_category_" . $parent_category_id,
-					"post_type" => "products_catalog",
-				]
-			);
-			$parent_post = $wpdb->get_row($sql, ARRAY_A);
-			if ($parent_post)
+			$task["status"] = Helper::TASK_STATUS_ERROR;
+			$task["error_code"] = -1;
+			$task["error_message"] = "Product 1c code is empty";
+			return $task;
+		}
+		
+		/* Поиск товара по коду 1с */
+		$product = Helper::findProductByCode($product_code_1c);
+		if ($product == null)
+		{
+			$task["status"] = Helper::TASK_STATUS_ERROR;
+			$task["error_code"] = -1;
+			$task["error_message"] = "Product not found";
+			return $task;
+		}
+		
+		/* Получаем название */
+		$names = Helper::getNamesByXml($xml, 'Наименование');
+		$name_ru = isset($names['ru']) ? $names['ru'] : '';
+		
+		/* Количество товара */
+		$count = (string)$xml->Количество;
+		
+		/* ЗначенияСвойств */
+		$offer_params = [];
+		$items = $xml->ЗначенияСвойств;
+		if ($items != null && $items->getName() == 'ЗначенияСвойств')
+		{
+			foreach ($items->children() as $item)
 			{
-				$parent_category_id_post = $parent_post["ID"];
+				if ($item->getName() == 'ЗначенияСвойства')
+				{
+					$product_param = Helper::findProductParamByCode( (string)$item->Ид );
+					$product_param_value = Helper::findProductParamValueByCode( (string)$item->Значение );
+					
+					if ($product_param && $product_param_value)
+					{
+						$offer_params[] =
+						[
+							"param" =>
+							[
+								"id" => $product_param['id'],
+								"code_1c" => $product_param['code_1c'],
+							],
+							"value" =>
+							[
+								"id" => $product_param_value['id'],
+								"code_1c" => $product_param_value['code_1c'],
+							]
+						];
+					}
+				}
 			}
 		}
 		
-		//var_dump($parent_category_id_post);
+		/* Цены */
+		$prices = [];
+		$items = $xml->Цены;
+		if ($items != null && $items->getName() == 'Цены')
+		{
+			foreach ($items->children() as $item)
+			{
+				if ($item->getName() == 'Цена')
+				{
+					$price_type = Helper::findPriceTypeByCode( (string)$item->ИдТипаЦены );
+					$price = (string)$item->ЦенаЗаЕдиницу;
+					$currency = (string)$item->Валюта;
+					$coefficient = (string)$item->Коэффициент;
+					
+					if ($price_type)
+					{
+						$prices[] =
+						[
+							"id" => $price_type['id'],
+							"code_1c" => $price_type['code_1c'],
+							"price" => $price,
+							"currency" => $currency,
+							"coefficient" => $coefficient,
+						];
+					}
+				}
+			}
+		}
+		//Склад
 		
-		/* Ищем запись в таблице posts */
-		$sql = \Elberos\wpdb_prepare
+		/* Вставляем параметр в базу данных */
+		$offer = \Elberos\wpdb_insert_or_update
 		(
-			"select * from $table_name_posts " .
-			"where post_type=:post_type and the_guid=:the_guid limit 1",
+			$table_name_products_offers,
 			[
-				"the_guid" => "elberos_category_" . $category["id"],
-				"post_type" => "products_catalog",
+				"code_1c" => $offer_code_1c,
+			],
+			[
+				"product_id" => $product['id'],
+				"code_1c" => $offer_code_1c,
+				"name" => $name_ru,
+				"xml" => $xml_str,
+				"prices" => json_encode($prices),
+				"offer_params" => json_encode($offer_params),
+				"count" => $count,
+				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
-		$post = $wpdb->get_row($sql, ARRAY_A);
 		
-		/* Вставляем запись */
-		if (!$post)
-		{
-			$wpdb->insert
-			(
-				$table_name_posts,
-				[
-					"post_author" => 1,
-					"post_title" => $category["name"],
-					"post_name" => sanitize_title($category["name"]),
-					"post_parent" => $parent_category_id_post,
-					"post_status" => "publish",
-					"post_date" => gmdate("Y-m-d H:i:s"),
-					"post_date_gmt" => gmdate("Y-m-d H:i:s"),
-					"post_modified" => gmdate("Y-m-d H:i:s"),
-					"post_modified_gmt" => gmdate("Y-m-d H:i:s"),
-					"comment_status" => "closed",
-					"ping_status" => "closed",
-					"the_guid" => "elberos_category_" . $category["id"],
-					"post_type" => "products_catalog",
-				]
-			);
-		}
-		
-		/* Изменяем запись */
-		else
-		{
-			$sql = \Elberos\wpdb_prepare
-			(
-				"update $table_name_posts " .
-				"set
-					post_title=:post_title,
-					post_name=:post_name,
-					post_parent=:post_parent,
-					post_status=:post_status,
-					comment_status=:comment_status,
-					ping_status=:ping_status,
-					post_modified=:post_modified,
-					post_modified_gmt=:post_modified_gmt
-				where id = :id",
-				[
-					"id" => $post["ID"],
-					"post_title" => $category["name"],
-					"post_name" => sanitize_title($category["name"]),
-					"post_parent" => $parent_category_id_post,
-					"post_modified" => gmdate("Y-m-d H:i:s"),
-					"post_modified_gmt" => gmdate("Y-m-d H:i:s"),
-					"post_status" => "publish",
-					"comment_status" => "closed",
-					"ping_status" => "closed",
-				]
-			);
-			$wpdb->query($sql);
-		}
+		/* Отмечаем задачу как обработанную */
+		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
 	}
@@ -548,82 +626,10 @@ class Task
 	
 	
 	/**
-	 * Импорт категории в таблицу posts
+	 * Вызов функции после обновления предложения
 	 */
-	public function importProductPost($task, $product, $xml)
+	public function importOfferAfter($task, $product, $xml)
 	{
-		global $wpdb;
-		
-		$table_name_posts = $wpdb->prefix . "posts";
-		
-		/* Ищем запись в таблице posts */
-		$sql = \Elberos\wpdb_prepare
-		(
-			"select * from $table_name_posts " .
-			"where post_type=:post_type and guid=:guid limit 1",
-			[
-				"guid" => static::getGUID("products", $product["id"]),
-				"post_type" => "products",
-			]
-		);
-		$post = $wpdb->get_row($sql, ARRAY_A);
-		
-		/* Вставляем запись */
-		if (!$post)
-		{
-			$wpdb->insert
-			(
-				$table_name_posts,
-				[
-					"post_author" => 1,
-					"post_title" => $product["name"],
-					"post_name" => sanitize_title($product["name"]),
-					"post_parent" => $parent_category_id_post,
-					"post_status" => "publish",
-					"post_date" => gmdate("Y-m-d H:i:s"),
-					"post_date_gmt" => gmdate("Y-m-d H:i:s"),
-					"post_modified" => gmdate("Y-m-d H:i:s"),
-					"post_modified_gmt" => gmdate("Y-m-d H:i:s"),
-					"comment_status" => "closed",
-					"ping_status" => "closed",
-					"guid" => static::getGUID("products", $product["id"]),
-					"post_type" => "products",
-				]
-			);
-		}
-		
-		/* Изменяем запись */
-		else
-		{
-			$sql = \Elberos\wpdb_prepare
-			(
-				"update $table_name_posts " .
-				"set
-					post_title=:post_title,
-					post_name=:post_name,
-					post_parent=:post_parent,
-					post_status=:post_status,
-					comment_status=:comment_status,
-					ping_status=:ping_status,
-					post_modified=:post_modified,
-					post_modified_gmt=:post_modified_gmt
-				where id = :id",
-				[
-					"id" => $post["ID"],
-					"post_title" => $product["name"],
-					"post_name" => sanitize_title($product["name"]),
-					"post_parent" => $parent_category_id_post,
-					"post_modified" => gmdate("Y-m-d H:i:s"),
-					"post_modified_gmt" => gmdate("Y-m-d H:i:s"),
-					"post_status" => "publish",
-					"comment_status" => "closed",
-					"ping_status" => "closed",
-				]
-			);
-			$wpdb->query($sql);
-		}
-		
-		return $task;
+		return [$task, $product];
 	}
-	
 }
