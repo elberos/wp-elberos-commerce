@@ -45,21 +45,21 @@ class Catalog extends \Elberos\StructBuilder
 			->addField
 			([
 				"api_name" => "code_1c",
-				"label" => "Êîä 1Ñ",
+				"label" => "ĞšĞ¾Ğ´ 1Ğ¡",
 				"type" => "input",
 			])
 			
 			->addField
 			([
 				"api_name" => "classifier_id",
-				"label" => "Êëàññèôèêàòîğ",
+				"label" => "ĞšĞ»Ğ°ÑÑĞ¸Ñ„Ğ¸ĞºĞ°Ñ‚Ğ¾Ñ€",
 				"type" => "select",
 			])
 			
 			->addField
 			([
 				"api_name" => "name",
-				"label" => "Íàçâàíèå",
+				"label" => "ĞĞ°Ğ·Ğ²Ğ°Ğ½Ğ¸Ğµ",
 				"type" => "input",
 			])
 		;

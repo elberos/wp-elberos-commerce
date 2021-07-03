@@ -20,11 +20,13 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Catalog_Table::class ) ) 
+if ( !class_exists( ProductParamValue_Table::class ) ) 
 {
 
-class Catalog_Table extends \Elberos\Table 
+class ProductParamValue_Table extends \Elberos\Table 
 {
+	var $product_param = null;
+	
 	
 	/**
 	 * Table name
@@ -32,7 +34,7 @@ class Catalog_Table extends \Elberos\Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->base_prefix . 'elberos_commerce_catalogs';
+		return $wpdb->base_prefix . 'elberos_commerce_products_params_values';
 	}
 	
 	
@@ -52,7 +54,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	static function createStruct()
 	{
-		$struct = \Elberos\Commerce\Catalog::create
+		$struct = \Elberos\Commerce\ProductParamValue::create
 		(
 			"admin_table",
 			function ($struct)
@@ -151,11 +153,13 @@ class Catalog_Table extends \Elberos\Table
 	{
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : '';
-		return sprintf
-		(
-			'<a href="?page=' . $page_name . '&action=catalog&id=%s&sub=edit&sub_id=%s">%s</a>',
-			$id, $item['id'], __('Редактировать', 'elberos-commerce')
-		);
+		return
+			sprintf
+			(
+				'<a href="?page=' . $page_name . '&action=products_params_values&id=%s&sub=edit&sub_id=%s">%s</a>',
+				$id, $item['id'], __('Редактировать', 'elberos-commerce')
+			)
+		;
 	}
 	
 	
@@ -249,11 +253,11 @@ class Catalog_Table extends \Elberos\Table
 	{
 		$args =
 		[
-			"classifier_id" => isset($_GET["id"]) ? $_GET["id"] : 0,
+			"param_id" => (int) (isset($_GET["product_param_id"]) ? $_GET["product_param_id"] : 0),
 		];
 		$where =
 		[
-			"classifier_id=:classifier_id",
+			"param_id=:param_id",
 		];
 		
 		/* Is deleted */
@@ -287,6 +291,22 @@ class Catalog_Table extends \Elberos\Table
 	
 	
 	/**
+	 * Init
+	 */
+	function display_init()
+	{
+		global $wpdb;
+		
+		parent::display_init();
+		
+		$table_name = $wpdb->base_prefix . 'elberos_commerce_products_params';
+		$product_param_id = (int) (isset($_GET["product_param_id"]) ? $_GET["product_param_id"] : 0);
+		$this->product_param = \Elberos\wpdb_get_by_id($table_name, $product_param_id);
+	}
+	
+	
+	
+	/**
 	 * CSS
 	 */
 	function display_css()
@@ -304,7 +324,7 @@ class Catalog_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : "";
 		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
-		$url = "admin.php?page=" . $page_name . "&action=catalog&id=" . $id;
+		$url = "admin.php?page=" . $page_name . "&action=products_params_values&id=" . $id;
 		?>
 		<ul class="subsubsub">
 			<li>
@@ -316,6 +336,28 @@ class Catalog_Table extends \Elberos\Table
 					class="<?= ($is_deleted == "true" ? "current" : "")?>" >Корзина</a>
 			</li>
 		</ul>
+		<?php
+	}
+	
+	
+	
+	/**
+	 * Display table add button
+	 */
+	function display_table_add_button()
+	{
+		$page_name = $this->get_page_name();
+		$id = (int) (isset($_GET["id"]) ? $_GET["id"] : 0);
+		$product_param_id = (int) (isset($_GET["product_param_id"]) ? $_GET["product_param_id"] : 0);
+		$url = "admin.php?page=" . $page_name . "&action=products_params_values&id=" . $id .
+			"&product_param_id=" . $product_param_id
+		;
+		?>
+		<a href="<?php echo get_admin_url(get_current_blog_id(), $url . '&sub=add');?>"
+			class="page-title-action"
+		>
+			<?php _e('Add new', 'elberos-core')?>
+		</a>
 		<?php
 	}
 	
@@ -342,7 +384,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_form_title($item)
 	{
-		return _e($item['id'] > 0 ? 'Редактировать каталог' : 'Добавить каталог', 'elberos-commerce');
+		return _e($item['id'] > 0 ? 'Редактировать параметр товара' : 'Добавить параметр товара', 'elberos-commerce');
 	}
 	
 	
@@ -352,25 +394,8 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_table_title()
 	{
-		return "Каталог";
-	}
-	
-	
-	
-	/**
-	 * Display table add button
-	 */
-	function display_table_add_button()
-	{
-		$page_name = $this->get_page_name();
-		$id = isset($_GET['id']) ? $_GET['id'] : '';
-		?>
-		<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $page_name . '&action=catalog&id=' . $id . '&sub=add');?>"
-			class="page-title-action"
-		>
-			<?php _e('Add new', 'elberos-core')?>
-		</a>
-		<?php
+		$name = ($this->product_param != null) ? $this->product_param["name"] : "";
+		return "Параметр товара '" . $name . "'";
 	}
 	
 	

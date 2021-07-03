@@ -20,10 +20,10 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Catalog_Table::class ) ) 
+if ( !class_exists( Category_Table::class ) ) 
 {
 
-class Catalog_Table extends \Elberos\Table 
+class Category_Table extends \Elberos\Table 
 {
 	
 	/**
@@ -32,7 +32,7 @@ class Catalog_Table extends \Elberos\Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->base_prefix . 'elberos_commerce_catalogs';
+		return $wpdb->base_prefix . 'elberos_commerce_categories';
 	}
 	
 	
@@ -52,7 +52,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	static function createStruct()
 	{
-		$struct = \Elberos\Commerce\Catalog::create
+		$struct = \Elberos\Commerce\Category::create
 		(
 			"admin_table",
 			function ($struct)
@@ -151,11 +151,19 @@ class Catalog_Table extends \Elberos\Table
 	{
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : '';
-		return sprintf
-		(
-			'<a href="?page=' . $page_name . '&action=catalog&id=%s&sub=edit&sub_id=%s">%s</a>',
-			$id, $item['id'], __('Редактировать', 'elberos-commerce')
-		);
+		return
+			sprintf
+			(
+				'<a href="?page=' . $page_name . '&action=categories&id=%s&sub_id=%s">%s</a>', 
+				$id, $item['id'], __('Подкатегории', 'elberos-commerce')
+			) .
+			"&nbsp;&nbsp;" .
+			sprintf
+			(
+				'<a href="?page=' . $page_name . '&action=categories&id=%s&sub=edit&sub_id=%s">%s</a>',
+				$id, $item['id'], __('Редактировать', 'elberos-commerce')
+			)
+		;
 	}
 	
 	
@@ -263,6 +271,10 @@ class Catalog_Table extends \Elberos\Table
 		}
 		else
 		{
+			/* Add parent category */
+			$where[] = "parent_category_id=:parent_category_id";
+			if (isset($_GET["sub_id"])) $args["parent_category_id"] = $_GET["sub_id"];
+			else $args["parent_category_id"] = 0;
 			$where[] = "is_deleted=0";
 		}
 		
@@ -292,6 +304,22 @@ class Catalog_Table extends \Elberos\Table
 	function display_css()
 	{
 		parent::display_css();
+		?>
+		<style>
+		.admin_breadcrumbs{
+			padding: 0; margin: 0;
+			padding-top: 10px;
+		}
+		.admin_breadcrumbs li{
+			display: inline-block;
+			vertical-align: top;
+			padding: 0; margin: 0;
+		}
+		.admin_breadcrumbs li a{
+			text-decoration: none;
+		}
+		</style>
+		<?php
 	}
 	
 	
@@ -301,11 +329,58 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function display_table_sub()
 	{
+		global $wpdb;
+		
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : "";
 		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
-		$url = "admin.php?page=" . $page_name . "&action=catalog&id=" . $id;
+		$url = "admin.php?page=" . $page_name . "&action=categories&id=" . $id;
 		?>
+		<?php
+		
+		$items = [];
+		$table_name = $this->get_table_name();
+		$sub_id = (int) (isset($_GET['sub_id']) ? $_GET['sub_id'] : 0);
+		while ($sub_id != 0)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from " . $table_name . " where id=:id limit 1",
+				[
+					"id" => $sub_id,
+				]
+			);
+			$row = $wpdb->get_row($sql, ARRAY_A);
+			if ($row)
+			{
+				$sub_id = $row["parent_category_id"];
+				$items[] = $row;
+			}
+			else
+			{
+				break;
+			}
+		}
+		$items[] =
+		[
+			"id" => 0,
+			"name" => "Главная",
+		];
+		$items = array_reverse($items);
+		?>
+		<ul class="admin_breadcrumbs">
+			<?php
+				$count = count($items);
+				foreach ($items as $i => $item)
+				{
+					echo "<li><a href='" . esc_attr($url . "&sub_id=" . $item["id"]) . "'>" . $item["name"] . "</a></li>";
+					if ($i < $count - 1)
+					{
+						echo "<li>&nbsp;/&nbsp;</li>";
+					}
+				}
+			?>
+		</ul>
 		<ul class="subsubsub">
 			<li>
 				<a href="<?= esc_attr($url) ?>"
@@ -342,7 +417,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_form_title($item)
 	{
-		return _e($item['id'] > 0 ? 'Редактировать каталог' : 'Добавить каталог', 'elberos-commerce');
+		return _e($item['id'] > 0 ? 'Редактировать категорию' : 'Добавить категорию', 'elberos-commerce');
 	}
 	
 	
@@ -352,7 +427,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_table_title()
 	{
-		return "Каталог";
+		return "Категории";
 	}
 	
 	
@@ -365,7 +440,7 @@ class Catalog_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : '';
 		?>
-		<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $page_name . '&action=catalog&id=' . $id . '&sub=add');?>"
+		<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $page_name . '&action=categories&id=' . $id . '&sub=add');?>"
 			class="page-title-action"
 		>
 			<?php _e('Add new', 'elberos-core')?>

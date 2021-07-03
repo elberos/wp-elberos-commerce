@@ -54,7 +54,7 @@ class Classifier_Table extends \Elberos\Table
 	{
 		$struct = \Elberos\Commerce\Classifier::create
 		(
-			"elberos_commerce_classifier",
+			"admin_table",
 			function ($struct)
 			{
 				/*
@@ -131,7 +131,8 @@ class Classifier_Table extends \Elberos\Table
 		}
 		
 		/* Info item */
-		else if (in_array($action, ['catalog', 'categories', 'price_types', 'products_params', 'warehouses']))
+		else if (in_array($action, ['catalog', 'categories', 'price_types', 'products_params',
+			'products_params_values', 'warehouses']))
 		{
 			$this->do_get_item();
 		}
@@ -183,6 +184,7 @@ class Classifier_Table extends \Elberos\Table
 			"table_name" => $this->get_table_name(),
 			"where" => implode(" and ", $where),
 			"args" => $args,
+			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
 			"per_page" => $per_page,
 		]);
 		
@@ -258,7 +260,7 @@ class Classifier_Table extends \Elberos\Table
 				</li>
 				<li>
 					<a href="admin.php?page=<?= $page_name ?>&action=products_params&id=<?= $item_id ?>"
-						class="<?= ($action == "products_params" ? "current" : "")?>" >Параметры товаров</a> |
+						class="<?= (in_array($action, ["products_params", "products_params_values"]) ? "current" : "")?>" >Параметры товаров</a> |
 				</li>
 				<li>
 					<a href="admin.php?page=<?= $page_name ?>&action=warehouses&id=<?= $item_id ?>"
@@ -303,18 +305,32 @@ class Classifier_Table extends \Elberos\Table
 		else if ($action == "categories")
 		{
 			$this->display_form_sub();
+			$table = new \Elberos\Commerce\Category_Table();
+			$table->display();
 		}
 		else if ($action == "price_types")
 		{
 			$this->display_form_sub();
+			$table = new \Elberos\Commerce\PriceType_Table();
+			$table->display();
 		}
 		else if ($action == "products_params")
 		{
 			$this->display_form_sub();
+			$table = new \Elberos\Commerce\ProductParam_Table();
+			$table->display();
+		}
+		else if ($action == "products_params_values")
+		{
+			$this->display_form_sub();
+			$table = new \Elberos\Commerce\ProductParamValue_Table();
+			$table->display();
 		}
 		else if ($action == "warehouses")
 		{
 			$this->display_form_sub();
+			$table = new \Elberos\Commerce\Warehouse_Table();
+			$table->display();
 		}
 		else
 		{

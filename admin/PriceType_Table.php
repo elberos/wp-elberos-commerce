@@ -20,10 +20,10 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Catalog_Table::class ) ) 
+if ( !class_exists( PriceType_Table::class ) ) 
 {
 
-class Catalog_Table extends \Elberos\Table 
+class PriceType_Table extends \Elberos\Table 
 {
 	
 	/**
@@ -32,7 +32,7 @@ class Catalog_Table extends \Elberos\Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->base_prefix . 'elberos_commerce_catalogs';
+		return $wpdb->base_prefix . 'elberos_commerce_price_types';
 	}
 	
 	
@@ -52,7 +52,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	static function createStruct()
 	{
-		$struct = \Elberos\Commerce\Catalog::create
+		$struct = \Elberos\Commerce\PriceType::create
 		(
 			"admin_table",
 			function ($struct)
@@ -153,7 +153,7 @@ class Catalog_Table extends \Elberos\Table
 		$id = isset($_GET['id']) ? $_GET['id'] : '';
 		return sprintf
 		(
-			'<a href="?page=' . $page_name . '&action=catalog&id=%s&sub=edit&sub_id=%s">%s</a>',
+			'<a href="?page=' . $page_name . '&action=price_types&id=%s&sub=edit&sub_id=%s">%s</a>',
 			$id, $item['id'], __('Редактировать', 'elberos-commerce')
 		);
 	}
@@ -304,7 +304,7 @@ class Catalog_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : "";
 		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
-		$url = "admin.php?page=" . $page_name . "&action=catalog&id=" . $id;
+		$url = "admin.php?page=" . $page_name . "&action=price_types&id=" . $id;
 		?>
 		<ul class="subsubsub">
 			<li>
@@ -342,7 +342,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_form_title($item)
 	{
-		return _e($item['id'] > 0 ? 'Редактировать каталог' : 'Добавить каталог', 'elberos-commerce');
+		return _e($item['id'] > 0 ? 'Редактировать тип цен' : 'Добавить тип цен', 'elberos-commerce');
 	}
 	
 	
@@ -352,7 +352,7 @@ class Catalog_Table extends \Elberos\Table
 	 */
 	function get_table_title()
 	{
-		return "Каталог";
+		return "Тип цен";
 	}
 	
 	
@@ -365,7 +365,7 @@ class Catalog_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : '';
 		?>
-		<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $page_name . '&action=catalog&id=' . $id . '&sub=add');?>"
+		<a href="<?php echo get_admin_url(get_current_blog_id(), 'admin.php?page=' . $page_name . '&action=price_types&id=' . $id . '&sub=add');?>"
 			class="page-title-action"
 		>
 			<?php _e('Add new', 'elberos-core')?>

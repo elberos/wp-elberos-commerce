@@ -42,7 +42,12 @@ class Elberos_Commerce_Plugin
 			function()
 			{
 				require_once __DIR__ . "/admin/Catalog_Table.php";
+				require_once __DIR__ . "/admin/Category_Table.php";
 				require_once __DIR__ . "/admin/Classifier_Table.php";
+				require_once __DIR__ . "/admin/PriceType_Table.php";
+				require_once __DIR__ . "/admin/ProductParam_Table.php";
+				require_once __DIR__ . "/admin/ProductParamValue_Table.php";
+				require_once __DIR__ . "/admin/Warehouse_Table.php";
 			}
 		);
 		add_action('admin_menu', 'Elberos_Commerce_Plugin::register_admin_menu');
