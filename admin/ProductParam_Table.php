@@ -208,7 +208,7 @@ class ProductParam_Table extends \Elberos\Table
 		}
 		
 		/* Move to trash items */
-		if (in_array($action, ['trash', 'notrash', 'delete']))
+		else if (in_array($action, ['trash', 'notrash', 'delete']))
 		{
 			parent::process_bulk_action();
 		}

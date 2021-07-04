@@ -45,6 +45,7 @@ class Elberos_Commerce_Plugin
 				require_once __DIR__ . "/admin/Category_Table.php";
 				require_once __DIR__ . "/admin/Classifier_Table.php";
 				require_once __DIR__ . "/admin/PriceType_Table.php";
+				require_once __DIR__ . "/admin/Product_Table.php";
 				require_once __DIR__ . "/admin/ProductParam_Table.php";
 				require_once __DIR__ . "/admin/ProductParamValue_Table.php";
 				require_once __DIR__ . "/admin/Warehouse_Table.php";
@@ -113,7 +114,8 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce',
 			function ()
 			{
-				echo "1";
+				$table = new \Elberos\Commerce\Product_Table();
+				$table->display();
 			},
 			'/wp-content/plugins/wp-elberos-commerce/images/commerce.png',
 			30

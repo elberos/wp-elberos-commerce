@@ -45,6 +45,10 @@ class CSS
 			{
 				cursor: pointer;
 			}
+			.elberos-commerce .nav-tab-wrapper
+			{
+				padding-top: 0;
+			}
 			.elberos-commerce .nav-tab-data
 			{
 				display: none;
