@@ -62,13 +62,13 @@ class Helper
 	
 	
 	/**
-	 * Ïîèñê êëàññèôèêàòîðà ïî êîäó 1ñ
+	 * ÐŸÐ¾Ð¸ÑÐº ÐºÐ»Ð°ÑÑÐ¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€Ð° Ð¿Ð¾ ÐºÐ¾Ð´Ñƒ 1Ñ
 	 */
-	static function findClassifierByCode($classifier_code_1c)
+	static function findClassifierByCode($code_1c)
 	{
 		global $wpdb;
 		
-		if (!array_key_exists($classifier_code_1c, static::$classifiers))
+		if (!array_key_exists($code_1c, static::$classifiers))
 		{
 			$table_name = $wpdb->base_prefix . "elberos_commerce_classifiers";
 			$sql = \Elberos\wpdb_prepare
@@ -76,27 +76,27 @@ class Helper
 				"select * from $table_name " .
 				"where code_1c = :code_1c limit 1",
 				[
-					"code_1c" => $classifier_code_1c,
+					"code_1c" => $code_1c,
 				]
 			);
 			$item = $wpdb->get_row($sql, ARRAY_A);
-			static::$classifiers[$classifier_code_1c] = $item;
+			static::$classifiers[$code_1c] = $item;
 		}
 		
-		$item = static::$classifiers[$classifier_code_1c];
+		$item = static::$classifiers[$code_1c];
 		return $item;
 	}
 	
 	
 	
 	/**
-	 * Ïîèñê êëàññèôèêàòîðà ïî êîäó 1ñ
+	 * ÐŸÐ¾Ð¸ÑÐº ÐºÐ»Ð°ÑÑÐ¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€Ð° Ð¿Ð¾ ÐºÐ¾Ð´Ñƒ 1Ñ
 	 */
-	static function findCatalogByCode($catalog_code_1c)
+	static function findCatalogByCode($code_1c)
 	{
 		global $wpdb;
 		
-		if (!array_key_exists($catalog_code_1c, static::$catalogs))
+		if (!array_key_exists($code_1c, static::$catalogs))
 		{
 			$table_name = $wpdb->base_prefix . "elberos_commerce_catalogs";
 			$sql = \Elberos\wpdb_prepare
@@ -104,14 +104,14 @@ class Helper
 				"select * from $table_name " .
 				"where code_1c = :code_1c limit 1",
 				[
-					"code_1c" => $catalog_code_1c,
+					"code_1c" => $code_1c,
 				]
 			);
 			$item = $wpdb->get_row($sql, ARRAY_A);
-			static::$catalogs[$catalog_code_1c] = $item;
+			static::$catalogs[$code_1c] = $item;
 		}
 		
-		$item = static::$catalogs[$catalog_code_1c];
+		$item = static::$catalogs[$code_1c];
 		return $item;
 	}
 	
@@ -136,7 +136,7 @@ class Helper
 				]
 			);
 			$item = $wpdb->get_row($sql, ARRAY_A);
-			static::$categories[$classifier_code_1c] = $item;
+			static::$categories[$code_1c] = $item;
 		}
 		
 		$item = static::$categories[$code_1c];

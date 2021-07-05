@@ -251,6 +251,16 @@ class Task
 		$descriptions = Helper::getNamesByXml($xml, 'Описание');
 		$description_ru = isset($descriptions['ru']) ? $descriptions['ru'] : '';
 		
+		/* Текст */
+		$text =
+		[
+			"ru_RU" =>
+			[
+				"name" => $name_ru,
+				"description" => $description_ru,
+			],
+		];
+		
 		/* Вставляем товар в базу данных */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
 		$product = \Elberos\wpdb_insert_or_update
@@ -262,16 +272,159 @@ class Task
 			[
 				"catalog_id" => $task["catalog_id"],
 				"code_1c" => $code_1c,
+				"text" => json_encode($text),
 				"name" => $name_ru,
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
 		
+		/* Вставка групп */
+		$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"delete from $table_name_categories where product_id=:product_id",
+			[
+				"product_id" => $product["id"],
+			]
+		);
+		$wpdb->query($sql);
+		
+		$groups = $xml->Группы;
+		foreach ($groups->children() as $group)
+		{
+			$group_code_1c = (string)$group;
+			$category = Helper::findCategoryByCode($group_code_1c);
+			if ($category)
+			{
+				$wpdb->insert
+				(
+					$table_name_categories,
+					[
+						"product_id" => $product["id"],
+						"category_id" => $category["id"],
+					]
+				);
+			}
+		}
+		
+		/* Загрузка фото */
+		$pos = 0;
+		$images = $xml->Картинка;
+		foreach ($images as $image)
+		{
+			$photo_id = $this->importProductImage($product, $image, $pos);
+			$pos++;
+		}
+		
+		
 		/* Отмечаем задачу как обработанную */
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
+	}
+	
+	
+	
+	/**
+	 * Загрузка картинки
+	 */
+	public function importProductImage($product, $xml, $pos)
+	{
+		global $wpdb;
+		
+		$session_id = session_id();
+		$image_path = (string)$xml;
+		$image_path_full = Controller::getFilePath($session_id, $image_path);
+		
+		/* Удаление фото */
+		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"delete from $table_name_products_photos where product_id=:product_id",
+			[
+				"product_id" => $product["id"],
+			]
+		);
+		$wpdb->query($sql);
+		
+		if (is_file($image_path_full))
+		{
+			$sha1 = sha1_file($image_path_full);
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from " . $wpdb->base_prefix . "postmeta " .
+				"where meta_key='file_sha1' and meta_value=:meta_value limit 1",
+				[
+					"meta_value" => $sha1,
+				]
+			);
+			$row = $wpdb->get_row($sql, ARRAY_A);
+			$photo_id = 0;
+			
+			/* Найден файл */
+			if ($row)
+			{
+				$photo_id = $row["post_id"];
+			}
+			
+			/* Загружаем файл, если не найден */
+			else
+			{
+				$file_content = file_get_contents($image_path_full);
+				$new_file_name = basename($image_path_full);
+				$wp_filetype = wp_check_filetype($new_file_name, null );
+				$upload = wp_upload_bits( $new_file_name, null, $file_content );
+				
+				/* Если успешно загружен */
+				if ( !$upload['error'] )
+				{
+					$file_url = $upload['url'];
+					$attachment = array
+					(
+						'post_date' => date('Y-m-d H:i:s'),
+						'post_date_gmt' => gmdate('Y-m-d H:i:s'),
+						'post_title' => $new_file_name,
+						'post_status' => 'inherit',
+						'comment_status' => 'closed',
+						'ping_status' => 'closed',
+						'post_name' => $new_file_name,
+						'post_modified' => date('Y-m-d H:i:s'),
+						'post_modified_gmt' => gmdate('Y-m-d H:i:s'),
+						'post_type' => 'attachment',
+						'guid' => $file_url,
+						'post_mime_type' => $wp_filetype['type'],
+						'post_excerpt' => '',
+						'post_content' => ''
+					);
+					
+					$photo_id = wp_insert_attachment( $attachment, $filename );
+					update_post_meta( $photo_id, 'file_sha1', $sha1 );
+					
+					require_once ABSPATH . 'wp-admin/includes/image.php';
+					
+					/* Обновляем метаданные */
+					update_attached_file( $photo_id, $upload['file'] );
+					\wp_update_attachment_metadata
+					(
+						$photo_id, \wp_generate_attachment_metadata( $photo_id, $upload['file'] )
+					);
+				}
+			}
+			
+			/* Загрузка картинки */
+			$wpdb->insert
+			(
+				$table_name_products_photos,
+				[
+					"product_id" => $product["id"],
+					"photo_id" => $photo_id,
+					"pos" => $pos,
+				]
+			);
+		}
+		
+		return $photo_id;
 	}
 	
 	

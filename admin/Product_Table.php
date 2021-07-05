@@ -238,10 +238,10 @@ class Product_Table extends \Elberos\Table
 		/* Добавление категорий */
 		if ($success)
 		{
-			$table_name = $wpdb->base_prefix . "elberos_commerce_products_categories";
+			$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
 			$sql = \Elberos\wpdb_prepare
 			(
-				"delete from $table_name where product_id=:product_id",
+				"delete from $table_name_categories where product_id=:product_id",
 				[
 					"product_id" => $item["id"],
 				]
@@ -255,7 +255,7 @@ class Product_Table extends \Elberos\Table
 				{
 					$wpdb->insert
 					(
-						$table_name,
+						$table_name_categories,
 						[
 							"product_id" => $item["id"],
 							"category_id" => $category,
@@ -268,10 +268,10 @@ class Product_Table extends \Elberos\Table
 		/* Добавление фото */
 		if ($success)
 		{
-			$table_name = $wpdb->base_prefix . "elberos_commerce_products_photos";
+			$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
 			$sql = \Elberos\wpdb_prepare
 			(
-				"delete from $table_name where product_id=:product_id",
+				"delete from $table_name_products_photos where product_id=:product_id",
 				[
 					"product_id" => $item["id"],
 				]
@@ -286,7 +286,7 @@ class Product_Table extends \Elberos\Table
 				{
 					$wpdb->insert
 					(
-						$table_name,
+						$table_name_products_photos,
 						[
 							"product_id" => $item["id"],
 							"photo_id" => $photo["id"],
@@ -922,6 +922,7 @@ class Product_Table extends \Elberos\Table
 			{
 				if (!isset($photo['ID'])) continue;
 				$image = wp_get_attachment_image_src($photo['ID'], 'thumbnail');
+				$file = get_attached_file( $photo['ID'] );
 				$post = get_post( $photo['ID'] );
 				$href = $image[0] . "?_=" . strtotime($post->post_modified_gmt);
 				?>

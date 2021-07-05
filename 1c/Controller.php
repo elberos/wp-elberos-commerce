@@ -319,7 +319,7 @@ class Controller
 		$table_name_1c_import = $wpdb->base_prefix . "elberos_commerce_1c_import";
 		$sql = \Elberos\wpdb_prepare
 		(
-			"select * from $table_name_1c_import ".
+			"select * from $table_name_1c_import " .
 			"where session_id = :session_id and status in (0,2) and filename = :filename",
 			[
 				'session_id' => $session_id,
