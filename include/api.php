@@ -34,6 +34,13 @@ class Api
 	public static function init()
 	{
 		add_action('elberos_register_routes', '\\Elberos\\Commerce\\Api::register_routes');
+		
+		/* Find client */
+		add_filter
+		(
+			'elberos_commerce_basket_find_client', '\\Elberos\\Commerce\\Api::elberos_commerce_basket_find_client',
+			10, 4
+		);
 	}
 	
 	
@@ -77,6 +84,8 @@ class Api
 	 */
 	public static function addToBasket($basket, $product_id, $product_params, $product_count)
 	{
+		if ($product_id == -1) return $basket;
+		
 		$basket_index = static::findBasketIndex($basket, $product_id, $product_params, $product_count);
 		
 		/* Add */
@@ -240,6 +249,8 @@ class Api
 		/* Find client */
 		$find_client_res =
 		[
+			'code' => 0,
+			'message' => '',
 			'register' => false,
 			'client_id' => null,
 			'item' => null,
@@ -251,6 +262,16 @@ class Api
 		);
 		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
 		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
+		
+		/* Error */
+		if ($find_client_res['code'] < 0)
+		{
+			return
+			[
+				"message" => $find_client_res["message"],
+				"code" => $find_client_res["code"],
+			];
+		}
 		
 		/* Client not found */
 		if ($client_id == null)
@@ -272,7 +293,7 @@ class Api
 				"secret_code" => $secret_code,
 				"send_data" => json_encode($send_data),
 				"products_meta" => json_encode($products_meta),
-				"basket" => json_encode($basket),
+				"basket" => json_encode( array_values($basket) ),
 				"utm" => json_encode($utm),
 				"price" => $price,
 				"client_id" => $client_id,
@@ -299,6 +320,51 @@ class Api
 			"message" => "OK",
 			"code" => 1,
 		];
+	}
+	
+	
+	
+	/**
+	 * Find client
+	 */
+	public static function elberos_commerce_basket_find_client($client_res, $send_data, $basket, $products_meta)
+	{
+		global $wpdb;
+		
+		if ($client_res['client_id'] != null) return $client_res;
+		
+		$email = isset($send_data['email']) ? $send_data['email'] : '';
+		
+		/* Find client */
+		$table_clients = $wpdb->prefix . 'elberos_clients';
+		$sql = $wpdb->prepare
+		(
+			"SELECT * FROM $table_clients WHERE email = %s", $email
+		);
+		$row = $wpdb->get_row($sql, ARRAY_A);
+		if ($row)
+		{
+			$client_res['register'] = false;
+			$client_res['client_id'] = $row['id'];
+			$client_res['item'] = $row;
+		}
+		
+		/* Register client */
+		else
+		{
+			$res = \Elberos\UserCabinet\Api::user_register($send_data);
+			$client_res['code'] = $res['code'];
+			$client_res['message'] = $res['message'];
+			
+			if ($res['code'] == 1)
+			{
+				$client_res['register'] = true;
+				$client_res['client_id'] = $res['item']['id'];
+				$client_res['item'] = $res['item'];
+			}
+		}
+		
+		return $client_res;
 	}
 	
 	
@@ -362,83 +428,87 @@ class Api
 	
 	
 	/**
+	 * Get photos
+	 */
+	public static function getPhotos($photo_ids)
+	{
+		$photos = [];
+		foreach ($photo_ids as $photo_id)
+		{
+			$photos[$photo_id] =
+			[
+				"id" => $photo_id,
+				"url" => \Elberos\get_image_url($photo_id, "medium_large"),
+			];
+		}
+		return $photos;
+	}
+	
+	
+	
+	/**
+	 * Get photos
+	 */
+	public static function getMainPhoto($product_item, $photos)
+	{
+		$main_photo = null;
+		if (isset($photos[ $product_item["main_photo_id"] ]))
+		{
+			$main_photo = $photos[ $product_item["main_photo_id"] ];
+		}
+		else
+		{
+			$main_photo = array_values($photos); $main_photo = array_shift($main_photo);
+		}
+		return $main_photo;
+	}
+	
+	
+	
+	/**
 	 * Get products by ids
 	 */
 	public static function getProducts($products_id, $load_images = false)
 	{
 		global $wpdb;
 		
-		$arr = [];
-		$products_count = count($products_id);
-		if ($products_count > 0)
-		{
-			$sql = $wpdb->prepare
-			(
-				"select * from {$wpdb->prefix}postmeta as postmeta " .
-				"where post_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
-				$products_id
-			);
-			$arr = $wpdb->get_results($sql, ARRAY_A);
-		}
+		$sql = $wpdb->prepare
+		(
+			"select * from " . $wpdb->base_prefix . "elberos_commerce_products " .
+			"where id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+			$products_id
+		);
+		$items = $wpdb->get_results($sql, ARRAY_A);
 		
-		/* Meta */
-		$products_meta = [];
-		foreach ($arr as $row)
-		{
-			$post_id = $row["post_id"];
-			if (!isset($post_id)) $products_meta[ $post_id ] =
-			[
-				'meta' => [],
-			];
-			$products_meta[ $post_id ]['meta'][] = $row;
-		}
+		/* Параметры товара */
+		$items = array_map
+		(
+			function ($item)
+			{
+				$item["text"] = @json_decode($item["text"], true);
+				unset($item["xml"]);
+				return $item;
+			},
+			$items
+		);
 		
-		/* Parse */
-		foreach ($products_meta as $post_id => &$products_arr)
-		{
-			$meta = $products_arr['meta'];
-			
-			/* Product text */
-			$product_text = \Elberos\find_item($meta, "meta_key", "product_text");
-			$product_text = @unserialize( isset($product_text["meta_value"]) ? $product_text["meta_value"] : "" );
-			
-			/* Product price */
-			$product_price = \Elberos\find_item($meta, "meta_key", "product_price");
-			$product_price = isset($product_price["meta_value"]) ? $product_price["meta_value"] : "";
-			
-			/* Product photos */
-			$product_photos = \Elberos\find_items($meta, "meta_key", "product_photo_id");
-			$product_photos = array_map( function($row) { return [ "id" => $row["meta_value"] ]; }, $product_photos );
-			
-			/* Load images */
-			if ($load_images)
+		/* Список фотографий */
+		$photo_ids = array_map
+		(
+			function ($item)
 			{
-				foreach ($product_photos as &$photo)
-				{
-					$photo["url"] = \Elberos\get_image_url($photo["id"], "medium_large");
-				}
-			}
-			else
-			{
-				if (isset($product_photos[0]))
-				{
-					$product_photos[0]["url"] = \Elberos\get_image_url($product_photos[0]["id"], "medium_large");
-				}
-			}
-			
-			/* Result */
-			$products_arr["id"] = $post_id;
-			$products_arr["text"] = $product_text;
-			$products_arr["price"] = $product_price;
-			$products_arr["photos"] = $product_photos;
-			if (isset($product_photos[0]))
-			{
-				$products_arr["photo_id"] = $product_photos[0]["id"];
-				$products_arr["photo_url"] = $product_photos[0]["url"];
-			}
-		}
+				return $item["main_photo_id"];
+			},
+			$items
+		);
 		
-		return $products_meta;
+		$photos = static::getPhotos($photo_ids);
+		
+		return
+		[
+			"items" => $items,
+			"photos" => $photos,
+		];
 	}
 }
 

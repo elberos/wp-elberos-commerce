@@ -59,10 +59,16 @@ class Product_Table extends \Elberos\Table
 			{
 				global $wpdb;
 				
+				$struct->addField([
+					"api_name" => "main_photo_id",
+					"label" => "Фото",
+				]);
+				
 				$struct->table_fields =
 				[
 					"id",
 					"catalog_id",
+					"main_photo_id",
 					"name",
 					"code_1c",
 				];
@@ -134,6 +140,18 @@ class Product_Table extends \Elberos\Table
 			$item['id'], 
 			__('Открыть', 'elberos-commerce')
 		);
+	}
+	
+	
+	
+	/**
+	 * Column main photo id
+	 */
+	function column_main_photo_id($item)
+	{
+		$main_photo_id = $item["main_photo_id"];
+		$href = \Elberos\get_image_url($main_photo_id, "thumbnail");
+		return "<img class='product_table_main_photo_id' src='" . esc_attr($href) . "' />";
 	}
 	
 	
@@ -431,6 +449,12 @@ class Product_Table extends \Elberos\Table
 		wp_enqueue_script( 'vue', '/wp-content/plugins/wp-elberos-core/assets/vue.min.js', false );
 		?>
 		<style>
+		.elberos-commerce td.main_photo_id{
+			/* text-align: center; */
+		}
+		.elberos-commerce .product_table_main_photo_id{
+			height: 100px;
+		}
 		.elberos-commerce .cursor, .elberos-commerce a.cursor
 		{
 			cursor: pointer;
@@ -921,10 +945,7 @@ class Product_Table extends \Elberos\Table
 			if (gettype($product_photo) == 'array') foreach ($product_photo as $photo)
 			{
 				if (!isset($photo['ID'])) continue;
-				$image = wp_get_attachment_image_src($photo['ID'], 'thumbnail');
-				$file = get_attached_file( $photo['ID'] );
-				$post = get_post( $photo['ID'] );
-				$href = $image[0] . "?_=" . strtotime($post->post_modified_gmt);
+				$href = \Elberos\get_image_url($photo['ID'], "thumbnail");
 				?>
 				<div class='product_photo' data-id='<?= esc_attr($post->ID) ?>'>
 					<img src='<?= esc_attr($href) ?>' />

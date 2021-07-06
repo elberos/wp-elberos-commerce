@@ -310,13 +310,41 @@ class Task
 		
 		/* Загрузка фото */
 		$pos = 0;
+		$main_photo_id = null;
 		$images = $xml->Картинка;
 		foreach ($images as $image)
 		{
 			$photo_id = $this->importProductImage($product, $image, $pos);
+			if ($photo_id)
+			{
+				$main_photo_id = $photo_id;
+			}
 			$pos++;
 		}
 		
+		/* Обновляем id фото */
+		if ($main_photo_id)
+		{
+			$wpdb->update
+			(
+				$table_name_products,
+				[
+					"main_photo_id" => $main_photo_id,
+				],
+				[ "id" => $product["id"] ]
+			);
+		}
+		else
+		{
+			$wpdb->update
+			(
+				$table_name_products,
+				[
+					"main_photo_id" => $main_photo_id,
+				],
+				[ "id" => $product["id"] ]
+			);
+		}
 		
 		/* Отмечаем задачу как обработанную */
 		$task["status"] = Helper::TASK_STATUS_DONE;

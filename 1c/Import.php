@@ -155,6 +155,8 @@ class Import
 			}
 			$name = implode(" ", $name);
 			
+			$classifier = Helper::findClassifierByCode( (string)$this->xml->Каталог->ИдКлассификатора );
+			
 			/* Ищем каталог */
 			$catalog_code_1c = (string)$this->xml->Каталог->Ид;
 			if ($catalog_code_1c != "")
@@ -167,12 +169,14 @@ class Import
 					],
 					[
 						"code_1c" => $catalog_code_1c,
+						"classifier_id" => $classifier["id"],
 						"name" => $name,
 					]
 				);
 				$catalog_id = $catalog['id'];
 			}
 		}
+		
 	}
 	
 	
