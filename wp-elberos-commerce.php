@@ -2,12 +2,12 @@
 /**
  * Plugin Name: WordPress Commerce
  * Description: Commerce plugin for WordPress
- * Version:     0.1.0
+ * Version:     0.2.0
  * Author:      Elberos Team <support@elberos.org>
  * License:     Apache License 2.0
- *  
+ *
  * Elberos Framework
- * 
+ *
  * (c) Copyright 2019-2021 "Ildar Bikmamatov" <support@elberos.org>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,6 +44,7 @@ class Elberos_Commerce_Plugin
 				require_once __DIR__ . "/admin/Catalog_Table.php";
 				require_once __DIR__ . "/admin/Category_Table.php";
 				require_once __DIR__ . "/admin/Classifier_Table.php";
+				require_once __DIR__ . "/admin/Invoice_Table.php";
 				require_once __DIR__ . "/admin/PriceType_Table.php";
 				require_once __DIR__ . "/admin/Product_Table.php";
 				require_once __DIR__ . "/admin/ProductParam_Table.php";
@@ -140,7 +141,8 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-invoice',
 			function()
 			{
-				echo "3";
+				$table = new \Elberos\Commerce\Invoice_Table();
+				$table->display();
 			}
 		);
 	}

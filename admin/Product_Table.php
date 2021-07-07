@@ -616,8 +616,13 @@ class Product_Table extends \Elberos\Table
 	 */
 	function display_form_content()
 	{
-		parent::display_form_content();
-		
+		if ($this->form_item == null)
+		{
+			return;
+		}
+		echo '<div class="add_or_edit_form">';
+		$this->display_form();
+		echo '</div>';
 		echo '<div class="add_or_edit_form_right">';
 		$this->show_categories();
 		$this->show_photos();

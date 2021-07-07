@@ -118,7 +118,7 @@ class Warehouse_Table extends \Elberos\Table
 	 */
 	function get_form_id($default = 0)
 	{
-		return (isset($_GET['sub_id']) ? $_GET['sub_id'] : $default);
+		return (isset($_REQUEST['sub_id']) ? $_REQUEST['sub_id'] : $default);
 	}
 	
 	
@@ -128,7 +128,7 @@ class Warehouse_Table extends \Elberos\Table
 	 */
 	function get_bulk_id($default = [])
 	{
-		return (isset($_POST['sub_id']) ? $_POST['sub_id'] : $default);
+		return (isset($_REQUEST['sub_id']) ? $_REQUEST['sub_id'] : $default);
 	}
 	
 	
