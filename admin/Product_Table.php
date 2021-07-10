@@ -952,11 +952,11 @@ class Product_Table extends \Elberos\Table
 				if (!isset($photo['ID'])) continue;
 				$href = \Elberos\get_image_url($photo['ID'], "thumbnail");
 				?>
-				<div class='product_photo' data-id='<?= esc_attr($post->ID) ?>'>
+				<div class='product_photo' data-id='<?= esc_attr($photo["ID"]) ?>'>
 					<img src='<?= esc_attr($href) ?>' />
-					<span class="dashicons dashicons-no-alt button-delete" data-id='<?= esc_attr($post->ID) ?>'></span>
-					<input type='hidden' name='product_photo[<?= esc_attr($post->ID) ?>][id]'
-						value='<?= esc_attr($post->ID) ?>' />
+					<span class="dashicons dashicons-no-alt button-delete" data-id='<?= esc_attr($photo["ID"]) ?>'></span>
+					<input type='hidden' name='product_photo[<?= esc_attr($photo["ID"]) ?>][id]'
+						value='<?= esc_attr($photo["ID"]) ?>' />
 				</div>
 				<?php
 			}

@@ -41,6 +41,7 @@ class Elberos_Commerce_Plugin
 			'admin_init', 
 			function()
 			{
+				require_once __DIR__ . "/admin/1c_settings.php";
 				require_once __DIR__ . "/admin/Catalog_Table.php";
 				require_once __DIR__ . "/admin/Category_Table.php";
 				require_once __DIR__ . "/admin/Classifier_Table.php";
@@ -143,6 +144,17 @@ class Elberos_Commerce_Plugin
 			{
 				$table = new \Elberos\Commerce\Invoice_Table();
 				$table->display();
+			}
+		);
+		
+		add_submenu_page
+		(
+			'elberos-commerce', 
+			'Настройки 1С', 'Настройки 1С', 
+			'manage_options', 'elberos-commerce-1c-settings',
+			function()
+			{
+				\Elberos\Commerce\_1C\Settings::show();
 			}
 		);
 	}

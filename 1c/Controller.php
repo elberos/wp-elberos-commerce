@@ -182,8 +182,8 @@ class Controller
 	 */
 	static function actionAuthenticate()
 	{
-		$login_1c = static::getKey("elberos_1c_login", "");
-		$password_1c = static::getKey("elberos_1c_password", "");
+		$login_1c = static::getKey("elberos_commerce_1c_login", "");
+		$password_1c = static::getKey("elberos_commerce_1c_password", "");
 		
 		$user = isset($_SERVER['PHP_AUTH_USER']) ? $_SERVER['PHP_AUTH_USER'] : null;
 		$password = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : null;
@@ -277,16 +277,30 @@ class Controller
 		}
 		
 		$filename = isset($_GET['filename']) ? $_GET['filename'] : "";
-		if ($filename != "")
+		if (strpos($filename, "..") !== false)
+		{
+			echo "failed";
+		}
+		else if ($filename != "")
 		{
 			$filepath = $filefolder . "/" . $filename;
+			$filedir = dirname($filepath);
+			if (!file_exists($filedir))
+			{
+				mkdir($filedir, 0755, true);
+			}
 			
 			/* Загружаем файл */
 			$content = file_get_contents("php://input");
 			file_put_contents($filepath, $content);
+			
+			echo "success";
+		}
+		else
+		{
+			echo "failed";
 		}
 		
-		echo "success";
 	}
 	
 	
