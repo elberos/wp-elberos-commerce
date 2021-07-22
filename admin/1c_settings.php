@@ -102,6 +102,17 @@ class Settings
 	{
 		?>
 		
+		<style>
+		.vertical-align-middle{
+			vertical-align: middle;
+		}
+		</style>
+		
+		<p>
+			<label class='vertical-align-middle'><?php _e('URL:', 'elberos-commerce')?></label>
+			<span class='vertical-align-middle'><?= esc_html( site_url("/api/1c_exchange/") ) ?></span>
+		</p>
+		
 		<!-- Public key -->
 		<p>
 		    <label for="elberos_commerce_1c_login"><?php _e('Login:', 'elberos-commerce')?></label>

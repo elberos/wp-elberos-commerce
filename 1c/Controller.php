@@ -137,6 +137,8 @@ class Controller
 	static function actionIndex()
 	{
 		set_time_limit(600);
+		@ini_set( 'upload_max_size' , '512M' );
+		@ini_set( 'post_max_size', '512M');
 		
 		$type = isset($_GET['type']) ? $_GET['type'] : "";
 		$mode = isset($_GET['mode']) ? $_GET['mode'] : "";
@@ -170,6 +172,16 @@ class Controller
 		else if ($type == 'catalog' && $mode == 'import')
 		{
 			static::actionCatalogImport();
+		}
+		
+		/* Sale query */
+		else if ($type == 'sale' && $mode == 'query')
+		{
+			static::actionSaleQuery();
+		}
+		else if ($type == 'sale' && $mode == 'success')
+		{
+			static::actionSaleSuccess();
 		}
 		
 		return null;
@@ -279,7 +291,7 @@ class Controller
 		$filename = isset($_GET['filename']) ? $_GET['filename'] : "";
 		if (strpos($filename, "..") !== false)
 		{
-			echo "failed";
+			echo "failed upload " . $filename;
 		}
 		else if ($filename != "")
 		{
@@ -294,11 +306,12 @@ class Controller
 			$content = file_get_contents("php://input");
 			file_put_contents($filepath, $content);
 			
-			echo "success";
+			echo "success\n";
+			echo "size=" . strlen($content);
 		}
 		else
 		{
-			echo "failed";
+			echo "failed upload " . $filename;
 		}
 		
 	}
@@ -409,7 +422,7 @@ class Controller
 			/* Удаляем файл */
 			if (is_file($file_path))
 			{
-				@unlink($file_path);
+				// @unlink($file_path);
 			}
 			echo "success";
 		}
@@ -527,4 +540,268 @@ class Controller
 		return [$import, $str];
 	}
 	
+	
+	
+	/**
+	 * Выгрузка инвойсов
+	 */
+	static function actionSaleQuery()
+	{
+		global $wpdb;
+		
+		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
+		$sql = $wpdb->prepare
+		(
+			"select * from " . $table_name . " where export_status=0"
+		);
+		$results = $wpdb->get_results($sql, ARRAY_A);
+		$results = array_map
+		(
+			function ($item)
+			{
+				$item["utm"] = @json_decode($item["utm"], true);
+				$item["basket"] = @json_decode($item["basket"], true);
+				$item["delivery"] = @json_decode($item["delivery"], true);
+				$item["client_data"] = @json_decode($item["client_data"], true);
+				$item["products_meta"] = @json_decode($item["products_meta"], true);
+				return $item;
+			},
+			$results
+		);
+		
+		$xml = static::actionSaleQueryMakeXml($results);
+		header('Content-Type: application/xml');
+		echo $xml;
+	}
+	
+	
+	
+	/**
+	 * Функция создания xml
+	 */
+	static function actionSaleQueryMakeXml($results)
+	{
+		$content = new \SimpleXMLElement
+		(
+			'<?xml version="1.0" encoding="UTF-8"?>'.
+			'<КоммерческаяИнформация></КоммерческаяИнформация>'
+		);
+		$content->addAttribute('ВерсияСхемы', '2.03');
+		$content->addAttribute('ДатаФормирования', ( new \DateTime() )->format('c'));
+		
+		
+		/**
+		 * Добавляет key value в xml
+		 */
+		function addXmlKeyValue($xml, $key, $value)
+		{
+			$item = $xml->addChild('ЗначениеРеквизита');
+			$item->addChild('Наименование', $key);
+			$item->addChild('Значение', \Elberos\mb_trim($value));
+		}
+		
+		
+		/**
+		 * Товар
+		 */
+		function addProducts($doc, $invoice, $is_service)
+		{
+			if ($is_service) $products = $doc->addChild('Услуги');
+			else $products = $doc->addChild('Товары');
+			
+			$basket = $invoice['basket'];
+			$products_meta = $invoice['products_meta'];
+			foreach ($basket as $basket_item)
+			{
+				$product_id = $basket_item["product_id"];
+				$product_item  = \Elberos\Commerce\Api::getProductFromMeta($products_meta, $product_id);
+				if (!$product_item)
+				{
+					continue;
+				}
+				
+				$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
+				if ($product_is_service != $is_service)
+				{
+					continue;
+				}
+				
+				$product = null;
+				if ($product_is_service) $product = $products->addChild('Услуга');
+				else $product = $products->addChild('Товар');
+				
+				$product->addChild('Ид', $product_item['code_1c']);
+				$product->addChild('Артикул', $product_item['vendor_code']);
+				$product->addChild('Наименование', $product_item['name']);
+				$product->addChild('ЦенаЗаЕдиницу', $product_item['price']);
+				$product->addChild('Количество', $basket_item['product_count']);
+				$product->addChild('Сумма', $product_item['price'] * $basket_item['product_count']);
+			}
+		}
+		
+		
+		/* Results */
+		foreach ($results as $invoice)
+		{
+			$doc = $content->addChild('Документ');
+			$doc->addChild('Ид', $invoice['id']);
+			$doc->addChild('Номер', $invoice['id']);
+			$doc->addChild('Дата', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'Y-m-d'));
+			$doc->addChild('Время', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'H:i:S'));
+			$doc->addChild('ХозОперация', 'Заказ товара');
+			$doc->addChild('Роль', 'Продавец');
+			$doc->addChild('Сумма', $invoice['price']);
+			$doc->addChild('Валюта', 'KZT');
+			$doc->addChild('Курс', '1');
+			$doc->addChild('Комментарий', \Elberos\mb_trim($invoice['comment']));
+			
+			$invoice_client = $invoice['client_data'];
+			$name = "";
+			if ($invoice_client['type'] == 1)
+			{
+				$name = \Elberos\mb_trim
+				(
+					$invoice_client['surname'] . ' ' .
+					$invoice_client['firstname']. ' ' .
+					$invoice_client['lastname']
+				);
+			}
+			else if ($invoice_client['type'] == 2)
+			{
+				$name = \Elberos\mb_trim($invoice_client['company_name']);
+			}
+			
+			/* Контрагент */
+			$clients = $doc->addChild('Контрагенты');
+			$client = $clients->addChild('Контрагент');
+			$client->addChild('Ид', $invoice['id']);
+			$client->addChild('Роль', 'Покупатель');
+			$client->addChild('Наименование', $name);
+			$client->addChild('ПолноеНаименование', $name);
+			
+			/* Тип клиента */
+			if ($invoice_client['type'] == 1)
+			{
+				$node = $client->addChild('РеквизитыФизЛица');
+				$node->addChild('ПолноеНаименование', 
+					\Elberos\mb_trim
+					(
+						$invoice_client['surname'] . ' ' .
+						$invoice_client['firstname'] . ' ' .
+						$invoice_client['lastname']
+					)
+				);
+				$node->addChild('Фамилия', \Elberos\mb_trim($invoice_client['surname']));
+				$node->addChild('Имя', \Elberos\mb_trim($invoice_client['firstname']));
+				$node->addChild('Отчество', \Elberos\mb_trim($invoice_client['lastname']));
+				$node->addChild('ИИН', \Elberos\mb_trim($invoice_client['user_identifier']));
+			}
+			else if ($invoice_client['type'] == 2)
+			{
+				$node = $client->addChild('РеквизитыЮрЛица');
+				$node->addChild('ОфициальноеНаименование', \Elberos\mb_trim($invoice_client['company_name']) );
+				$node->addChild('БИН', \Elberos\mb_trim($invoice_client['company_bin']) );
+				$node->addChild('ЮридическийАдрес', \Elberos\mb_trim($invoice_client['company_address']) );
+			}
+			
+			// Контакты
+			$contacts = $client->addChild('Контакты');
+			if ($invoice_client['phone'] != '')
+			{
+				$contact = $contacts->addChild('КонтактнаяИнформация');
+				$contact->addChild('КонтактВид', 'Телефон мобильный');
+				$contact->addChild('Значение', $invoice_client['phone']);
+				$contact->addChild('Комментарий');
+			}
+			if ($invoice_client['email'] != '')
+			{
+				$contact = $contacts->addChild('КонтактнаяИнформация');
+				$contact->addChild('КонтактВид', 'E-mail');
+				$contact->addChild('Значение', $invoice_client['email']);
+				$contact->addChild('Комментарий');
+			}
+			
+			// Адрес
+			$address = $client->addChild('Адрес');
+			$address->addChild('Представление', $invoice['delivery']['address']);
+			$address->addChild('Комментарий', $invoice['delivery']['comment']);
+			
+			// Товары
+			addProducts($doc, $invoice, false);
+			
+			// Услуги
+			addProducts($doc, $invoice, true);
+			
+			// Значения реквизитов
+			$values = $doc->addChild('ЗначенияРеквизитов');
+			
+			// Оплата заказа
+			if ($invoice['status_pay'] == 'paid')
+			{
+				addXmlKeyValue($values, 'Заказ оплачен', 'true');
+				$dt = \Elberos\create_date_from_string($invoice['gmtime_pay']);
+				addXmlKeyValue($values, 'Дата оплаты', $dt ? $dt->format('c') : '' );
+				addXmlKeyValue($values, 'Тип оплаты', $invoice['method_pay_text']);
+				
+				// Метод оплаты
+				if ($invoice['method_pay_text'] == '') addXmlKeyValue($values, 'Метод оплаты', '');
+				else addXmlKeyValue($values, 'Метод оплаты', $invoice['method_pay_text']);
+			}
+			else addXmlKeyValue($values, 'Заказ оплачен', 'false');
+			
+			// Статус заказа
+			if ($invoice['status'] == 'final') addXmlKeyValue($values, 'Финальный статус', 'true');
+			else addXmlKeyValue($values, 'Финальный статус', 'false');
+			
+			if ($invoice['status'] == 'new') addXmlKeyValue($values, 'Статус заказа', 'Новый');
+			else if ($invoice['status'] == 'accepted') addXmlKeyValue($values, 'Статус заказа', 'Акцептован');
+			else if ($invoice['status'] == 'shipped') addXmlKeyValue($values, 'Статус заказа', 'Отгружен');
+			else if ($invoice['status'] == 'delivered') addXmlKeyValue($values, 'Статус заказа', 'Доставлен');
+			else if ($invoice['status'] == 'final') addXmlKeyValue($values, 'Статус заказа', 'Завершен');
+			else if ($invoice['status'] == 'cancel') addXmlKeyValue($values, 'Статус заказа', 'Отменен');
+			else addXmlKeyValue($values, 'Статус заказа', 'Неверный статус'); 
+			
+			// Отменен
+			if ($invoice['status'] == 'cancel') addXmlKeyValue($values, 'Отменен', 'true');
+			else addXmlKeyValue($values, 'Отменен', 'false');
+			
+			// Доставка
+			addXmlKeyValue($values, 'Доставка разрешена', 'false');
+			addXmlKeyValue($values, 'Тип доставки', $invoice['delivery']['type']);
+			addXmlKeyValue($values, 'Адрес доставки', $invoice['delivery']['address']);
+			
+			$dt = \Elberos\create_date_from_string($invoice['gmtime_change']);
+			addXmlKeyValue($values, 'Дата изменения статуса', $dt ? $dt->format('c') : '');
+		}
+		
+		/* Get XML */
+		$xml_content = $content->asXml();
+		
+		/* Convert to Windows-1251 */
+		$xml_content = str_replace
+		(
+			'<?xml version="1.0" encoding="UTF-8"?>',
+			'<?xml version="1.0" encoding="Windows-1251"?>',
+			$xml_content
+		);
+		$xml_content = iconv('utf-8','windows-1251',$xml_content);
+		
+		return $xml_content;
+	}
+	
+	
+	
+	/**
+	 * Выгрузка инвойсов
+	 */
+	static function actionSaleSuccess()
+	{
+		global $wpdb;
+		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
+		$sql = $wpdb->prepare
+		(
+			"update " . $table_name . " set export_status=1 where export_status=0"
+		);
+		$wpdb->query($sql);
+	}
 }

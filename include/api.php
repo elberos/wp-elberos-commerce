@@ -472,13 +472,17 @@ class Api
 	{
 		global $wpdb;
 		
-		$sql = $wpdb->prepare
-		(
-			"select * from " . $wpdb->base_prefix . "elberos_commerce_products " .
-			"where id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
-			$products_id
-		);
-		$items = $wpdb->get_results($sql, ARRAY_A);
+		$items = [];
+		if (count($products_id) > 0)
+		{
+			$sql = $wpdb->prepare
+			(
+				"select * from " . $wpdb->base_prefix . "elberos_commerce_products " .
+				"where id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				$products_id
+			);
+			$items = $wpdb->get_results($sql, ARRAY_A);
+		}
 		
 		/* Параметры товара */
 		$items = array_map
@@ -509,6 +513,24 @@ class Api
 			"items" => $items,
 			"photos" => $photos,
 		];
+	}
+	
+	
+	
+	/**
+	 * Get product from meta
+	 */
+	public static function getProductFromMeta($products_meta, $product_id)
+	{
+		$items = $products_meta["items"];
+		foreach ($items as $item)
+		{
+			if ($item["id"] == $product_id)
+			{
+				return $item;
+			}
+		}
+		return null;
 	}
 }
 
