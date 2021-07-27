@@ -74,13 +74,14 @@ class Task
 			$sql = \Elberos\wpdb_prepare
 			(
 				"update $table_name_1c_task " .
-				"set status=:status, error_code=:error_code, error_message=:error_message " .
+				"set status=:status, error_code=:error_code, error_message=:error_message, gmtime_end=:gmtime_end " .
 				"where id = :id",
 				[
 					'id' => $task['id'],
 					'status' => $task['status'],
 					'error_code' => $task['error_code'],
 					'error_message' => $task['error_message'],
+					'gmtime_end' => $task['gmtime_end'],
 				]
 			);
 			$wpdb->query($sql);
@@ -151,6 +152,8 @@ class Task
 			$task['error_message'] = "Unknown type " . $task["type"];
 		}
 		
+		$task['gmtime_end'] = gmdate("Y-m-d H:i:s", time());
+		
 		return $task;
 	}
 	
@@ -211,7 +214,11 @@ class Task
 			]
 		);
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
@@ -272,6 +279,7 @@ class Task
 			[
 				"catalog_id" => $task["catalog_id"],
 				"code_1c" => $code_1c,
+				"vendor_code" => $vendor_code,
 				"text" => json_encode($text),
 				"name" => $name_ru,
 				"xml" => $xml_str,
@@ -346,7 +354,11 @@ class Task
 			);
 		}
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
@@ -543,7 +555,11 @@ class Task
 			}
 		}
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
@@ -597,7 +613,11 @@ class Task
 			]
 		);
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
@@ -651,7 +671,11 @@ class Task
 			]
 		);
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
@@ -798,7 +822,11 @@ class Task
 			]
 		);
 		
+		/* Код 1с */
+		/* $task["code_1c"] = $offer_code_1c; */
+		
 		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;

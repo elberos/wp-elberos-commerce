@@ -222,11 +222,17 @@ class Import
 					
 					$task_xml = (string) $sub_item->asXML();
 					
+					/* Получаем название */
+					$names = Helper::getNamesByXml($sub_item, 'Наименование');
+					$name_ru = isset($names['ru']) ? $names['ru'] : '';
+					
 					/* Добавление задания в базу данных */
 					$wpdb->insert
 					(
 						$table_name_1c_task,
 						[
+							"name" => $name_ru,
+							"code_1c" => $item_id,
 							"import_id" => $this->import["id"],
 							"classifier_id" => $classifier_id,
 							"type" => "category",
@@ -293,10 +299,18 @@ class Import
 		{
 			if ($item->getName() == 'Товар')
 			{
+				$item_id = (string)$item->Ид;
+				
+				/* Получаем название */
+				$names = Helper::getNamesByXml($item, 'Наименование');
+				$name_ru = isset($names['ru']) ? $names['ru'] : '';
+				
 				$wpdb->insert
 				(
 					$table_name_1c_task,
 					[
+						"name" => $name_ru,
+						"code_1c" => $item_id,
 						"import_id" => $this->import["id"],
 						"catalog_id" => $catalog_id,
 						"classifier_id" => $classifier_id,
@@ -341,10 +355,18 @@ class Import
 				{
 					if ($item->getName() == 'ТипЦены')
 					{
+						$item_id = (string)$item->Ид;
+						
+						/* Получаем название */
+						$names = Helper::getNamesByXml($item, 'Наименование');
+						$name_ru = isset($names['ru']) ? $names['ru'] : '';
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
 							[
+								"name" => $name_ru,
+								"code_1c" => $item_id,
 								"import_id" => $this->import["id"],
 								"catalog_id" => $catalog_id,
 								"classifier_id" => $classifier_id,
@@ -386,10 +408,18 @@ class Import
 				{
 					if ($item->getName() == 'Свойство')
 					{
+						$item_id = (string)$item->Ид;
+						
+						/* Получаем название */
+						$names = Helper::getNamesByXml($item, 'Наименование');
+						$name_ru = isset($names['ru']) ? $names['ru'] : '';
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
 							[
+								"name" => $name_ru,
+								"code_1c" => $item_id,
 								"import_id" => $this->import["id"],
 								"classifier_id" => $classifier_id,
 								"type" => "product_param",
@@ -434,10 +464,18 @@ class Import
 				{
 					if ($item->getName() == 'Склад')
 					{
+						$item_id = (string)$item->Ид;
+						
+						/* Получаем название */
+						$names = Helper::getNamesByXml($item, 'Наименование');
+						$name_ru = isset($names['ru']) ? $names['ru'] : '';
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
 							[
+								"name" => $name_ru,
+								"code_1c" => $item_id,
 								"import_id" => $this->import["id"],
 								"catalog_id" => $catalog_id,
 								"classifier_id" => $classifier_id,
@@ -483,10 +521,18 @@ class Import
 				{
 					if ($item->getName() == 'Предложение')
 					{
+						$item_id = (string)$item->Ид;
+						
+						/* Получаем название */
+						$names = Helper::getNamesByXml($item, 'Наименование');
+						$name_ru = isset($names['ru']) ? $names['ru'] : '';
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
 							[
+								"name" => $name_ru,
+								"code_1c" => $item_id,
 								"import_id" => $this->import["id"],
 								"catalog_id" => $catalog_id,
 								"classifier_id" => $classifier_id,

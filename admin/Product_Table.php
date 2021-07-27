@@ -69,6 +69,7 @@ class Product_Table extends \Elberos\Table
 					"id",
 					"catalog_id",
 					"main_photo_id",
+					"vendor_code",
 					"name",
 					"code_1c",
 				];
@@ -358,6 +359,8 @@ class Product_Table extends \Elberos\Table
 						}
 					?>
 				</select>
+				<input type="text" name="vendor_code" class="web_form_value" placeholder="Артикул"
+					value="<?= esc_attr( isset($_GET["vendor_code"]) ? $_GET["vendor_code"] : "" ) ?>">
 				<input type="text" name="name" class="web_form_value" placeholder="Название товара"
 					value="<?= esc_attr( isset($_GET["name"]) ? $_GET["name"] : "" ) ?>">
 				<input type="button" class="button dosearch" value="Поиск">
@@ -399,6 +402,13 @@ class Product_Table extends \Elberos\Table
 		{
 			$where[] = "catalog_id=:catalog_id";
 			$args["catalog_id"] = (int)$_GET["catalog_id"];
+		}
+		
+		/* Vendor code */
+		if (isset($_GET["vendor_code"]))
+		{
+			$where[] = "vendor_code = :vendor_code";
+			$args["vendor_code"] = $_GET["vendor_code"];
 		}
 		
 		/* Name */
