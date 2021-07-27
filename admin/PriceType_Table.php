@@ -133,6 +133,16 @@ class PriceType_Table extends \Elberos\Table
 	
 	
 	
+	/**
+	 * Get form id name
+	 */
+	function get_form_id_name()
+	{
+		return "sub_id";
+	}
+	
+	
+	
 	/* Заполнение колонки cb */
 	function column_cb($item)
     {

@@ -532,6 +532,75 @@ class Api
 		}
 		return null;
 	}
+	
+	
+	
+	/**
+	 * Поиск классификатора по коду 1с
+	 */
+	static function findCatalogByCode($code_1c)
+	{
+		global $wpdb;
+		
+		$table_name = $wpdb->base_prefix . "elberos_commerce_catalogs";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from $table_name " .
+			"where code_1c = :code_1c limit 1",
+			[
+				"code_1c" => $code_1c,
+			]
+		);
+		
+		return $wpdb->get_row($sql, ARRAY_A);
+	}
+	
+	
+	
+	/**
+	 * Возращает параметры товара
+	 */
+	static function getProductsParams($classifier_id)
+	{
+		global $wpdb;
+		
+		/* Получаем параметры товара */
+		$table_name = $wpdb->base_prefix . "elberos_commerce_products_params";
+		$table_name_classifier = $wpdb->base_prefix . "elberos_commerce_classifiers";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select t1.* from $table_name as t1 " .
+			"inner join $table_name_classifier as t2 on (t1.classifier_id = t2.id) " .
+			"where t2.code_1c = :classifier_id",
+			[
+				"classifier_id" => $classifier_id,
+			]
+		);
+		$params = $wpdb->get_results($sql, ARRAY_A);
+		
+		/* Значения параметров товара */
+		$table_name = $wpdb->base_prefix . "elberos_commerce_products_params_values";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from $table_name ",
+			[
+			]
+		);
+		$params_values = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($params as &$param)
+		{
+			foreach ($params_values as $param_value)
+			{
+				if ($param_value['param_id'] == $param['id'])
+				{
+					if (!isset($param['values'])) $param['values'] = [];
+					$param['values'][] = $param_value;
+				}
+			}
+		}
+		
+		return $params;
+	}
 }
 
 }

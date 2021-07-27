@@ -135,6 +135,16 @@ class ProductParamValue_Table extends \Elberos\Table
 	
 	
 	
+	/**
+	 * Get form id name
+	 */
+	function get_form_id_name()
+	{
+		return "sub_id";
+	}
+	
+	
+	
 	/* Заполнение колонки cb */
 	function column_cb($item)
     {
@@ -229,7 +239,7 @@ class ProductParamValue_Table extends \Elberos\Table
 	{
 		if ($this->form_item_id == 0)
 		{
-			$item["classifier_id"] = isset($_GET["id"]) ? $_GET["id"] : 0;
+			$item["param_id"] = isset($_GET["product_param_id"]) ? $_GET["product_param_id"] : 0;
 		}
 		return $item;
 	}
