@@ -31,7 +31,7 @@ class ProductParamValue extends \Elberos\StructBuilder
 	 */
 	public static function getEntityName()
 	{
-		return "elberos_commerce_products_params_values";
+		return "elberos_commerce_params_values";
 	}
 	
 	

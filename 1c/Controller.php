@@ -25,7 +25,7 @@ namespace Elberos\Commerce\_1C;
 class Controller
 {
 	static $max_size = 8 * 1024 * 1024;
-	static $task_run_limits = 10;
+	static $task_run_limits = 5;
 	
 	
 	/**
@@ -184,6 +184,12 @@ class Controller
 			static::actionSaleSuccess();
 		}
 		
+		/* Success */
+		else if ($type == 'success')
+		{
+			static::actionSuccess();
+		}
+		
 		return null;
 	}
 	
@@ -250,9 +256,6 @@ class Controller
 		$res[] = static::$max_size;
 		
 		echo implode("\n", $res) . "\n";
-		
-		/* Обнуляем параметр product_just_imported */
-		static::flushJustImportedFlagProducts();
 	}
 	
 	
@@ -438,16 +441,24 @@ class Controller
 	
 	
 	/**
-	 * Flush products import flag
+	 * Успешная загрузка
 	 */
-	static function flushJustImportedFlagProducts()
+	static function actionSuccess()
 	{
 		global $wpdb;
-		/*
-		$table_name = $wpdb->base_prefix . "postmeta";
-		$sql = "update $table_name where meta_key='product_just_imported' and meta_value!='0' set meta_value='0'";
+		
+		/* Показываем товары в каталоге, которые были только что загружены */
+		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+		$sql = "update " . $table_name_products . " set `show_in_catalog` = `just_show_in_catalog`";
 		$wpdb->query($sql);
-		*/
+		
+		/* Удаляем предложения */
+		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+		$sql = "delete " . $table_name_products_offers . " where `prepare_delete` = 1";
+		$wpdb->query($sql);
+		$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
+		$sql = "delete " . $table_name_products_offers_prices . " where `prepare_delete` = 1";
+		$wpdb->query($sql);
 	}
 	
 	

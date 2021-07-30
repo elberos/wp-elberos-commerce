@@ -34,7 +34,7 @@ class ProductParamValue_Table extends \Elberos\Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->base_prefix . 'elberos_commerce_products_params_values';
+		return $wpdb->base_prefix . 'elberos_commerce_params_values';
 	}
 	
 	
@@ -309,7 +309,7 @@ class ProductParamValue_Table extends \Elberos\Table
 		
 		parent::display_init();
 		
-		$table_name = $wpdb->base_prefix . 'elberos_commerce_products_params';
+		$table_name = $wpdb->base_prefix . 'elberos_commerce_params';
 		$product_param_id = (int) (isset($_GET["product_param_id"]) ? $_GET["product_param_id"] : 0);
 		$this->product_param = \Elberos\wpdb_get_by_id($table_name, $product_param_id);
 	}

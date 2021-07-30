@@ -32,7 +32,7 @@ class ProductParam_Table extends \Elberos\Table
 	function get_table_name()
 	{
 		global $wpdb;
-		return $wpdb->base_prefix . 'elberos_commerce_products_params';
+		return $wpdb->base_prefix . 'elberos_commerce_params';
 	}
 	
 	

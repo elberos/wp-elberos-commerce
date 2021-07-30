@@ -68,6 +68,8 @@ class Helper
 	{
 		global $wpdb;
 		
+		if ($code_1c == "") return null;
+		
 		if (!array_key_exists($code_1c, static::$classifiers))
 		{
 			$table_name = $wpdb->base_prefix . "elberos_commerce_classifiers";
@@ -95,6 +97,8 @@ class Helper
 	static function findCatalogByCode($code_1c)
 	{
 		global $wpdb;
+		
+		if ($code_1c == "") return null;
 		
 		if (!array_key_exists($code_1c, static::$catalogs))
 		{
@@ -124,6 +128,8 @@ class Helper
 	{
 		global $wpdb;
 		
+		if ($code_1c == "") return null;
+		
 		if (!array_key_exists($code_1c, static::$categories))
 		{
 			$table_name = $wpdb->base_prefix . "elberos_commerce_categories";
@@ -151,6 +157,8 @@ class Helper
 	static function findProductByCode($code_1c)
 	{
 		global $wpdb;
+		
+		if ($code_1c == "") return null;
 		
 		$table_name = $wpdb->base_prefix . "elberos_commerce_products";
 		
@@ -180,9 +188,11 @@ class Helper
 	{
 		global $wpdb;
 		
+		if ($code_1c == "") return null;
+		
 		if (!array_key_exists($code_1c, static::$product_params))
 		{
-			$table_name = $wpdb->base_prefix . "elberos_commerce_products_params";
+			$table_name = $wpdb->base_prefix . "elberos_commerce_params";
 			$sql = \Elberos\wpdb_prepare
 			(
 				"select * from $table_name " .
@@ -208,9 +218,11 @@ class Helper
 	{
 		global $wpdb;
 		
+		if ($code_1c == "") return null;
+		
 		if (!array_key_exists($code_1c, static::$product_params_values))
 		{
-			$table_name = $wpdb->base_prefix . "elberos_commerce_products_params_values";
+			$table_name = $wpdb->base_prefix . "elberos_commerce_params_values";
 			$sql = \Elberos\wpdb_prepare
 			(
 				"select * from $table_name " .
@@ -235,6 +247,8 @@ class Helper
 	static function findPriceTypeByCode($code_1c)
 	{
 		global $wpdb;
+		
+		if ($code_1c == "") return null;
 		
 		if (!array_key_exists($code_1c, static::$price_types))
 		{

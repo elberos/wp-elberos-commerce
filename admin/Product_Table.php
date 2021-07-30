@@ -320,6 +320,7 @@ class Product_Table extends \Elberos\Table
 	}
 	
 	
+	
 	/**
 	 * Item validate
 	 */
@@ -344,6 +345,7 @@ class Product_Table extends \Elberos\Table
 			$order = isset($_GET["order"]) ? $_GET["order"] : "";
 			$orderby = isset($_GET["orderby"]) ? $_GET["orderby"] : "";
 			$is_deleted = isset($_GET["is_deleted"]) ? $_GET["is_deleted"] : "";
+			$show_in_catalog = isset($_GET["show_in_catalog"]) ? $_GET["show_in_catalog"] : "";
 			?>
 			<span class="table_filter">
 				<select name="catalog_id" class="web_form_value">
@@ -369,6 +371,7 @@ class Product_Table extends \Elberos\Table
 			jQuery(".dosearch").click(function(){
 				var filter = [];
 				<?= $is_deleted == "true" ? "filter.push('is_deleted=true');" : "" ?>
+				<?= $show_in_catalog == "true" ? "filter.push('show_in_catalog=true');" : "" ?>
 				<?= $order != "" ? "filter.push('order='+" . json_encode($order) . ");" : "" ?>
 				<?= $orderby != "" ? "filter.push('orderby='+" . json_encode($orderby) . ");" : "" ?>
 				jQuery(".table_filter .web_form_value").each(function(){
@@ -416,6 +419,13 @@ class Product_Table extends \Elberos\Table
 		{
 			$where[] = "name like :name";
 			$args["name"] = "%" . $wpdb->esc_like($_GET["name"]) . "%";
+		}
+		
+		/* Show in catalog */
+		if (isset($_GET["show_in_catalog"]) && $_GET["show_in_catalog"] == "true")
+		{
+			$where[] = "show_in_catalog=1";
+			$where[] = "is_deleted=0";
 		}
 		
 		/* Is deleted */
@@ -583,6 +593,39 @@ class Product_Table extends \Elberos\Table
 			width: calc(40% - 25px);
 			margin-left: 20px;
 		}
+		.elberos-commerce-product-params{
+			margin-bottom: 20px;
+		}
+		.elberos-commerce-product-params label{
+			display: inline-block;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+		.elberos-commerce-product-params-item{
+			margin-bottom: 5px;
+		}
+		.elberos-commerce-product-params-item-key, .elberos-commerce-product-params-item-value{
+			display: inline-block;
+			vertical-align: top;
+		}
+		.elberos-commerce-product-params-item-key{
+			width: 200px;
+		}
+		.elberos-commerce-product-params-item-value{
+			width: calc(100% - 210px);
+		}
+		.elberos-commerce-product-offers{
+			margin-bottom: 20px;
+		}
+		.elberos-commerce-product-offers label{
+			display: inline-block;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+		.elberos-commerce-product-offers th, .elberos-commerce-product-offers td{
+			padding: 5px;
+			text-align: center;
+		}
 		</style>
 		<?php
 	}
@@ -594,6 +637,26 @@ class Product_Table extends \Elberos\Table
 	 */
 	function display_table_sub()
 	{
+		$page_name = $this->get_page_name();
+		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
+		$show_in_catalog = isset($_GET['show_in_catalog']) ? $_GET['show_in_catalog'] : "";
+		$url = "admin.php?page=" . $page_name;
+		?>
+		<ul class="subsubsub">
+			<li>
+				<a href="admin.php?page=<?= $page_name ?>"
+					class="<?= (($show_in_catalog != "true" && $is_deleted != "true") ? "current" : "")?>"  >Все товары</a> |
+			</li>
+			<li>
+				<a href="admin.php?page=<?= $page_name ?>&show_in_catalog=true"
+					class="<?= ($show_in_catalog == "true" ? "current" : "")?>" >Размещено на сайте</a> |
+			</li>
+			<li>
+				<a href="admin.php?page=<?= $page_name ?>&is_deleted=true"
+					class="<?= ($is_deleted == "true" ? "current" : "")?>" >На удалении</a>
+			</li>
+		</ul>
+		<?php
 	}
 	
 	
@@ -620,6 +683,13 @@ class Product_Table extends \Elberos\Table
 	}
 	
 	
+	function display_add_or_edit()
+	{
+		parent::display_add_or_edit();
+		$this->show_offers();
+		$this->show_params();
+	}
+	
 	
 	/**
 	 * Display form content
@@ -637,6 +707,7 @@ class Product_Table extends \Elberos\Table
 		$this->show_categories();
 		$this->show_photos();
 		echo '</div>';
+		echo '<div class="clear"></div>';
 	}
 	
 	
@@ -937,7 +1008,7 @@ class Product_Table extends \Elberos\Table
 		
 		$product_photo = [];
 		
-		/* Список категорий у товара */
+		/* Список фото у товара */
 		$sql = \Elberos\wpdb_prepare
 		(
 			"SELECT p.* FROM {$wpdb->base_prefix}elberos_commerce_products_photos as t
@@ -1038,6 +1109,96 @@ class Product_Table extends \Elberos\Table
 	}
 	
 	
+	
+	/**
+	 * Params
+	 */
+	public function show_params()
+	{
+		global $wpdb;
+		
+		$product_photo = [];
+		
+		/* Список параметров у товара */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_products_params as t
+			WHERE t.product_id=:product_id
+			order by id asc",
+			[
+				"product_id" => $this->form_item_id
+			]
+		);
+		$product_params = $wpdb->get_results($sql, ARRAY_A);
+		
+		?>
+		<div class='elberos-commerce elberos-commerce-product-params'>
+			<label>Параметры товара</label>
+			<?php foreach ($product_params as $params) { ?>
+			<div class='elberos-commerce-product-params-item'>
+				<div class='elberos-commerce-product-params-item-key'><?= esc_html($params['key']) ?></div>
+				<input class='elberos-commerce-product-params-item-value' value='<?= esc_attr($params['value']) ?>' 
+					readonly type='text' />
+			</div>
+			<?php } ?>
+		</div>
+		<?php
+	}
+	
+	
+	
+	/**
+	 * Offers
+	 */
+	public function show_offers()
+	{
+		global $wpdb;
+		
+		$product_offers = [];
+		
+		/* Список оферов у товара */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT t1.*, t2.price_type_id, t2.price_type_code_1c,
+				t2.name, t2.price, t2.currency, t2.coefficient, t2.unit,
+				t3.name as price_type_name
+			FROM {$wpdb->base_prefix}elberos_commerce_products_offers as t1
+			INNER JOIN {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t2
+				on (t1.id = t2.offer_id)
+			LEFT JOIN {$wpdb->base_prefix}elberos_commerce_price_types as t3
+				on (t3.id = t2.price_type_id)
+			WHERE t1.product_id=:product_id
+			order by id asc",
+			[
+				"product_id" => $this->form_item_id
+			]
+		);
+		$product_offers = $wpdb->get_results($sql, ARRAY_A);
+		
+		?>
+		<div class='elberos-commerce elberos-commerce-product-offers'>
+			<label>Предложения товара</label>
+			<table>
+				<tr class='elberos-commerce-product-offers-head'>
+					<th>Тип цены</th>
+					<th>Цена</th>
+					<th>Валюта</th>
+					<th>Ед. изм.</th>
+					<th></th>
+				</tr>
+			<?php foreach ($product_offers as $offer) { ?>
+				<tr class='elberos-commerce-product-offers-item'>
+					<td> <?= esc_html($offer['price_type_name']) ?></td>
+					<td> <?= esc_html($offer['price']) ?></td>
+					<td> <?= esc_html($offer['currency']) ?></td>
+					<td> <?= esc_html($offer['unit']) ?></td>
+					<td> <?= esc_html($offer['name']) ?></td>
+				</tr>
+			<?php } ?>
+			</table>
+		</div>
+		<?php
+	}
 }
 
 }

@@ -107,7 +107,7 @@ class Import
 		$catalog_id = 0;
 		
 		/* Создаем классификатор */
-		if ($this->xml->Классификатор != null)
+		if ($this->xml->Классификатор != null && $this->xml->getName() == 'Классификатор')
 		{
 			/* Получаем название */
 			$name = [];
@@ -141,7 +141,7 @@ class Import
 		}
 		
 		/* Создаем каталог */
-		if ($this->xml->Каталог != null)
+		if ($this->xml->Каталог != null && $this->xml->getName() == 'Каталог')
 		{
 			/* Получаем название */
 			$name = [];
@@ -175,8 +175,40 @@ class Import
 				);
 				$catalog_id = $catalog['id'];
 			}
+			
+			/* Флаг содержит только изменения */
+			$products_update_only = mb_strtolower((string) ($this->xml->Каталог->attributes()->СодержитТолькоИзменения));
+			if ($products_update_only === "нет" ||
+				$products_update_only === "false" ||
+				$products_update_only === false ||
+				$products_update_only === 0)
+			{
+				/* Сбрасываем флаг just_show_in_catalog */
+				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+				$sql = "update " . $table_name_products . " set `just_show_in_catalog` = 0";
+				$wpdb->query($sql);
+			}
 		}
 		
+		/* Предложения */
+		$xml = $this->xml->ПакетПредложений;
+		if ($xml != null && $xml->getName() == 'ПакетПредложений')
+		{
+			$offers_update_only = mb_strtolower((string) ($this->xml->Каталог->attributes()->СодержитТолькоИзменения));
+			if ($offers_update_only === "нет" ||
+				$offers_update_only === "false" ||
+				$offers_update_only === false ||
+				$offers_update_only === 0)
+			{
+				/* Сбрасываем флаг prepare_delete у предложений */
+				$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+				$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
+				$sql = "update " . $table_name_products_offers . " set `prepare_delete` = 1";
+				$wpdb->query($sql);
+				$sql = "update " . $table_name_products_offers_prices . " set `prepare_delete` = 1";
+				$wpdb->query($sql);
+			}
+		}
 	}
 	
 	

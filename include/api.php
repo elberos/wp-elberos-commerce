@@ -28,6 +28,9 @@ if ( !class_exists( Api::class ) )
 class Api
 {
 	
+	static $price_types = [];
+	
+	
 	/**
 	 * Init api
 	 */
@@ -565,7 +568,7 @@ class Api
 		global $wpdb;
 		
 		/* Получаем параметры товара */
-		$table_name = $wpdb->base_prefix . "elberos_commerce_products_params";
+		$table_name = $wpdb->base_prefix . "elberos_commerce_params";
 		$table_name_classifier = $wpdb->base_prefix . "elberos_commerce_classifiers";
 		$sql = \Elberos\wpdb_prepare
 		(
@@ -579,7 +582,7 @@ class Api
 		$params = $wpdb->get_results($sql, ARRAY_A);
 		
 		/* Значения параметров товара */
-		$table_name = $wpdb->base_prefix . "elberos_commerce_products_params_values";
+		$table_name = $wpdb->base_prefix . "elberos_commerce_params_values";
 		$sql = \Elberos\wpdb_prepare
 		(
 			"select * from $table_name ",
@@ -600,6 +603,36 @@ class Api
 		}
 		
 		return $params;
+	}
+	
+	
+	
+	/**
+	 * Find price type by 1c code
+	 */
+	static function findPriceTypeByCode($code_1c)
+	{
+		global $wpdb;
+		
+		if ($code_1c == "") return null;
+		
+		if (!array_key_exists($code_1c, static::$price_types))
+		{
+			$table_name = $wpdb->base_prefix . "elberos_commerce_price_types";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name " .
+				"where code_1c = :code_1c limit 1",
+				[
+					"code_1c" => $code_1c,
+				]
+			);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			static::$price_types[$code_1c] = $item;
+		}
+		
+		$item = static::$price_types[$code_1c];
+		return $item;
 	}
 }
 

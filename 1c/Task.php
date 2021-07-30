@@ -282,10 +282,12 @@ class Task
 				"vendor_code" => $vendor_code,
 				"text" => json_encode($text),
 				"name" => $name_ru,
+				"slug" => sanitize_title($name_ru),
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
+		$product_update = [];
 		
 		/* Вставка групп */
 		$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
@@ -298,21 +300,25 @@ class Task
 		);
 		$wpdb->query($sql);
 		
-		$groups = $xml->Группы;
-		foreach ($groups->children() as $group)
+		/* Группы */
+		if ($xml->Группы != null && $xml->getName() == 'Группы')
 		{
-			$group_code_1c = (string)$group;
-			$category = Helper::findCategoryByCode($group_code_1c);
-			if ($category)
+			$groups = $xml->Группы;
+			foreach ($groups->children() as $group)
 			{
-				$wpdb->insert
-				(
-					$table_name_categories,
-					[
-						"product_id" => $product["id"],
-						"category_id" => $category["id"],
-					]
-				);
+				$group_code_1c = (string)$group;
+				$category = Helper::findCategoryByCode($group_code_1c);
+				if ($category)
+				{
+					$wpdb->insert
+					(
+						$table_name_categories,
+						[
+							"product_id" => $product["id"],
+							"category_id" => $category["id"],
+						]
+					);
+				}
 			}
 		}
 		
@@ -331,28 +337,144 @@ class Task
 		}
 		
 		/* Обновляем id фото */
+		$product_update["main_photo_id"] = $main_photo_id;
+		
+		/* Установить флаг только что загружен */
 		if ($main_photo_id)
 		{
-			$wpdb->update
-			(
-				$table_name_products,
-				[
-					"main_photo_id" => $main_photo_id,
-				],
-				[ "id" => $product["id"] ]
-			);
+			$product_update["just_show_in_catalog"] = 1;
 		}
 		else
 		{
-			$wpdb->update
+			$product_update["just_show_in_catalog"] = 0;
+		}
+		
+		/* Параметры товара */
+		$product_params = [];
+		$items = $xml->ЗначенияСвойств;
+		if ($items != null && $items->getName() == 'ЗначенияСвойств')
+		{
+			foreach ($items->children() as $item)
+			{
+				if ($item->getName() == 'ЗначенияСвойства')
+				{
+					$product_param = Helper::findProductParamByCode( (string)$item->Ид );
+					$product_param_value = Helper::findProductParamValueByCode( (string)$item->Значение );
+					
+					if ($product_param && $product_param_value)
+					{
+						$product_params[] =
+						[
+							"param" =>
+							[
+								"id" => $product_param['id'],
+								"code_1c" => $product_param['code_1c'],
+								"name" => $product_param["name"],
+							],
+							"value" =>
+							[
+								"id" => $product_param_value['id'],
+								"code_1c" => $product_param_value['code_1c'],
+								"name" => $product_param_value["name"],
+							]
+						];
+					}
+				}
+			}
+		}
+		$product_update["params"] = json_encode($product_params);
+		
+		/* Реквизиты товара */
+		$product_props = [];
+		$items = $xml->ЗначенияРеквизитов;
+		if ($items != null && $items->getName() == 'ЗначенияРеквизитов')
+		{
+			foreach ($items->children() as $item)
+			{
+				if ($item->getName() == 'ЗначениеРеквизита')
+				{
+					$props_name = (string)$item->Наименование;
+					$props_value = (string)$item->Значение;
+					$product_props[] =
+					[
+						"name" => $props_name,
+						"value" => $props_value,
+					];
+					
+					if ($props_name == "НаименованиеДляСайта")
+					{
+						$product_update["name"] = $props_value;
+						$product_update["slug"] = sanitize_title($props_value);
+						$text["ru_RU"]["name"] = $props_value;
+						$product_update["text"] = json_encode($text);
+					}
+				}
+			}
+		}
+		$product_update["props"] = json_encode($product_props);
+		
+		/* Обновляем данные */
+		if (count($product_update) > 0)
+		{
+			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+		}
+		
+		/* Обновляем данные параметров товара */
+		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
+		$wpdb->update($table_name_products_params, [ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]);
+		
+		/* Обновляем ЗначенияСвойств */
+		foreach ($product_params as $param)
+		{
+			\Elberos\wpdb_insert_or_update
 			(
-				$table_name_products,
+				$table_name_products_params,
 				[
-					"main_photo_id" => $main_photo_id,
+					"product_id" => $product["id"],
+					"type" => "params",
+					"key" => $param["param"]["name"],
 				],
-				[ "id" => $product["id"] ]
+				[
+					"product_id" => $product["id"],
+					"type" => "params",
+					"param_id" => $param["param"]["id"],
+					"param_code_1c" => $param["param"]["code_1c"],
+					"key" => $param["param"]["name"],
+					"param_value_id" => $param["value"]["id"],
+					"param_value_code_1c" => $param["value"]["code_1c"],
+					"value" => $param["value"]["name"],
+					"prepare_delete" => 0,
+				]
 			);
 		}
+		
+		/* Обновляем ЗначенияРеквизитов */
+		foreach ($product_props as $props)
+		{
+			\Elberos\wpdb_insert_or_update
+			(
+				$table_name_products_params,
+				[
+					"product_id" => $product["id"],
+					"type" => "props",
+					"key" => $props["name"],
+				],
+				[
+					"product_id" => $product["id"],
+					"type" => "props",
+					"param_id" => null,
+					"param_code_1c" => "",
+					"key" => $props["name"],
+					"param_value_id" => null,
+					"param_value_code_1c" => "",
+					"value" => $props["value"],
+					"prepare_delete" => 0,
+				]
+			);
+		}
+		
+		/* Удаляем старые значения */
+		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $code_1c; */
@@ -494,8 +616,8 @@ class Task
 		$code_1c = (string)$xml->Ид;
 		
 		/* Название таблиц */
-		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
-		$table_name_products_params_values = $wpdb->base_prefix . "elberos_commerce_products_params_values";
+		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_params";
+		$table_name_products_params_values = $wpdb->base_prefix . "elberos_commerce_params_values";
 		
 		/* Получаем название параметра */
 		$names = Helper::getNamesByXml($xml, 'Наименование');
@@ -709,6 +831,7 @@ class Task
 		
 		/* Название таблиц */
 		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+		$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
 		
 		/* Получаем код товара */
 		$product_code_1c = "";
@@ -761,47 +884,19 @@ class Task
 							[
 								"id" => $product_param['id'],
 								"code_1c" => $product_param['code_1c'],
+								"name" => $product_param["name"],
 							],
 							"value" =>
 							[
 								"id" => $product_param_value['id'],
 								"code_1c" => $product_param_value['code_1c'],
+								"name" => $product_param_value["name"],
 							]
 						];
 					}
 				}
 			}
 		}
-		
-		/* Цены */
-		$prices = [];
-		$items = $xml->Цены;
-		if ($items != null && $items->getName() == 'Цены')
-		{
-			foreach ($items->children() as $item)
-			{
-				if ($item->getName() == 'Цена')
-				{
-					$price_type = Helper::findPriceTypeByCode( (string)$item->ИдТипаЦены );
-					$price = (string)$item->ЦенаЗаЕдиницу;
-					$currency = (string)$item->Валюта;
-					$coefficient = (string)$item->Коэффициент;
-					
-					if ($price_type)
-					{
-						$prices[] =
-						[
-							"id" => $price_type['id'],
-							"code_1c" => $price_type['code_1c'],
-							"price" => $price,
-							"currency" => $currency,
-							"coefficient" => $coefficient,
-						];
-					}
-				}
-			}
-		}
-		//Склад
 		
 		/* Вставляем параметр в базу данных */
 		$offer = \Elberos\wpdb_insert_or_update
@@ -815,12 +910,53 @@ class Task
 				"code_1c" => $offer_code_1c,
 				"name" => $name_ru,
 				"xml" => $xml_str,
-				"prices" => json_encode($prices),
 				"offer_params" => json_encode($offer_params),
 				"count" => $count,
+				"prepare_delete" => 0,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
 		);
+		$offer_id = $offer['id'];
+		
+		/* Цены */
+		$items = $xml->Цены;
+		if ($items != null && $items->getName() == 'Цены')
+		{
+			foreach ($items->children() as $item)
+			{
+				if ($item->getName() == 'Цена')
+				{
+					$price_name = (string)$item->Представление;
+					$price_code_1c = (string)$item->ИдТипаЦены;
+					$price_unit = (string)$item->Единица;
+					$price_type = Helper::findPriceTypeByCode( (string)$item->ИдТипаЦены );
+					$price_type_id = null; if ($price_type) $price_type_id = $price_type["id"];
+					$price = (string)$item->ЦенаЗаЕдиницу;
+					$currency = (string)$item->Валюта;
+					$coefficient = (string)$item->Коэффициент;
+					
+					\Elberos\wpdb_insert_or_update
+					(
+						$table_name_products_offers_prices,
+						[
+							"offer_id" => $offer_id,
+							"price_type_code_1c" => $price_code_1c,
+						],
+						[
+							"offer_id" => $offer_id,
+							"price_type_id" => $price_type_id,
+							"price_type_code_1c" => $price_code_1c,
+							"price" => $price,
+							"currency" => $currency,
+							"coefficient" => $coefficient,
+							"unit" => $price_unit,
+							"name" => $price_name,
+							"prepare_delete" => 0,
+						]
+					);
+				}
+			}
+		}
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $offer_code_1c; */
