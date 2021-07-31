@@ -65,6 +65,11 @@ class Invoice_Table extends \Elberos\Table
 						"label" => "Email",
 						"type" => "input",
 						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$client_data = @json_decode($item["client_data"], true);
+							return $client_data["email"];
+						}
 					])
 					->addField
 					([
@@ -72,6 +77,11 @@ class Invoice_Table extends \Elberos\Table
 						"label" => "Имя",
 						"type" => "input",
 						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$client_data = @json_decode($item["client_data"], true);
+							return $client_data["name"];
+						}
 					])
 				;
 				
@@ -86,6 +96,8 @@ class Invoice_Table extends \Elberos\Table
 				
 				$struct->form_fields =
 				[
+					"email",
+					"name",
 					"price",
 					"gmtime_add",
 				];
@@ -351,7 +363,7 @@ class Invoice_Table extends \Elberos\Table
 			return;
 		}
 		$invoice = $this->form_item;
-		$send_data = @json_decode($invoice["send_data"], true);
+		$client_data = @json_decode($invoice["client_data"], true);
 		
 		echo "<div class='invoice_table'>";
 		foreach ($this->struct->form_fields as $field_name)
@@ -381,21 +393,22 @@ class Invoice_Table extends \Elberos\Table
 		echo "<th>Сумма</th>";
 		echo "</tr>";
 		
-		$basket_data = @json_decode($invoice["basket"], true);
-		$products_meta = @json_decode($invoice["products_meta"], true);
-		$product_items = isset($products_meta["items"]) ? $products_meta["items"] : [];
-		$product_photos = isset($products_meta["photos"]) ? $products_meta["photos"] : [];
+		$basket_data = @json_decode($invoice["basket_data"], true);
 		$basket_sum_total = 0;
-		if (gettype($basket_data) == 'array') foreach ($basket_data as $row)
+		if (gettype($basket_data) == 'array') foreach ($basket_data["items"] as $basket)
 		{
-			$product_item = \Elberos\find_item($product_items, "id", $row["product_id"]);
-			$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
-			$product_price = (int) isset($product_item["price"]) ? $product_item["price"] : 0;
-			$product_main_photo_id = isset($product_item["main_photo_id"]) ? $product_item["main_photo_id"] : 0;
-			$product_main_photo = isset($product_photos[$product_main_photo_id]) ?
-				$product_photos[$product_main_photo_id] : [];
+			$offer_price_id = $basket["offer_price_id"];
+			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
+			if (!$offer_item) continue;
+			
+			$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
+			$product_main_photo = \Elberos\Commerce\Api::getMainPhoto($product_item, $basket_data["products"]["photos"]);
+			$product_main_photo_id = isset($product_main_photo["id"]) ? $product_main_photo["id"] : "";
 			$product_main_photo_url = isset($product_main_photo["url"]) ? $product_main_photo["url"] : "";
-			$product_count = (int) isset($row["product_count"]) ? $row["product_count"] : 0;
+			
+			$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
+			$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
+			$product_count = $basket["count"];
 			
 			echo "<tr class='invoice_table_product_row'>";
 			
@@ -408,7 +421,7 @@ class Invoice_Table extends \Elberos\Table
 						echo esc_html( $product_name );
 					echo "</div>";
 					echo "<div class='invoice_table_product_title_row'>";
-						echo "Артикул: <span class='value'></span>";
+						echo "Артикул: <span class='value'>" . esc_html($product_item["vendor_code"]) . "</span>";
 					echo "</div>";
 					echo "<div class='invoice_table_product_title_row'>";
 						echo "";
@@ -421,7 +434,7 @@ class Invoice_Table extends \Elberos\Table
 				echo "</div>";
 			echo "</td>";
 			echo "<td>";
-				echo "коробка";
+				echo esc_html($offer_item["unit"]);
 			echo "</td>";
 			echo "<td>";
 				echo esc_html($product_count);

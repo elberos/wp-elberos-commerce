@@ -574,7 +574,7 @@ class Controller
 				$item["basket"] = @json_decode($item["basket"], true);
 				$item["delivery"] = @json_decode($item["delivery"], true);
 				$item["client_data"] = @json_decode($item["client_data"], true);
-				$item["products_meta"] = @json_decode($item["products_meta"], true);
+				$item["basket_data"] = @json_decode($item["basket_data"], true);
 				return $item;
 			},
 			$results
@@ -620,12 +620,20 @@ class Controller
 			if ($is_service) $products = $doc->addChild('Услуги');
 			else $products = $doc->addChild('Товары');
 			
-			$basket = $invoice['basket'];
-			$products_meta = $invoice['products_meta'];
-			foreach ($basket as $basket_item)
+			$basket_data = $invoice['basket_data'];
+			foreach ($basket_data["items"] as $basket_item)
 			{
-				$product_id = $basket_item["product_id"];
-				$product_item  = \Elberos\Commerce\Api::getProductFromMeta($products_meta, $product_id);
+				$offer_price_id = $basket_item["offer_price_id"];
+				$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
+				if (!$offer_item)
+				{
+					continue;
+				}
+				
+				$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
+				$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
+				$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
+				$product_count = $basket_item["count"];
 				if (!$product_item)
 				{
 					continue;
@@ -644,12 +652,11 @@ class Controller
 				$product->addChild('Ид', $product_item['code_1c']);
 				$product->addChild('Артикул', $product_item['vendor_code']);
 				$product->addChild('Наименование', $product_item['name']);
-				$product->addChild('ЦенаЗаЕдиницу', $product_item['price']);
-				$product->addChild('Количество', $basket_item['product_count']);
-				$product->addChild('Сумма', $product_item['price'] * $basket_item['product_count']);
+				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
+				$product->addChild('Количество', $basket_item['count']);
+				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
 			}
 		}
-		
 		
 		/* Results */
 		foreach ($results as $invoice)

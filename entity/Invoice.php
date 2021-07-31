@@ -61,7 +61,7 @@ class Invoice extends \Elberos\StructBuilder
 			
 			->addField
 			([
-				"api_name" => "send_data",
+				"api_name" => "client_data",
 			])
 			
 			->addField

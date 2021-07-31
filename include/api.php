@@ -202,16 +202,16 @@ class Api
 		}
 		
 		/* Get products data */
-		$products_meta = \Elberos\Commerce\Api::getBasketProducts($basket);
+		$basket_data = \Elberos\Commerce\Api::getBasketProducts($basket);
 		
 		/* Send data */
-		$send_data = isset($_POST['data']) ? $_POST['data'] : [];
+		$client_data = isset($_POST['data']) ? $_POST['data'] : [];
 		
 		/* Validation */
 		$validation = apply_filters
 		(
 			'elberos_commerce_basket_validation',
-			null, $send_data, $basket, $products_meta
+			null, $client_data, $basket_data
 		);
 		if ($validation != null)
 		{
@@ -231,13 +231,7 @@ class Api
 		$secret_code = wp_generate_password(12, false, false);
 		
 		/* Calculate price */
-		$price = static::getBasketPrice($basket, $products_meta);
-		
-		/* Remove meta param */
-		foreach ($products_meta as &$arr)
-		{
-			if (isset($arr['meta'])) unset( $arr['meta'] );
-		}
+		$basket_price = static::getBasketPrice($basket_data);
 		
 		/* Find client */
 		$find_client_res =
@@ -251,7 +245,7 @@ class Api
 		$find_client_res = apply_filters
 		(
 			'elberos_commerce_basket_find_client',
-			$find_client_res, $send_data, $basket, $products_meta
+			$find_client_res, $client_data, $basket, $products_meta
 		);
 		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
 		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
@@ -284,11 +278,10 @@ class Api
 			$table_invoice,
 			[
 				"secret_code" => $secret_code,
-				"send_data" => json_encode($send_data),
-				"products_meta" => json_encode($products_meta),
-				"basket" => json_encode( array_values($basket) ),
+				"client_data" => json_encode($client_data),
+				"basket_data" => json_encode($basket_data),
 				"utm" => json_encode($utm),
-				"price" => $price,
+				"price" => $basket_price,
 				"client_id" => $client_id,
 				"gmtime_add" => \Elberos\dbtime(),
 			]
@@ -298,13 +291,15 @@ class Api
 		$invoice_id = $wpdb->insert_id;
 		
 		/* Clear basket */
-		static::api_clear_basket($site);
+		//static::api_clear_basket($site);
 		
 		/* Auth client if need */
+		/*
 		if ($client_register == true && isset($find_client_res['item']))
 		{
 			\Elberos\UserCabinet\Api::create_session($find_client_res['item']);
 		}
+		*/
 		
 		return
 		[
@@ -421,21 +416,21 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketPrice($basket, $products_meta)
+	public static function getBasketPrice($basket_data)
 	{
 		$price_total = 0;
-		foreach ($basket as $basket_data)
+		foreach ($basket_data["items"] as $basket)
 		{
-			$product_count = intval( isset($basket_data["product_count"]) ? $basket_data["product_count"] : 0 );
-			$product_id = isset($basket_data["product_id"]) ? $basket_data["product_id"] : -1;
-			$product = isset($products_meta[$product_id]) ? $products_meta[$product_id] : null;
-			
-			if ($product == null) continue;
-			if ($product_count < 0) $product_count = 0;
-			
-			$price_total = $price_total + $product['price'] * $product_count;
+			$offer_price_id = $basket["offer_price_id"];
+			$basket_product_count = $basket["count"];
+			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
+			if ($basket_product_count < 0) $basket_product_count = 0;
+			if ($offer_item)
+			{
+				$price = $offer_item['price'];
+				$price_total = $price_total + $price * $basket_product_count;
+			}
 		}
-		
 		return $price_total;
 	}
 	
