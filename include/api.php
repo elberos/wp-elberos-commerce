@@ -64,17 +64,12 @@ class Api
 	/**
 	 * Find basket item
 	 */
-	public static function findBasketIndex($basket, $product_id, $product_params, $product_count)
+	public static function findBasketIndex($basket, $offer_price_id)
 	{
 		foreach ($basket as $index => $row)
 		{
-			$basket_product_id = isset($row['product_id']) ? $row['product_id'] : -1;
-			$basket_product_params = isset($row['product_params']) ? $row['product_params'] : null;
-			$basket_product_count = isset($row['product_count']) ? $row['product_count'] : 1;
-			
-			if ($product_id != $basket_product_id) continue;
-			if (!\Elberos\equalArr($product_params, $basket_product_params)) continue;
-			
+			$basket_offer_id = isset($row['offer_price_id']) ? $row['offer_price_id'] : -1;
+			if ($offer_price_id != $basket_offer_id) continue;
 			return $index;
 		}
 		return -1;
@@ -85,27 +80,26 @@ class Api
 	/**
 	 * Add to basket
 	 */
-	public static function addToBasket($basket, $product_id, $product_params, $product_count)
+	public static function addToBasket($basket, $offer_price_id, $count)
 	{
-		if ($product_id == -1) return $basket;
+		if ($offer_price_id == -1) return $basket;
 		
-		$basket_index = static::findBasketIndex($basket, $product_id, $product_params, $product_count);
+		$basket_index = static::findBasketIndex($basket, $offer_price_id);
 		
 		/* Add */
 		if ($basket_index == -1)
 		{
 			$basket[] =
 			[
-				'product_id' => $product_id,
-				'product_params' => $product_params,
-				'product_count' => $product_count,
+				'offer_price_id' => $offer_price_id,
+				'count' => $count,
 			];
 		}
 		
 		/* Change */
 		else
 		{
-			$basket[$basket_index]['product_count'] = $product_count;
+			$basket[$basket_index]['count'] = $count;
 		}
 		
 		return $basket;
@@ -122,11 +116,10 @@ class Api
 		$basket = static::getBasketData();
 		
 		/* Get product data */
-		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
-		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
-		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
+		$offer_price_id = isset($_POST['offer_price_id']) ? $_POST['offer_price_id'] : -1;
+		$count = (int) (isset($_POST['count']) ? $_POST['count'] : 0);
 		
-		$basket = static::addToBasket($basket, $product_id, $product_params, $product_count);
+		$basket = static::addToBasket($basket, $offer_price_id, $count);
 		
 		/* Set cookie */
 		$basket_data = \Elberos\base64_encode_url( json_encode($basket) );
@@ -151,11 +144,8 @@ class Api
 		$basket = static::getBasketData();
 		
 		/* Get product data */
-		$product_id = isset($_POST['product_id']) ? $_POST['product_id'] : -1;
-		$product_params = isset($_POST['product_params']) ? $_POST['product_params'] : [];
-		$product_count = (int) (isset($_POST['product_count']) ? $_POST['product_count'] : 0);
-		
-		$basket_index = static::findBasketIndex($basket, $product_id, $product_params, $product_count);
+		$offer_price_id = isset($_POST['offer_price_id']) ? $_POST['offer_price_id'] : -1;
+		$basket_index = static::findBasketIndex($basket, $offer_price_id);
 		if ($basket_index != -1)
 		{
 			unset($basket[$basket_index]);
@@ -389,20 +379,41 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketProducts($basket)
+	public static function getBasketProducts()
 	{
+		global $wpdb;
+		
 		$basket = \Elberos\Commerce\Api::getBasketData();
+		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket);
+		$offers = [];
+		$products_meta = [];
 		
-		/* Get meta values */
-		$products_id = array_map
-		(
-			function($row) { return $row["product_id"]; },
-			$basket
-		);
+		if (count($offer_price_ids) > 0)
+		{
+			$sql = $wpdb->prepare
+			(
+				"select
+					t1.id as offer_price_id, t2.id as offer_id, t3.id as product_id,
+					t2.xml as offer_xml, t1.price, t1.currency, t1.unit, t1.coefficient, t1.name as offer_price_name
+				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
+				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as t2
+					on (t2.id = t1.offer_id)
+				inner join {$wpdb->base_prefix}elberos_commerce_products as t3
+					on (t3.id = t2.product_id)
+				where t1.id in (" . implode(",", array_fill(0, count($offer_price_ids), "%d")) . ") ",
+				$offer_price_ids
+			);
+			$offers = $wpdb->get_results($sql, ARRAY_A);
+			
+			$products_id = array_map(function($item){ return $item["product_id"]; }, $offers);
+			$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
+		}
 		
-		/* Get products by id */
-		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
-		return $products_meta;
+		return [
+			"items" => $basket,
+			"offers" => $offers,
+			"products" => $products_meta,
+		];
 	}
 	
 	
@@ -493,7 +504,8 @@ class Api
 			function ($item)
 			{
 				$item["text"] = @json_decode($item["text"], true);
-				unset($item["xml"]);
+				$item["props"] = @json_decode($item["props"], true);
+				$item["params"] = @json_decode($item["params"], true);
 				return $item;
 			},
 			$items
