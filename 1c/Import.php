@@ -83,10 +83,10 @@ class Import
 	{
 		$this->loadInit();
 		$this->loadGroups();
-		$this->loadProducts();
 		$this->loadPriceTypes();
 		$this->loadProductParams();
 		$this->loadWarehouses();
+		$this->loadProducts();
 		$this->loadOffers();
 	}
 	
