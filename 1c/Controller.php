@@ -680,7 +680,7 @@ class Controller
 				$name = \Elberos\mb_trim
 				(
 					$invoice_client['surname'] . ' ' .
-					$invoice_client['firstname']. ' ' .
+					$invoice_client['name']. ' ' .
 					$invoice_client['lastname']
 				);
 			}
@@ -705,12 +705,12 @@ class Controller
 					\Elberos\mb_trim
 					(
 						$invoice_client['surname'] . ' ' .
-						$invoice_client['firstname'] . ' ' .
+						$invoice_client['name'] . ' ' .
 						$invoice_client['lastname']
 					)
 				);
 				$node->addChild('Фамилия', \Elberos\mb_trim($invoice_client['surname']));
-				$node->addChild('Имя', \Elberos\mb_trim($invoice_client['firstname']));
+				$node->addChild('Имя', \Elberos\mb_trim($invoice_client['name']));
 				$node->addChild('Отчество', \Elberos\mb_trim($invoice_client['lastname']));
 				$node->addChild('ИИН', \Elberos\mb_trim($invoice_client['user_identifier']));
 			}
