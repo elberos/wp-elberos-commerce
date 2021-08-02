@@ -284,6 +284,7 @@ class Api
 				"price" => $basket_price,
 				"client_id" => $client_id,
 				"gmtime_add" => \Elberos\dbtime(),
+				"gmtime_change" => \Elberos\dbtime(),
 			]
 		);
 		
@@ -291,7 +292,7 @@ class Api
 		$invoice_id = $wpdb->insert_id;
 		
 		/* Clear basket */
-		//static::api_clear_basket($site);
+		static::api_clear_basket($site);
 		
 		/* Auth client if need */
 		/*

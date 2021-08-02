@@ -771,12 +771,13 @@ class Controller
 			if ($invoice['status'] == 'final') addXmlKeyValue($values, 'Финальный статус', 'true');
 			else addXmlKeyValue($values, 'Финальный статус', 'false');
 			
-			if ($invoice['status'] == 'new') addXmlKeyValue($values, 'Статус заказа', 'Новый');
-			else if ($invoice['status'] == 'accepted') addXmlKeyValue($values, 'Статус заказа', 'Акцептован');
-			else if ($invoice['status'] == 'shipped') addXmlKeyValue($values, 'Статус заказа', 'Отгружен');
-			else if ($invoice['status'] == 'delivered') addXmlKeyValue($values, 'Статус заказа', 'Доставлен');
-			else if ($invoice['status'] == 'final') addXmlKeyValue($values, 'Статус заказа', 'Завершен');
-			else if ($invoice['status'] == 'cancel') addXmlKeyValue($values, 'Статус заказа', 'Отменен');
+			$status = mb_strtolower($invoice['status']);
+			if ($status == 'new') addXmlKeyValue($values, 'Статус заказа', 'Новый');
+			else if ($status == 'accepted') addXmlKeyValue($values, 'Статус заказа', 'Акцептован');
+			else if ($status == 'shipped') addXmlKeyValue($values, 'Статус заказа', 'Отгружен');
+			else if ($status == 'delivered') addXmlKeyValue($values, 'Статус заказа', 'Доставлен');
+			else if ($status == 'final') addXmlKeyValue($values, 'Статус заказа', 'Завершен');
+			else if ($status == 'cancel') addXmlKeyValue($values, 'Статус заказа', 'Отменен');
 			else addXmlKeyValue($values, 'Статус заказа', 'Неверный статус'); 
 			
 			// Отменен
