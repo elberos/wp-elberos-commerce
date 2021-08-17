@@ -88,6 +88,34 @@ class Elberos_Commerce_Plugin
 		include __DIR__ . "/1c/Import.php";
 		include __DIR__ . "/1c/Task.php";
 		\Elberos\Commerce\_1C\Controller::init();
+		
+		/* Add cron twicedaily task */
+		if ( !wp_next_scheduled( 'elberos_commerce_twicedaily_event' ) )
+		{
+			wp_schedule_event( time() + 60, 'twicedaily', 'elberos_commerce_twicedaily_event' );
+		}
+		add_action( 'elberos_commerce_twicedaily_event', 'Elberos_Commerce_Plugin::cron_twicedaily_event' );
+	}
+	
+	
+	
+	/**
+	 * Cron twicedaily event
+	 */
+	public static function cron_twicedaily_event()
+	{
+		global $wpdb;
+		
+		/**
+		 * Удаляем старый лог 1С
+		 */
+		$table_1c_import = $wpdb->base_prefix . 'elberos_commerce_1c_import';
+		$sql = $wpdb->prepare
+		(
+			"delete from `$table_1c_import` where `gmtime_add` < %s",
+			[ gmdate("Y-m-d h:i:s", time() - 30*24*60*60 ) ]
+		);
+		$wpdb->query($sql, ARRAY_A);
 	}
 	
 	

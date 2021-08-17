@@ -958,6 +958,9 @@ class Task
 			}
 		}
 		
+		/* Обновляем цены для конкретного товара */
+		\Elberos\Commerce\Api::updateProductOffers($product['id']);
+		
 		/* Код 1с */
 		/* $task["code_1c"] = $offer_code_1c; */
 		

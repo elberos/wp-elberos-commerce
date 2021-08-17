@@ -29,6 +29,7 @@ class Api
 {
 	
 	static $price_types = [];
+	static $product_params_filter = [];
 	
 	
 	/**
@@ -112,6 +113,8 @@ class Api
 	 */
 	public static function api_add_to_basket($site)
 	{
+		global $wpdb;
+		
 		/* Get basket data */
 		$basket = static::getBasketData();
 		
@@ -125,11 +128,43 @@ class Api
 		$basket_data = \Elberos\base64_encode_url( json_encode($basket) );
 		setcookie('basket', $basket_data, time() + 30*24*60*60, '/');
 		
+		/* Basket products */
+		$offers = static::getOffersByPriceId([$offer_price_id]);
+		$products_id = array_map(function($item){ return $item["product_id"]; }, $offers);
+		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
+		
+		/* Чистим мета информацию */
+		$products_meta["items"] = array_map
+		(
+			function ($item)
+			{
+				unset($item["props"]);
+				unset($item["params"]);
+				unset($item["prices"]);
+				unset($item["xml"]);
+				return $item;
+			},
+			$products_meta["items"]
+		);
+		
+		/* Получаем offer */
+		$offer = \Elberos\find_item($offers, "offer_price_id", $offer_price_id);
+		
+		/* Получаем product_id */
+		$product_id = -1;
+		$products_id = array_values($products_id);
+		if (count($products_id) > 0) $product_id = $products_id[0];
+		
 		return
 		[
 			"message" => "OK",
-			"basket" => $basket,
 			"code" => 1,
+			"product_id" => $product_id,
+			"offer_price_id" => $offer_price_id,
+			"basket" => $basket,
+			"products_meta" => $products_meta,
+			"offer" => $offer,
+			"count" => $count,
 		];
 	}
 	
@@ -375,22 +410,18 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketProducts()
+	public static function getOffersByPriceId($offer_price_ids)
 	{
 		global $wpdb;
 		
-		$basket = \Elberos\Commerce\Api::getBasketData();
-		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket);
 		$offers = [];
-		$products_meta = [];
-		
 		if (count($offer_price_ids) > 0)
 		{
 			$sql = $wpdb->prepare
 			(
 				"select
 					t1.id as offer_price_id, t2.id as offer_id, t3.id as product_id,
-					t2.xml as offer_xml, t1.price, t1.currency, t1.unit, t1.coefficient, t1.name as offer_price_name
+					t1.price, t1.currency, t1.unit, t1.coefficient, t1.name as offer_price_name
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
 				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as t2
 					on (t2.id = t1.offer_id)
@@ -400,10 +431,25 @@ class Api
 				$offer_price_ids
 			);
 			$offers = $wpdb->get_results($sql, ARRAY_A);
-			
-			$products_id = array_map(function($item){ return $item["product_id"]; }, $offers);
-			$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
 		}
+		
+		return $offers;
+	}
+	
+	
+	
+	/**
+	 * Get basket products
+	 */
+	public static function getBasketProducts()
+	{
+		global $wpdb;
+		
+		$basket = \Elberos\Commerce\Api::getBasketData();
+		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket);
+		$offers = static::getOffersByPriceId($offer_price_ids);
+		$products_id = array_map(function($item){ return $item["product_id"]; }, $offers);
+		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
 		
 		return [
 			"items" => $basket,
@@ -478,16 +524,17 @@ class Api
 	/**
 	 * Get products by ids
 	 */
-	public static function getProducts($products_id, $load_images = false)
+	public static function getProducts($products_id, $params = [])
 	{
 		global $wpdb;
 		
 		$items = [];
 		if (count($products_id) > 0)
 		{
+			$args = [];
 			$sql = $wpdb->prepare
 			(
-				"select * from " . $wpdb->base_prefix . "elberos_commerce_products " .
+				"select * from " . $wpdb->base_prefix . "elberos_commerce_products as p " .
 				"where id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
 				$products_id
 			);
@@ -502,6 +549,8 @@ class Api
 				$item["text"] = @json_decode($item["text"], true);
 				$item["props"] = @json_decode($item["props"], true);
 				$item["params"] = @json_decode($item["params"], true);
+				$item["prices"] = @json_decode($item["prices"], true);
+				unset($item["xml"]);
 				return $item;
 			},
 			$items
@@ -593,7 +642,7 @@ class Api
 		$table_name = $wpdb->base_prefix . "elberos_commerce_params_values";
 		$sql = \Elberos\wpdb_prepare
 		(
-			"select * from $table_name ",
+			"select * from $table_name order by name asc",
 			[
 			]
 		);
@@ -642,6 +691,70 @@ class Api
 		$item = static::$price_types[$code_1c];
 		return $item;
 	}
+	
+	
+	
+	/**
+	 * Возвращает список оферов у товара
+	 */
+	static function getProductOffers($product_id)
+	{
+		global $wpdb;
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT t1.id as offer_id, t1.code_1c as offer_code_1c, t1.product_id,
+				t1.name as offer_name, t1.count as offer_count,
+				t1.prepare_delete as prepare_delete_offers,
+				t2.price_type_id, t2.price_type_code_1c,
+				t2.name as price_name, t2.price, t2.currency, t2.coefficient, t2.unit,
+				t2.prepare_delete as prepare_delete_offers_prices,
+				t3.name as price_type_name, t2.id as offer_price_id
+			FROM {$wpdb->base_prefix}elberos_commerce_products_offers as t1
+			INNER JOIN {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t2
+				on (t1.id = t2.offer_id)
+			LEFT JOIN {$wpdb->base_prefix}elberos_commerce_price_types as t3
+				on (t3.id = t2.price_type_id)
+			WHERE t1.product_id=:product_id
+			order by t1.id asc",
+			[
+				"product_id" => $product_id,
+			]
+		);
+		$product_offers = $wpdb->get_results($sql, ARRAY_A);
+		return $product_offers;
+	}
+	
+	
+	
+	/**
+	 * Обновляет список оферов у товара
+	 */
+	static function updateProductOffers($product_id)
+	{
+		global $wpdb;
+		
+		$offers = static::getProductOffers($product_id);
+		$offers = array_filter
+		(
+			$offers,
+			function ($item)
+			{
+				return $item["prepare_delete_offers"] == 0 and $item["prepare_delete_offers_prices"] == 0;
+			}
+		);
+		
+		$wpdb->update
+		(
+			$wpdb->base_prefix . "elberos_commerce_products",
+			[
+				"prices" => json_encode($offers),
+			],
+			[
+				"id" => $product_id
+			]
+		);
+	}
+	
 }
 
 }
