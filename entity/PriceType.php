@@ -62,6 +62,20 @@ class PriceType extends \Elberos\StructBuilder
 				"label" => "Название",
 				"type" => "input",
 			])
+			
+			->addField
+			([
+				"api_name" => "site_name",
+				"label" => "Название на сайте",
+				"type" => "input",
+			])
+			
+			->addField
+			([
+				"api_name" => "pos",
+				"label" => "Позиция",
+				"type" => "input",
+			])
 		;
 	}
 	

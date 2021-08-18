@@ -419,6 +419,29 @@ class Task
 			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
 		}
 		
+		/* Обновляем текста для поиска */
+		$search_text = [];
+		foreach ($text as $arr1)
+		{
+			foreach ($arr1 as $key => $value)
+			{
+				if ($key != "name") continue;
+				$search_text[] = $value;
+			}
+		}
+		$table_name_products_text = $wpdb->base_prefix . "elberos_commerce_products_text";
+		\Elberos\wpdb_insert_or_update
+		(
+			$table_name_products_text,
+			[
+				"id" => $product["id"],
+			],
+			[
+				"id" => $product["id"],
+				"text" => implode(" ", $search_text),
+			]
+		);
+		
 		/* Обновляем данные параметров товара */
 		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
 		$wpdb->update($table_name_products_params, [ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]);

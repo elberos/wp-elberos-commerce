@@ -62,12 +62,16 @@ class PriceType_Table extends \Elberos\Table
 					"id",
 					"name",
 					"code_1c",
+					"site_name",
+					"pos",
 				];
 				
 				$struct->form_fields =
 				[
 					"name",
 					"code_1c",
+					"site_name",
+					"pos",
 				];
 				
 				return $struct;
@@ -284,6 +288,7 @@ class PriceType_Table extends \Elberos\Table
 			"args" => $args,
 			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
 			"per_page" => $per_page,
+			"order_by" => "pos desc, site_name asc, name asc",
 		]);
 		
 		$this->items = $items;
