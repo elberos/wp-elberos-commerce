@@ -429,6 +429,7 @@ class Task
 				$search_text[] = $value;
 			}
 		}
+		if ($vendor_code != "") $search_text[] = $vendor_code;
 		$table_name_products_text = $wpdb->base_prefix . "elberos_commerce_products_text";
 		\Elberos\wpdb_insert_or_update
 		(
