@@ -67,8 +67,8 @@ class Invoice_Table extends \Elberos\Table
 						"virtual" => true,
 						"column_value" => function ($struct, $item)
 						{
-							$client_data = @json_decode($item["client_data"], true);
-							return $client_data["email"];
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["email"];
 						}
 					])
 					->addField
@@ -79,9 +79,64 @@ class Invoice_Table extends \Elberos\Table
 						"virtual" => true,
 						"column_value" => function ($struct, $item)
 						{
-							$client_data = @json_decode($item["client_data"], true);
-							return $client_data["name"];
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["name"];
 						}
+					])
+					->addField
+					([
+						"api_name" => "surname",
+						"label" => "Фамилия",
+						"type" => "input",
+						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["surname"];
+						}
+					])
+					->addField
+					([
+						"api_name" => "user_identifier",
+						"label" => "ИИН",
+						"type" => "input",
+						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["user_identifier"];
+						}
+					])
+					->addField
+					([
+						"api_name" => "company_name",
+						"label" => "Название компании",
+						"type" => "input",
+						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["company_name"];
+						}
+					])
+					->addField
+					([
+						"api_name" => "company_bin",
+						"label" => "БИН",
+						"type" => "input",
+						"virtual" => true,
+						"column_value" => function ($struct, $item)
+						{
+							$form_data = @json_decode($item["form_data"], true);
+							return $form_data["company_bin"];
+						}
+					])
+					->addField
+					([
+						"api_name" => "comment",
+						"label" => "Комментарий",
+						"type" => "input",
+						"virtual" => true,
 					])
 				;
 				
@@ -98,6 +153,11 @@ class Invoice_Table extends \Elberos\Table
 				[
 					"email",
 					"name",
+					"surname",
+					"user_identifier",
+					"company_name",
+					"company_bin",
+					"comment",
 					"price",
 					"gmtime_add",
 				];
@@ -142,8 +202,8 @@ class Invoice_Table extends \Elberos\Table
 	 */
 	function column_email($item)
 	{
-		$send_data = @json_decode($item["send_data"], true);
-		$email = isset($send_data["email"]) ? $send_data["email"] : "";
+		$form_data = @json_decode($item["form_data"], true);
+		$email = isset($form_data["email"]) ? $form_data["email"] : "";
 		return esc_html($email);
 	}
 	
@@ -154,10 +214,10 @@ class Invoice_Table extends \Elberos\Table
 	 */
 	function column_name($item)
 	{
-		$send_data = @json_decode($item["send_data"], true);
-		$name = isset($send_data["name"]) ? $send_data["name"] : "";
-		$surname = isset($send_data["surname"]) ? $send_data["surname"] : "";
-		$company_name = isset($send_data["company_name"]) ? $send_data["company_name"] : "";
+		$form_data = @json_decode($item["form_data"], true);
+		$name = isset($form_data["name"]) ? $form_data["name"] : "";
+		$surname = isset($form_data["surname"]) ? $form_data["surname"] : "";
+		$company_name = isset($form_data["company_name"]) ? $form_data["company_name"] : "";
 		return esc_html($name . " " . $surname . " " . $company_name);
 	}
 	
@@ -363,18 +423,20 @@ class Invoice_Table extends \Elberos\Table
 			return;
 		}
 		$invoice = $this->form_item;
-		$client_data = @json_decode($invoice["client_data"], true);
+		$form_data = @json_decode($invoice["form_data"], true);
 		
 		echo "<div class='invoice_table'>";
 		foreach ($this->struct->form_fields as $field_name)
 		{
 			$field = $this->struct->getField($field_name);
+			$value = $this->struct->getColumnValue($this->form_item, $field_name);
 			if (!$field) continue;
+			if (!$value) continue;
 			echo "<div class='invoice_table_row'>";
 			echo "<div class='invoice_table_label'>" . esc_html( isset($field["label"]) ? $field["label"] : "" ) .
 				":</div>";
 			echo "<div class='invoice_table_content'>";
-			echo esc_html( $this->struct->getColumnValue($this->form_item, $field_name) );
+			echo esc_html( $value );
 			echo "</div>";
 			echo "</div>";
 		}

@@ -242,13 +242,13 @@ class Api
 		$basket_data = \Elberos\Commerce\Api::getBasketProducts($basket);
 		
 		/* Send data */
-		$client_data = isset($_POST['data']) ? $_POST['data'] : [];
+		$form_data = isset($_POST['data']) ? $_POST['data'] : [];
 		
 		/* Validation */
 		$validation = apply_filters
 		(
 			'elberos_commerce_basket_validation',
-			null, $client_data, $basket_data
+			null, $form_data, $basket_data
 		);
 		if ($validation != null)
 		{
@@ -277,15 +277,16 @@ class Api
 			'message' => '',
 			'register' => false,
 			'client_id' => null,
+			'form_data' => $form_data,
+			'products_meta' => $products_meta,
+			'basket' => $basket,
 			'item' => null,
 		];
-		$find_client_res = apply_filters
-		(
-			'elberos_commerce_basket_find_client',
-			$find_client_res, $client_data, $basket, $products_meta
-		);
+		$find_client_res = apply_filters('elberos_commerce_basket_find_client', $find_client_res);
+		
 		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
 		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
+		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
 		
 		/* Error */
 		if ($find_client_res['code'] < 0)
@@ -307,6 +308,12 @@ class Api
 			];
 		}
 		
+		$comment = isset($form_data["comment"]) ? $form_data["comment"] : "";
+		if (isset($form_data["comment"]))
+		{
+			unset($form_data["comment"]);
+		}
+		
 		/* Insert data */
 		// $wpdb->show_errors();
 		$table_invoice = $wpdb->prefix . 'elberos_commerce_invoice';
@@ -315,8 +322,9 @@ class Api
 			$table_invoice,
 			[
 				"secret_code" => $secret_code,
-				"client_data" => json_encode($client_data),
+				"form_data" => json_encode($form_data),
 				"basket_data" => json_encode($basket_data),
+				"comment" => $comment,
 				"utm" => json_encode($utm),
 				"price" => $basket_price,
 				"client_id" => $client_id,
@@ -376,13 +384,14 @@ class Api
 	/**
 	 * Find client
 	 */
-	public static function elberos_commerce_basket_find_client($client_res, $send_data, $basket, $products_meta)
+	public static function elberos_commerce_basket_find_client($client_res)
 	{
 		global $wpdb;
 		
 		if ($client_res['client_id'] != null) return $client_res;
 		
-		$email = isset($send_data['email']) ? $send_data['email'] : '';
+		$form_data = isset($client_res['form_data']) ? $client_res['form_data'] : [];
+		$email = isset($form_data['email']) ? $form_data['email'] : '';
 		
 		/* Find client */
 		$table_clients = $wpdb->prefix . 'elberos_clients';
@@ -401,7 +410,7 @@ class Api
 		/* Register client */
 		else
 		{
-			$res = \Elberos\UserCabinet\Api::user_register($send_data);
+			$res = \Elberos\UserCabinet\Api::user_register($form_data);
 			$client_res['code'] = $res['code'];
 			$client_res['message'] = $res['message'];
 			
@@ -575,7 +584,7 @@ class Api
 				$item["props"] = @json_decode($item["props"], true);
 				$item["params"] = @json_decode($item["params"], true);
 				$item["prices"] = @json_decode($item["prices"], true);
-				unset($item["xml"]);
+				//unset($item["xml"]);
 				return $item;
 			},
 			$items

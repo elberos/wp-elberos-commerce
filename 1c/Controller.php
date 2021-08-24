@@ -573,7 +573,7 @@ class Controller
 				$item["utm"] = @json_decode($item["utm"], true);
 				$item["basket"] = @json_decode($item["basket"], true);
 				$item["delivery"] = @json_decode($item["delivery"], true);
-				$item["client_data"] = @json_decode($item["client_data"], true);
+				$item["form_data"] = @json_decode($item["form_data"], true);
 				$item["basket_data"] = @json_decode($item["basket_data"], true);
 				return $item;
 			},
@@ -585,6 +585,157 @@ class Controller
 		echo $xml;
 	}
 	
+	
+	/**
+	 * Append XML
+	 */
+	static function appendXML($xml, $append)
+    {
+		if (strlen(trim((string) $append))==0)
+		{
+			$item = $xml->addChild($append->getName());
+			foreach($append->children() as $child)
+			{
+				static::appendXML($item, $child);
+			}
+		}
+		else
+		{
+			$item = $xml->addChild($append->getName(), (string) $append);
+		}
+		foreach ($append->attributes() as $n => $v)
+		{
+			$item->addAttribute($n, $v);
+		}
+    }
+	
+	
+	/**
+	 * Append xml childs
+	 */
+	static function appendXMLChilds($xml, $append)
+	{
+		foreach ($append->children() as $child)
+		{
+			static::appendXML($xml, $child);
+		}
+	}
+	
+	
+	/**
+	 * Add child by name
+	 */
+	static function appendXMLChild($xml, $append, $name)
+	{
+		$item = $append->$name;
+		if ($item && $item->getName() == $name)
+		{
+			static::appendXML($xml, $item);
+		}
+	}
+	
+	
+	/**
+	 * Добавляет key value в xml
+	 */
+	static function addXmlPropKeyValue($xml, $key, $value)
+	{
+		$item = $xml->addChild('ЗначениеРеквизита');
+		$item->addChild('Наименование', $key);
+		$item->addChild('Значение', \Elberos\mb_trim($value));
+	}
+	
+	
+	/**
+	 * Товар
+	 */
+	static function addProducts($doc, $invoice, $is_service)
+	{
+		if ($is_service) $products = $doc->addChild('Услуги');
+		else $products = $doc->addChild('Товары');
+		
+		$basket_data = $invoice['basket_data'];
+		foreach ($basket_data["items"] as $basket_item)
+		{
+			$offer_price_id = $basket_item["offer_price_id"];
+			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
+			if (!$offer_item)
+			{
+				continue;
+			}
+			
+			$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
+			$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
+			$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
+			$product_count = $basket_item["count"];
+			if (!$product_item)
+			{
+				continue;
+			}
+			
+			$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
+			if ($product_is_service != $is_service)
+			{
+				continue;
+			}
+			
+			$product = null;
+			if ($product_is_service) $product = $products->addChild('Услуга');
+			else $product = $products->addChild('Товар');
+			
+			$xml = null;
+			try
+			{
+				@ob_start();
+				$xml = new \SimpleXMLElement($product_item['xml']);
+				@ob_end_clean();
+			}
+			catch (\Exception $e)
+			{
+			}
+			
+			if ($xml)
+			{
+				static::appendXMLChild($product, $xml, 'Ид');
+				static::appendXMLChild($product, $xml, 'Артикул');
+				static::appendXMLChild($product, $xml, 'Наименование');
+				static::appendXMLChild($product, $xml, 'БазоваяЕдиница');
+				static::appendXMLChild($product, $xml, 'СтавкиНалогов');
+				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
+				$product->addChild('Количество', $basket_item['count']);
+				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
+				
+				// Значения реквизитов
+				$values = $product->addChild('ЗначенияРеквизитов');
+				$props_items = $xml->ЗначенияРеквизитов;
+				if ($props_items != null && $props_items->getName() == 'ЗначенияРеквизитов')
+				{
+					foreach ($props_items->children() as $props_item)
+					{
+						if ($props_item->getName() == 'ЗначениеРеквизита')
+						{
+							$props_name = (string)$props_item->Наименование;
+							$props_value = (string)$props_item->Значение;
+							if (in_array($props_name, ['ВидНоменклатуры', 'ТипНоменклатуры']))
+							{
+								static::addXmlPropKeyValue($values, $props_name, $props_value);
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				$product->addChild('Ид', $product_item['code_1c']);
+				$product->addChild('Артикул', $product_item['vendor_code']);
+				$product->addChild('Наименование', $product_item['name']);
+				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
+				$product->addChild('Количество', $basket_item['count']);
+				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
+			}
+			
+		}
+	}
 	
 	
 	/**
@@ -601,68 +752,11 @@ class Controller
 		$content->addAttribute('ДатаФормирования', ( new \DateTime() )->format('c'));
 		
 		
-		/**
-		 * Добавляет key value в xml
-		 */
-		function addXmlKeyValue($xml, $key, $value)
-		{
-			$item = $xml->addChild('ЗначениеРеквизита');
-			$item->addChild('Наименование', $key);
-			$item->addChild('Значение', \Elberos\mb_trim($value));
-		}
-		
-		
-		/**
-		 * Товар
-		 */
-		function addProducts($doc, $invoice, $is_service)
-		{
-			if ($is_service) $products = $doc->addChild('Услуги');
-			else $products = $doc->addChild('Товары');
-			
-			$basket_data = $invoice['basket_data'];
-			foreach ($basket_data["items"] as $basket_item)
-			{
-				$offer_price_id = $basket_item["offer_price_id"];
-				$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
-				if (!$offer_item)
-				{
-					continue;
-				}
-				
-				$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
-				$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
-				$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
-				$product_count = $basket_item["count"];
-				if (!$product_item)
-				{
-					continue;
-				}
-				
-				$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
-				if ($product_is_service != $is_service)
-				{
-					continue;
-				}
-				
-				$product = null;
-				if ($product_is_service) $product = $products->addChild('Услуга');
-				else $product = $products->addChild('Товар');
-				
-				$product->addChild('Ид', $product_item['code_1c']);
-				$product->addChild('Артикул', $product_item['vendor_code']);
-				$product->addChild('Наименование', $product_item['name']);
-				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
-				$product->addChild('Количество', $basket_item['count']);
-				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
-			}
-		}
-		
 		/* Results */
 		foreach ($results as $invoice)
 		{
 			$doc = $content->addChild('Документ');
-			$doc->addChild('Ид', $invoice['id']);
+			$doc->addChild('Ид', "invoice-".$invoice['id']);
 			$doc->addChild('Номер', $invoice['id']);
 			$doc->addChild('Дата', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'Y-m-d'));
 			$doc->addChild('Время', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'H:i:s'));
@@ -673,20 +767,20 @@ class Controller
 			$doc->addChild('Курс', '1');
 			$doc->addChild('Комментарий', \Elberos\mb_trim($invoice['comment']));
 			
-			$invoice_client = $invoice['client_data'];
+			$form_data = $invoice['form_data'];
 			$name = "";
-			if ($invoice_client['type'] == 1)
+			if ($form_data['type'] == 1)
 			{
 				$name = \Elberos\mb_trim
 				(
-					$invoice_client['surname'] . ' ' .
-					$invoice_client['name']. ' ' .
-					$invoice_client['lastname']
+					$form_data['surname'] . ' ' .
+					$form_data['name']. ' ' .
+					$form_data['lastname']
 				);
 			}
-			else if ($invoice_client['type'] == 2)
+			else if ($form_data['type'] == 2)
 			{
-				$name = \Elberos\mb_trim($invoice_client['company_name']);
+				$name = \Elberos\mb_trim($form_data['company_name']);
 			}
 			
 			/* Контрагент */
@@ -698,57 +792,60 @@ class Controller
 			$client->addChild('ПолноеНаименование', $name);
 			
 			/* Тип клиента */
-			if ($invoice_client['type'] == 1)
+			if ($form_data['type'] == 1)
 			{
 				$node = $client->addChild('РеквизитыФизЛица');
 				$node->addChild('ПолноеНаименование', 
 					\Elberos\mb_trim
 					(
-						$invoice_client['surname'] . ' ' .
-						$invoice_client['name'] . ' ' .
-						$invoice_client['lastname']
+						$form_data['surname'] . ' ' .
+						$form_data['name'] . ' ' .
+						$form_data['lastname']
 					)
 				);
-				$node->addChild('Фамилия', \Elberos\mb_trim($invoice_client['surname']));
-				$node->addChild('Имя', \Elberos\mb_trim($invoice_client['name']));
-				$node->addChild('Отчество', \Elberos\mb_trim($invoice_client['lastname']));
-				$node->addChild('ИИН', \Elberos\mb_trim($invoice_client['user_identifier']));
+				$node->addChild('Фамилия', \Elberos\mb_trim($form_data['surname']));
+				$node->addChild('Имя', \Elberos\mb_trim($form_data['name']));
+				$node->addChild('Отчество', \Elberos\mb_trim($form_data['lastname']));
+				$node->addChild('ИИН', \Elberos\mb_trim($form_data['user_identifier']));
 			}
-			else if ($invoice_client['type'] == 2)
+			else if ($form_data['type'] == 2)
 			{
 				$node = $client->addChild('РеквизитыЮрЛица');
-				$node->addChild('ОфициальноеНаименование', \Elberos\mb_trim($invoice_client['company_name']) );
-				$node->addChild('БИН', \Elberos\mb_trim($invoice_client['company_bin']) );
-				$node->addChild('ЮридическийАдрес', \Elberos\mb_trim($invoice_client['company_address']) );
+				$node->addChild('ОфициальноеНаименование', \Elberos\mb_trim($form_data['company_name']) );
+				$node->addChild('БИН', \Elberos\mb_trim($form_data['company_bin']) );
+				$node->addChild('ЮридическийАдрес', \Elberos\mb_trim($form_data['company_address']) );
 			}
 			
 			// Контакты
 			$contacts = $client->addChild('Контакты');
-			if ($invoice_client['phone'] != '')
+			if ($form_data['phone'] != '')
 			{
 				$contact = $contacts->addChild('КонтактнаяИнформация');
 				$contact->addChild('КонтактВид', 'Телефон мобильный');
-				$contact->addChild('Значение', $invoice_client['phone']);
+				$contact->addChild('Значение', $form_data['phone']);
 				$contact->addChild('Комментарий');
 			}
-			if ($invoice_client['email'] != '')
+			if ($form_data['email'] != '')
 			{
 				$contact = $contacts->addChild('КонтактнаяИнформация');
 				$contact->addChild('КонтактВид', 'E-mail');
-				$contact->addChild('Значение', $invoice_client['email']);
+				$contact->addChild('Значение', $form_data['email']);
 				$contact->addChild('Комментарий');
 			}
 			
 			// Адрес
-			$address = $client->addChild('Адрес');
-			$address->addChild('Представление', $invoice['delivery']['address']);
-			$address->addChild('Комментарий', $invoice['delivery']['comment']);
+			if ($invoice['delivery'])
+			{
+				$address = $client->addChild('Адрес');
+				$address->addChild('Представление', $invoice['delivery']['address']);
+				$address->addChild('Комментарий', $invoice['delivery']['comment']);
+			}
 			
 			// Товары
-			addProducts($doc, $invoice, false);
+			static::addProducts($doc, $invoice, false);
 			
 			// Услуги
-			addProducts($doc, $invoice, true);
+			static::addProducts($doc, $invoice, true);
 			
 			// Значения реквизитов
 			$values = $doc->addChild('ЗначенияРеквизитов');
@@ -756,47 +853,48 @@ class Controller
 			// Оплата заказа
 			if ($invoice['status_pay'] == 'paid')
 			{
-				addXmlKeyValue($values, 'Заказ оплачен', 'true');
+				static::addXmlPropKeyValue($values, 'Заказ оплачен', 'true');
 				$dt = \Elberos\create_date_from_string($invoice['gmtime_pay']);
-				addXmlKeyValue($values, 'Дата оплаты', $dt ? $dt->format('c') : '' );
-				addXmlKeyValue($values, 'Тип оплаты', $invoice['method_pay_text']);
+				static::addXmlPropKeyValue($values, 'Дата оплаты', $dt ? $dt->format('c') : '' );
+				static::addXmlPropKeyValue($values, 'Тип оплаты', $invoice['method_pay_text']);
 				
 				// Метод оплаты
-				if ($invoice['method_pay_text'] == '') addXmlKeyValue($values, 'Метод оплаты', '');
-				else addXmlKeyValue($values, 'Метод оплаты', $invoice['method_pay_text']);
+				if ($invoice['method_pay_text'] == '') static::addXmlPropKeyValue($values, 'Метод оплаты', '');
+				else static::addXmlPropKeyValue($values, 'Метод оплаты', $invoice['method_pay_text']);
 			}
-			else addXmlKeyValue($values, 'Заказ оплачен', 'false');
+			else static::addXmlPropKeyValue($values, 'Заказ оплачен', 'false');
 			
 			// Статус заказа
-			if ($invoice['status'] == 'final') addXmlKeyValue($values, 'Финальный статус', 'true');
-			else addXmlKeyValue($values, 'Финальный статус', 'false');
+			if ($invoice['status'] == 'final') static::addXmlPropKeyValue($values, 'Финальный статус', 'true');
+			else static::addXmlPropKeyValue($values, 'Финальный статус', 'false');
 			
 			$status = mb_strtolower($invoice['status']);
-			if ($status == 'new') addXmlKeyValue($values, 'Статус заказа', 'Новый');
-			else if ($status == 'accepted') addXmlKeyValue($values, 'Статус заказа', 'Акцептован');
-			else if ($status == 'shipped') addXmlKeyValue($values, 'Статус заказа', 'Отгружен');
-			else if ($status == 'delivered') addXmlKeyValue($values, 'Статус заказа', 'Доставлен');
-			else if ($status == 'final') addXmlKeyValue($values, 'Статус заказа', 'Завершен');
-			else if ($status == 'cancel') addXmlKeyValue($values, 'Статус заказа', 'Отменен');
-			else addXmlKeyValue($values, 'Статус заказа', 'Неверный статус'); 
+			if ($status == 'new') static::addXmlPropKeyValue($values, 'Статус заказа', 'Новый');
+			else if ($status == 'accepted') static::addXmlPropKeyValue($values, 'Статус заказа', 'Акцептован');
+			else if ($status == 'shipped') static::addXmlPropKeyValue($values, 'Статус заказа', 'Отгружен');
+			else if ($status == 'delivered') static::addXmlPropKeyValue($values, 'Статус заказа', 'Доставлен');
+			else if ($status == 'final') static::addXmlPropKeyValue($values, 'Статус заказа', 'Завершен');
+			else if ($status == 'cancel') static::addXmlPropKeyValue($values, 'Статус заказа', 'Отменен');
+			else static::addXmlPropKeyValue($values, 'Статус заказа', 'Неверный статус'); 
 			
 			// Отменен
-			if ($invoice['status'] == 'cancel') addXmlKeyValue($values, 'Отменен', 'true');
-			else addXmlKeyValue($values, 'Отменен', 'false');
+			if ($invoice['status'] == 'cancel') static::addXmlPropKeyValue($values, 'Отменен', 'true');
+			else static::addXmlPropKeyValue($values, 'Отменен', 'false');
 			
 			// Доставка
-			addXmlKeyValue($values, 'Доставка разрешена', 'false');
-			addXmlKeyValue($values, 'Тип доставки', $invoice['delivery']['type']);
-			addXmlKeyValue($values, 'Адрес доставки', $invoice['delivery']['address']);
+			static::addXmlPropKeyValue($values, 'Доставка разрешена', 'false');
+			static::addXmlPropKeyValue($values, 'Тип доставки', $invoice['delivery']['type']);
+			static::addXmlPropKeyValue($values, 'Адрес доставки', $invoice['delivery']['address']);
 			
 			$dt = \Elberos\create_date_from_string($invoice['gmtime_change']);
-			addXmlKeyValue($values, 'Дата изменения статуса', $dt ? $dt->format('c') : '');
+			static::addXmlPropKeyValue($values, 'Дата изменения статуса', $dt ? $dt->format('c') : '');
 		}
 		
 		/* Get XML */
 		$xml_content = $content->asXml();
 		
 		/* Convert to Windows-1251 */
+		/*
 		$xml_content = str_replace
 		(
 			'<?xml version="1.0" encoding="UTF-8"?>',
@@ -804,6 +902,7 @@ class Controller
 			$xml_content
 		);
 		$xml_content = iconv('utf-8','windows-1251',$xml_content);
+		*/
 		
 		return $xml_content;
 	}
