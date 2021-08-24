@@ -42,6 +42,7 @@ class Elberos_Commerce_Plugin
 			function()
 			{
 				require_once __DIR__ . "/1c/Settings.php";
+				require_once __DIR__ . "/1c/Import_Table.php";
 				require_once __DIR__ . "/1c/Task_Table.php";
 				require_once __DIR__ . "/admin/Catalog_Table.php";
 				require_once __DIR__ . "/admin/Category_Table.php";
@@ -61,6 +62,7 @@ class Elberos_Commerce_Plugin
 			'plugins_loaded',
 			function()
 			{
+				include __DIR__ . "/1c/Import_Struct.php";
 				include __DIR__ . "/1c/Task_Struct.php";
 				include __DIR__ . "/entity/Catalog.php";
 				include __DIR__ . "/entity/Category.php";
@@ -195,7 +197,19 @@ class Elberos_Commerce_Plugin
 		add_submenu_page
 		(
 			'elberos-commerce', 
-			'Импорт 1С', 'Лог 1С', 
+			'Импорт 1С', 'Импорт 1С', 
+			'manage_options', 'elberos-commerce-1c-import',
+			function()
+			{
+				$table = new \Elberos\Commerce\_1C\Import_Table();
+				$table->display();
+			}
+		);
+		
+		add_submenu_page
+		(
+			'elberos-commerce', 
+			'Лог 1С', 'Лог 1С', 
 			'manage_options', 'elberos-commerce-1c-task',
 			function()
 			{

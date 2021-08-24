@@ -227,7 +227,9 @@ class Task_Table extends \Elberos\Table
 			$orderby = isset($_GET["orderby"]) ? $_GET["orderby"] : "";
 			$is_deleted = isset($_GET["is_deleted"]) ? $_GET["is_deleted"] : "";
 			?>
-			<span class="table_filter">
+			<div class="table_filter" style="padding-bottom: 10px;">
+				<input type="text" name="import_id" class="web_form_value" placeholder="Импорт 1С"
+					value="<?= esc_attr( isset($_GET["import_id"]) ? $_GET["import_id"] : "" ) ?>">
 				<select name="type" class="web_form_value">
 					<option value="">Выберите тип</option>
 					<?php
@@ -257,7 +259,7 @@ class Task_Table extends \Elberos\Table
 					<option value="no" <?= \Elberos\is_get_selected("is_error", "no") ?>>Без ошибок</option>
 				</select>
 				<input type="button" class="button dosearch" value="Поиск">
-			</span>
+			</div>
 			<script>
 			jQuery(".dosearch").click(function(){
 				var filter = [];
@@ -289,6 +291,13 @@ class Task_Table extends \Elberos\Table
 		
 		$args = [];
 		$where = [];
+		
+		/* Import id */
+		if (isset($_GET["import_id"]))
+		{
+			$where[] = "import_id=:import_id";
+			$args["import_id"] = $_GET["import_id"];
+		}
 		
 		/* Catalog id */
 		if (isset($_GET["type"]))
@@ -390,6 +399,13 @@ class Task_Table extends \Elberos\Table
 	}
 	
 	
+	
+	/**
+	 * Display table sub
+	 */
+	function display_table_sub()
+	{
+	}
 }
 
 }
