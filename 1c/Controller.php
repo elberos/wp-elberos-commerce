@@ -454,10 +454,10 @@ class Controller
 		
 		/* Удаляем предложения */
 		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
-		$sql = "delete " . $table_name_products_offers . " where `prepare_delete` = 1";
+		$sql = "delete from " . $table_name_products_offers . " where `prepare_delete` = 1";
 		$wpdb->query($sql);
 		$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
-		$sql = "delete " . $table_name_products_offers_prices . " where `prepare_delete` = 1";
+		$sql = "delete from " . $table_name_products_offers_prices . " where `prepare_delete` = 1";
 		$wpdb->query($sql);
 	}
 	
@@ -665,7 +665,7 @@ class Controller
 			$doc->addChild('Ид', $invoice['id']);
 			$doc->addChild('Номер', $invoice['id']);
 			$doc->addChild('Дата', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'Y-m-d'));
-			$doc->addChild('Время', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'H:i:S'));
+			$doc->addChild('Время', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'H:i:s'));
 			$doc->addChild('ХозОперация', 'Заказ товара');
 			$doc->addChild('Роль', 'Продавец');
 			$doc->addChild('Сумма', $invoice['price']);

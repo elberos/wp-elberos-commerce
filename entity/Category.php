@@ -67,6 +67,13 @@ class Category extends \Elberos\StructBuilder
 				"label" => "Название",
 				"type" => "input",
 			])
+			
+			->addField
+			([
+				"api_name" => "image_file_path",
+				"label" => "Картинка",
+				"type" => "input",
+			])
 		;
 	}
 	

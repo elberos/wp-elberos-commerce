@@ -57,17 +57,63 @@ class Category_Table extends \Elberos\Table
 			"admin_table",
 			function ($struct)
 			{
+				$struct->editField("image_file_path", [
+					//"form_show" => false,
+					"form_render" => function($struct, $field, $item)
+					{
+						$image_file_path = isset($item['image_file_path']) ? $item['image_file_path'] : '';
+						?>
+						<input type='button' class='button add-photo-button' value='Добавить файл'><br/>
+						<input type='hidden' class='image_file_path web_form_value'
+							name='image_file_path' data-name='image_file_path'
+							value='<?= esc_attr($image_file_path) ?>' readonly style='width: 100%;'>
+						<img class='image_file_path_image'
+							src='<?= esc_attr($image_file_path) ?>' style="height: 250px;">
+						
+						<script>
+						jQuery('.add-photo-button').click(function(){
+							var uploader = wp.media
+							({
+								title: "Файлы",
+								button: {
+									text: "Выбрать файл"
+								},
+								multiple: false
+							})
+							.on('select', function() {
+								var attachments = uploader.state().get('selection').toJSON();
+								
+								for (var i=0; i<attachments.length; i++)
+								{
+									var photo = attachments[i];
+									var photo_time = photo.date;
+									if (photo_time.getTime != undefined) photo_time = photo_time.getTime();
+									
+									//console.log(photo.url);
+									jQuery('.image_file_path').val(photo.url);
+									jQuery('.image_file_path_image').attr('src', photo.url);
+								}
+							})
+							.open();
+						});
+						</script>
+						<?php
+					},
+				]);
+				
 				$struct->table_fields =
 				[
 					"id",
 					"name",
 					"code_1c",
+					"image_file_path",
 				];
 				
 				$struct->form_fields =
 				[
 					"name",
 					"code_1c",
+					"image_file_path",
 				];
 				
 				return $struct;
@@ -282,9 +328,12 @@ class Category_Table extends \Elberos\Table
 		else
 		{
 			/* Add parent category */
+			/*
 			$where[] = "parent_category_id=:parent_category_id";
 			if (isset($_GET["sub_id"])) $args["parent_category_id"] = $_GET["sub_id"];
-			else $args["parent_category_id"] = 0;
+			else $args["parent_category_id"] = 0;*/
+			$where[] = "parent_category_id=:parent_category_id";
+			$args["parent_category_id"] = 0;
 			$where[] = "is_deleted=0";
 		}
 		
@@ -294,8 +343,9 @@ class Category_Table extends \Elberos\Table
 			"table_name" => $this->get_table_name(),
 			"where" => implode(" and ", $where),
 			"args" => $args,
-			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
-			"per_page" => $per_page,
+			"page" => 0,
+			"per_page" => -1,
+			//"log"=>true,
 		]);
 		
 		$this->items = $items;
@@ -314,7 +364,23 @@ class Category_Table extends \Elberos\Table
 	function display_css()
 	{
 		parent::display_css();
+		wp_enqueue_media();
+		wp_enqueue_script( 'jquery-ui-widget' );
+		wp_enqueue_script( 'jquery-ui-mouse' );
+		wp_enqueue_script( 'jquery-ui-accordion' );
+		wp_enqueue_script( 'jquery-ui-autocomplete' );
+		wp_enqueue_script( 'jquery-ui-slider' );
+		wp_enqueue_style( 'fancytree.css', 
+			'/wp-content/plugins/wp-elberos-commerce/js/fancytree-2.38.0/skin-win8/ui.fancytree.min.css', false );
+		wp_enqueue_script( 'fancytree.js', 
+			'/wp-content/plugins/wp-elberos-commerce/js/fancytree-2.38.0/jquery.fancytree-all.min.js', false );
+		wp_enqueue_script( 'script.js', 
+			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
 		?>
+		<script>
+		//var $ = jQuery.noConflict();
+		var $ = jQuery;
+		</script>
 		<style>
 		.admin_breadcrumbs{
 			padding: 0; margin: 0;
@@ -327,6 +393,24 @@ class Category_Table extends \Elberos\Table
 		}
 		.admin_breadcrumbs li a{
 			text-decoration: none;
+		}
+		.category_admin_page{
+			padding-top: 20px;
+		}
+		.category_admin_page_item{
+			width: calc(50% - 5px);
+			display: inline-block;
+			vertical-align: top;
+		}
+		.category_admin_page .web_form_input{
+			width: 100%;
+		}
+		.elberos_form_buttons{
+			text-align: center;
+		}
+		.elberos_form .web_form_result{
+			text-align: center;
+			padding-top: 5px;
 		}
 		</style>
 		<?php
@@ -469,6 +553,291 @@ class Category_Table extends \Elberos\Table
 		parent::display_action();
 	}
 	
+	
+	function display_form_id()
+	{
+		?>
+		<input type='hidden' class='web_form_value' name='id' data-name='id' />
+		<?php
+	}
+	
+	
+	/**
+	 * Display table
+	 */
+	function display_table()
+	{
+		$columns = $this->get_columns();
+        $hidden = array();
+        $sortable = $this->get_sortable_columns();
+        $this->_column_headers = array($columns, $hidden, $sortable);
+		
+		$this->prepare_table_items();
+		$page_name = $this->get_page_name();
+		$this->form_item = $this->struct->getDefault();
+		$this->form_item['id'] = 0;
+		
+		?>
+		<div class='category_admin_page'>
+			<div class='category_admin_page_item'>
+				<div id='fancytree' class='mar10--top fancytree'></div>
+			</div>
+			<div class='category_admin_page_item'>
+				<form class="elberos_form" method="POST" style="display: none;">
+					<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
+					<?php $this->display_form() ?>
+					<div class="elberos_form_buttons">
+						<input type="button" class="button-primary button--save" value="Сохранить">
+					</div>
+					<div class="web_form_result"></div>
+				</form>
+			</div>
+		</div>
+		<script>
+		
+		var fancytree = 
+		{
+			data: null,
+			tree: null,
+			tree_selector: '#fancytree',
+			current_node: null,
+			
+			buildTitle: function(obj)
+			{
+				return obj['name'];
+			},
+			
+			buildEntity: function(obj)
+			{
+				return {
+					key : "node" + new String(obj.id),
+					folder: true,
+					lazy: true,
+					title : this.buildTitle(obj),
+					data: obj,
+				};
+			},
+			
+			buildData: function(data)
+			{
+				var res = [];
+				for (var i=0; i<data.length; i++)
+					res.push( this.buildEntity(data[i]) );
+				return res;
+			},
+			
+			initFancytree: function()
+			{
+				$(this.tree_selector).fancytree({
+					source: this.buildData(this.data),
+					click: this.onClickFancyTree.bind(this),
+					lazyLoad: this.onLoad.bind(this),
+				});
+				
+				// Get tree
+				this.tree = $.ui.fancytree.getTree( $(this.tree_selector) );
+			},
+			
+			/**
+			 * Event Lazy data load
+			 */
+			onLoad: function(event, data)
+			{
+				var node = data.node;
+				data.result = $.Deferred();
+				this.loadData(data.result, node);
+			},
+			
+			/**
+			 * Event Fancy tree mouse click event
+			 */
+			onClickFancyTree: function(event, data)
+			{
+				this.showEdit(data.node);
+			},
+			
+			showEdit: function(node)
+			{
+				$('.elberos_form').show();
+				this.clearFormData();
+				this.setFormData(node.data);
+				this.current_node = node;
+			},
+			
+			updateCurrentNode: function(item)
+			{
+				this.current_node.data.name = item.name;
+				this.current_node.data.code_1c = item.code_1c;
+				this.current_node.data.image_file_path = item.image_file_path;
+			},
+			
+			/**
+			 * Clear form data
+			 */
+			clearFormData: function()
+			{
+				var obj = this;
+				$('.elberos_form').find('.web_form_value').each(function(){
+					var api_name = $(this).attr('data-name');
+					obj.setFieldValue(this, null);
+				});
+			},
+			
+			/**
+			 * Set form data
+			 */
+			setFormData: function(data)
+			{
+				obj = this;
+				$('.elberos_form').find('.web_form_value').each((function(obj){
+					return function(){
+						var api_name = $(this).attr('data-name');
+						var value = obj.getObjectValue(data, api_name);
+						
+						if (value != null)
+							obj.setFieldValue(this, value);
+					};
+				})(obj));
+				$('.elberos_form').find('.image_file_path_image').attr('src', data.image_file_path);
+			},
+			
+			/**
+			 * Get value from Object
+			 */
+			getObjectValue: function(data, key)
+			{
+				var arr = key.split(".");
+				for (var i in arr){
+					var k = arr[i];
+					if (data == null || typeof data[k] == "undefined")
+						return null;
+					data = data[k];
+				}
+				return data;
+			},
+			
+			/**
+			 * Set field value by DOM object
+			 */
+			setFieldValue: function(obj, value)
+			{
+				var $obj = $(obj);
+				var type = $obj.attr('type');
+				var api_name = $obj.attr('data-name');
+				var tag = $obj.prop("tagName").toLowerCase();
+				
+				if (typeof obj.controller != "undefined" && obj.controller != null)
+				{
+					return obj.controller.setData(value);
+				}
+				else if ($obj.hasClass('ckeditor_type'))
+				{
+				}
+				else if (tag == 'input' && type == 'checkbox')
+				{
+					if (value == "1") 
+						$obj.prop('checked', true);
+					else
+						$obj.prop('checked', false);
+				}
+				else if (tag == 'input' && type == 'radio')
+				{
+					if (value == $obj.val()) 
+						$obj.prop('checked', true);
+					else
+						$obj.prop('checked', false);
+				}
+				else if (tag == 'input' && type == 'file')
+				{
+					/*
+					var $preview = this.$el.find('.web_form__field_image_preview[data-api-name='+api_name+']');
+					if (value == null || typeof value.thumb == "undefined" || value.thumb == '') {
+						$preview.attr('src', '');
+						$preview.addClass('hidden');
+					}
+					else {
+						$preview.attr('src', '/media' + value.thumb + '?_' + value.inc);
+						$preview.removeClass('hidden');
+					}
+					$obj.val('');
+					*/
+				}
+				else
+					$obj.val(value);
+			},
+			
+			/**
+			 * Lazy data load
+			 */
+			loadData: function(dfd, node)
+			{
+				var parent_id = node.data.id;
+				var send_data = {
+					"classifier_id": <?= json_encode((int)(isset($_GET["id"]) ? $_GET["id"] : 0)) ?>,
+					"parent_category_id": parent_id,
+				};
+				elberos_api_send
+				(
+					"elberos_commerce_admin",
+					"categories_load",
+					send_data,
+					(function (obj)
+					{
+						return function(res)
+						{
+							if (res.code == 1)
+							{
+								dfd.resolve(obj.buildData(res.items));
+							}
+							else
+							{
+								dfd.reject(res.message);
+							}
+						};
+					})(this),
+				);
+			},
+		};
+		
+		$(document).ready(function(){
+			fancytree.data = <?= json_encode($this->items) ?>;
+			fancytree.initFancytree();
+		});
+		
+		$(document).on("click", ".elberos_form_buttons .button--save", function(){
+			
+			var $form = $('.elberos_form');
+			ElberosFormSetWaitMessage($form);
+			
+			var item = ElberosFormGetData($form);
+			if (fancytree.current_node)
+			{
+				fancytree.updateCurrentNode(item);
+			}
+			
+			var send_data = {
+				"item": item,
+			};
+			elberos_api_send
+			(
+				"elberos_commerce_admin",
+				"categories_save",
+				send_data,
+				(function (obj)
+				{
+					return function(res)
+					{
+						var $form = $('.elberos_form');
+						ElberosFormSetResponse($form, res);
+					};
+				})(this),
+			);
+		});
+		
+		</script>
+		<?php
+		
+	}
 	
 }
 

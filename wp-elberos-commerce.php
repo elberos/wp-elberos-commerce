@@ -82,6 +82,10 @@ class Elberos_Commerce_Plugin
 		include __DIR__ . "/include/api.php";
 		\Elberos\Commerce\Api::init();
 		
+		/* Include admin api */
+		include __DIR__ . "/admin/Category_Api.php";
+		\Elberos\Commerce\Category_Api::init();
+		
 		/* Include 1C */
 		include __DIR__ . "/1c/Controller.php";
 		include __DIR__ . "/1c/Helper.php";

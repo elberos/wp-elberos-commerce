@@ -342,6 +342,7 @@ class Task
 		/* Установить флаг только что загружен */
 		if ($main_photo_id)
 		{
+			$product_update["show_in_catalog"] = 1;
 			$product_update["just_show_in_catalog"] = 1;
 		}
 		else
