@@ -264,6 +264,9 @@ class Api
 		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
 		$utm = apply_filters( 'elberos_form_utm', $utm );
 		
+		/* Generate code 1c */
+		$code_1c = \Elberos\uid();
+		
 		/* Create secret code */
 		$secret_code = wp_generate_password(12, false, false);
 		
@@ -284,8 +287,10 @@ class Api
 		];
 		$find_client_res = apply_filters('elberos_commerce_basket_find_client', $find_client_res);
 		
+		$client = isset($find_client_res['client']) ? $find_client_res['client'] : [];
 		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
 		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
+		$client_code_1c = isset($client['code_1c']) ? $client['code_1c'] : '';
 		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
 		
 		/* Error */
@@ -321,6 +326,7 @@ class Api
 		(
 			$table_invoice,
 			[
+				"code_1c" => $code_1c,
 				"secret_code" => $secret_code,
 				"form_data" => json_encode($form_data),
 				"basket_data" => json_encode($basket_data),
@@ -328,6 +334,7 @@ class Api
 				"utm" => json_encode($utm),
 				"price" => $basket_price,
 				"client_id" => $client_id,
+				"client_code_1c" => $client_code_1c,
 				"gmtime_add" => \Elberos\dbtime(),
 				"gmtime_change" => \Elberos\dbtime(),
 			]
@@ -404,7 +411,7 @@ class Api
 		{
 			$client_res['register'] = false;
 			$client_res['client_id'] = $row['id'];
-			$client_res['item'] = $row;
+			$client_res['client'] = $row;
 		}
 		
 		/* Register client */
@@ -418,7 +425,7 @@ class Api
 			{
 				$client_res['register'] = true;
 				$client_res['client_id'] = $res['item']['id'];
-				$client_res['item'] = $res['item'];
+				$client_res['client'] = $res['item'];
 			}
 		}
 		
