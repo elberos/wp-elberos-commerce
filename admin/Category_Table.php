@@ -63,40 +63,14 @@ class Category_Table extends \Elberos\Table
 					{
 						$image_file_path = isset($item['image_file_path']) ? $item['image_file_path'] : '';
 						?>
-						<input type='button' class='button add-photo-button' value='Добавить файл'><br/>
-						<input type='hidden' class='image_file_path web_form_value'
-							name='image_file_path' data-name='image_file_path'
-							value='<?= esc_attr($image_file_path) ?>' readonly style='width: 100%;'>
-						<img class='image_file_path_image'
-							src='<?= esc_attr($image_file_path) ?>' style="height: 250px;">
-						
-						<script>
-						jQuery('.add-photo-button').click(function(){
-							var uploader = wp.media
-							({
-								title: "Файлы",
-								button: {
-									text: "Выбрать файл"
-								},
-								multiple: false
-							})
-							.on('select', function() {
-								var attachments = uploader.state().get('selection').toJSON();
-								
-								for (var i=0; i<attachments.length; i++)
-								{
-									var photo = attachments[i];
-									var photo_time = photo.date;
-									if (photo_time.getTime != undefined) photo_time = photo_time.getTime();
-									
-									//console.log(photo.url);
-									jQuery('.image_file_path').val(photo.url);
-									jQuery('.image_file_path_image').attr('src', photo.url);
-								}
-							})
-							.open();
-						});
-						</script>
+						<div class='image_file_path_wrap'>
+							<input type='button' class='button image_file_path_add_photo' value='Добавить файл'><br/>
+							<input type='hidden' class='image_file_path web_form_value'
+								name='image_file_path' data-name='image_file_path'
+								value='<?= esc_attr($image_file_path) ?>' readonly style='width: 100%;'>
+							<img class='image_file_path_image'
+								src='<?= esc_attr($image_file_path) ?>' style="height: 250px;">
+						</div>
 						<?php
 					},
 				]);
@@ -370,12 +344,18 @@ class Category_Table extends \Elberos\Table
 		wp_enqueue_script( 'jquery-ui-accordion' );
 		wp_enqueue_script( 'jquery-ui-autocomplete' );
 		wp_enqueue_script( 'jquery-ui-slider' );
+		wp_enqueue_script( 'jquery.contextMenu.min.js', 
+			'/wp-content/plugins/wp-elberos-core/assets/jQuery-contextMenu/jquery.contextMenu.min.js', false );
+		wp_enqueue_style( 'jquery.contextMenu.min.css', 
+			'/wp-content/plugins/wp-elberos-core/assets/jQuery-contextMenu/jquery.contextMenu.min.css', false );
 		wp_enqueue_style( 'fancytree.css', 
-			'/wp-content/plugins/wp-elberos-commerce/js/fancytree-2.38.0/skin-win8/ui.fancytree.min.css', false );
+			'/wp-content/plugins/wp-elberos-core/assets/fancytree/skin-win8/ui.fancytree.min.css', false );
 		wp_enqueue_script( 'fancytree.js', 
-			'/wp-content/plugins/wp-elberos-commerce/js/fancytree-2.38.0/jquery.fancytree-all.min.js', false );
+			'/wp-content/plugins/wp-elberos-core/assets/fancytree/jquery.fancytree-all.min.js', false );
 		wp_enqueue_script( 'script.js', 
 			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
+		wp_enqueue_style( 'dialog.css', 
+			'/wp-content/plugins/wp-elberos-core/assets/dialog.css', false );	
 		?>
 		<script>
 		//var $ = jQuery.noConflict();
@@ -402,17 +382,50 @@ class Category_Table extends \Elberos\Table
 			display: inline-block;
 			vertical-align: top;
 		}
-		.category_admin_page .web_form_input{
+		.category_admin_page .web_form_input, .elberos_dialog .web_form_input{
 			width: 100%;
 		}
 		.elberos_form_buttons{
 			text-align: center;
 		}
-		.elberos_form .web_form_result{
+		.elberos_form .web_form_result, .elberos_dialog .web_form_result{
 			text-align: center;
 			padding-top: 5px;
 		}
 		</style>
+		<script>
+		/* Add photo to category */
+		jQuery(document).on('click', '.image_file_path_add_photo', function(){
+			var $wrap = $(this).parents('.image_file_path_wrap');
+			var uploader = wp.media
+			({
+				title: "Файлы",
+				button: {
+					text: "Выбрать файл"
+				},
+				multiple: false
+			})
+			.on('select',
+				(function($wrap) {
+					return function()
+					{
+						var attachments = uploader.state().get('selection').toJSON();
+						
+						for (var i=0; i<attachments.length; i++)
+						{
+							var photo = attachments[i];
+							var photo_time = photo.date;
+							if (photo_time.getTime != undefined) photo_time = photo_time.getTime();
+							
+							jQuery($wrap).find('.image_file_path').val(photo.url);
+							jQuery($wrap).find('.image_file_path_image').attr('src', photo.url);
+						}
+					}
+				})($wrap)
+			)
+			.open();
+		});
+		</script>
 		<?php
 	}
 	
@@ -582,8 +595,8 @@ class Category_Table extends \Elberos\Table
 			<div class='category_admin_page_item'>
 				<div id='fancytree' class='mar10--top fancytree'></div>
 			</div>
-			<div class='category_admin_page_item'>
-				<form class="elberos_form" method="POST" style="display: none;">
+			<div class='category_admin_page_item category_admin_page_item--edit_form'>
+				<form class="elberos_form elberos_form_edit_category" method="POST" style="display: none;">
 					<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
 					<?php $this->display_form() ?>
 					<div class="elberos_form_buttons">
@@ -626,6 +639,15 @@ class Category_Table extends \Elberos\Table
 				return res;
 			},
 			
+			init: function()
+			{
+				// Init fancytree
+				this.initFancytree();
+				
+				// Init context menu
+				this.initContextMenu();
+			},
+			
 			initFancytree: function()
 			{
 				$(this.tree_selector).fancytree({
@@ -636,6 +658,34 @@ class Category_Table extends \Elberos\Table
 				
 				// Get tree
 				this.tree = $.ui.fancytree.getTree( $(this.tree_selector) );
+			},
+			
+			/**
+			 * Init context menu
+			 */
+			initContextMenu: function(){
+				$.contextMenu({
+					selector: '.fancytree-node', 
+					
+					items: {
+						"add": {name: "Добавить", icon: "add"},
+						"delete": {name: "Удалить", icon: "delete"},
+					},
+					
+					callback: (function(obj){
+						return function(key, options){
+							var node = $.ui.fancytree.getNode(this.get(0));
+							obj.onContextMenuClick(node, key, options);
+						}
+					})(this),
+					
+					events: {
+						show : function(options){
+							var node = $.ui.fancytree.getNode(this.get(0));
+							node.setActive();
+						}
+					}
+				});
 			},
 			
 			/**
@@ -656,12 +706,90 @@ class Category_Table extends \Elberos\Table
 				this.showEdit(data.node);
 			},
 			
+			/**
+			 * Event Fancy tree mouse click event
+			 */
+			onContextMenuClick: function(node, key, options){
+				if (key == 'delete'){
+					this.showDelete(node);
+				}
+				else if (key == 'add'){
+					this.showAdd(node);
+				}
+			},
+			
+			/**
+			 * Show add form
+			 */
+			showAdd: function (node){
+				
+				var $content = $('.category_admin_page_item--edit_form');
+				
+				this.add_dialog = new ElberosFormDialog();
+				this.add_dialog.setContent($content.html());
+				this.add_dialog.open();
+				this.add_dialog.setTitle("Добавить категорию");
+				
+				var $form = this.add_dialog.$el.find(".elberos_form");
+				this.setFormData($form, null);
+				
+				/* Add input */
+				var $input = $('<input type="hidden" class="web_form_value" name="parent_category_id" data-name="parent_category_id"></input>');
+				if (node != null) $input.val(node.data.id);
+				$form.append($input);
+				
+				/* Show */
+				$form.show();
+			},
+			
+			/**
+			 * Show edit form
+			 */			
 			showEdit: function(node)
 			{
-				$('.elberos_form').show();
+				var $form = $('.category_admin_page .elberos_form');
+				$form.show();
 				this.clearFormData();
-				this.setFormData(node.data);
+				this.setFormData($form, node.data);
 				this.current_node = node;
+			},
+			
+			/**
+			 * Render content delete form
+			 */
+			renderContentDelete: function(node){
+				var data = node.data;
+				var id = htmlEscape(data.id);
+				var name = htmlEscape(data.name);
+				return `
+					<form class="elberos_form" method="POST" style="">
+						<input type="hidden" class="web_form_value" name="id" data-name="id" value="${id}">
+						<div style="padding-bottom: 10px;">
+							Вы действительно хотите удалить категорию ${name}?
+						</div>
+						<div class="elberos_form_buttons">
+							<input type="button" class="button-primary button-danger button--save" value="Удалить">
+						</div>
+					</form>
+				`;
+			},
+			
+			/**
+			 * Show delete form
+			 */
+			showDelete: function(node){
+				
+				node.data.id = "'{\"a\":2}'";
+				node.data.name = "<div>123</div>";
+				
+				var content = this.renderContentDelete(node);
+				var $content = $(content);
+				this.delete_dialog = new ElberosFormDialog();
+				this.delete_dialog.setContent($content.html());
+				this.delete_dialog.open();
+				this.delete_dialog.setTitle("Удалить категорию");
+				
+				//console.log(node.data.id);
 			},
 			
 			updateCurrentNode: function(item)
@@ -686,10 +814,10 @@ class Category_Table extends \Elberos\Table
 			/**
 			 * Set form data
 			 */
-			setFormData: function(data)
+			setFormData: function($form, data)
 			{
 				obj = this;
-				$('.elberos_form').find('.web_form_value').each((function(obj){
+				$form.find('.web_form_value').each((function(obj){
 					return function(){
 						var api_name = $(this).attr('data-name');
 						var value = obj.getObjectValue(data, api_name);
@@ -698,7 +826,7 @@ class Category_Table extends \Elberos\Table
 							obj.setFieldValue(this, value);
 					};
 				})(obj));
-				$('.elberos_form').find('.image_file_path_image').attr('src', data.image_file_path);
+				if (data != null) $form.find('.image_file_path_image').attr('src', data.image_file_path);
 			},
 			
 			/**
@@ -801,10 +929,10 @@ class Category_Table extends \Elberos\Table
 		
 		$(document).ready(function(){
 			fancytree.data = <?= json_encode($this->items) ?>;
-			fancytree.initFancytree();
+			fancytree.init();
 		});
 		
-		$(document).on("click", ".elberos_form_buttons .button--save", function(){
+		$(document).on("click", ".elberos_form_edit_category .button--save", function(){
 			
 			var $form = $('.elberos_form');
 			ElberosFormSetWaitMessage($form);
