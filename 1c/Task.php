@@ -344,13 +344,17 @@ class Task
 		/* Установить флаг только что загружен */
 		if ($main_photo_id)
 		{
-			$product_update["show_in_catalog"] = 1;
+			// $product_update["show_in_catalog"] = 1;
 			$product_update["just_show_in_catalog"] = 1;
 		}
 		else
 		{
 			$product_update["just_show_in_catalog"] = 0;
 		}
+		
+		/* Обновляем данные параметров товара */
+		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
+		$wpdb->update($table_name_products_params, [ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]);
 		
 		/* Параметры товара */
 		$product_params = [];
@@ -366,26 +370,30 @@ class Task
 					
 					if ($product_param && $product_param_value)
 					{
-						$product_params[] =
-						[
-							"param" =>
+						\Elberos\wpdb_insert_or_update
+						(
+							$table_name_products_params,
 							[
-								"id" => $product_param['id'],
-								"code_1c" => $product_param['code_1c'],
-								"name" => $product_param["name"],
+								"product_id" => $product["id"],
+								"type" => "params",
+								"param_id" => $product_param["id"],
 							],
-							"value" =>
 							[
-								"id" => $product_param_value['id'],
-								"code_1c" => $product_param_value['code_1c'],
-								"name" => $product_param_value["name"],
+								"product_id" => $product["id"],
+								"type" => "params",
+								"param_id" => $product_param["id"],
+								"param_code_1c" => $product_param["code_1c"],
+								"key" => $product_param["name"],
+								"param_value_id" => $product_param_value["id"],
+								"param_value_code_1c" => $product_param_value["code_1c"],
+								"value" => $product_param_value["name"],
+								"prepare_delete" => 0,
 							]
-						];
+						);
 					}
 				}
 			}
 		}
-		$product_update["params"] = json_encode($product_params);
 		
 		/* Реквизиты товара */
 		$product_props = [];
@@ -398,11 +406,27 @@ class Task
 				{
 					$props_name = (string)$item->Наименование;
 					$props_value = (string)$item->Значение;
-					$product_props[] =
-					[
-						"name" => $props_name,
-						"value" => $props_value,
-					];
+					
+					\Elberos\wpdb_insert_or_update
+					(
+						$table_name_products_params,
+						[
+							"product_id" => $product["id"],
+							"type" => "props",
+							"key" => $props_name,
+						],
+						[
+							"product_id" => $product["id"],
+							"type" => "props",
+							"param_id" => null,
+							"param_code_1c" => "",
+							"key" => $props_name,
+							"param_value_id" => null,
+							"param_value_code_1c" => "",
+							"value" => $props_value,
+							"prepare_delete" => 0,
+						]
+					);
 					
 					if ($props_name == "НаименованиеДляСайта")
 					{
@@ -414,9 +438,8 @@ class Task
 				}
 			}
 		}
-		$product_update["props"] = json_encode($product_props);
 		
-		/* Обновляем данные */
+		/* Обновляем данные товара */
 		if (count($product_update) > 0)
 		{
 			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
@@ -433,6 +456,8 @@ class Task
 			}
 		}
 		if ($vendor_code != "") $search_text[] = $vendor_code;
+		
+		/* Обновляем текст в базе данных */
 		$table_name_products_text = $wpdb->base_prefix . "elberos_commerce_products_text";
 		\Elberos\wpdb_insert_or_update
 		(
@@ -445,60 +470,6 @@ class Task
 				"text" => implode(" ", $search_text),
 			]
 		);
-		
-		/* Обновляем данные параметров товара */
-		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
-		$wpdb->update($table_name_products_params, [ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]);
-		
-		/* Обновляем ЗначенияСвойств */
-		foreach ($product_params as $param)
-		{
-			\Elberos\wpdb_insert_or_update
-			(
-				$table_name_products_params,
-				[
-					"product_id" => $product["id"],
-					"type" => "params",
-					"key" => $param["param"]["name"],
-				],
-				[
-					"product_id" => $product["id"],
-					"type" => "params",
-					"param_id" => $param["param"]["id"],
-					"param_code_1c" => $param["param"]["code_1c"],
-					"key" => $param["param"]["name"],
-					"param_value_id" => $param["value"]["id"],
-					"param_value_code_1c" => $param["value"]["code_1c"],
-					"value" => $param["value"]["name"],
-					"prepare_delete" => 0,
-				]
-			);
-		}
-		
-		/* Обновляем ЗначенияРеквизитов */
-		foreach ($product_props as $props)
-		{
-			\Elberos\wpdb_insert_or_update
-			(
-				$table_name_products_params,
-				[
-					"product_id" => $product["id"],
-					"type" => "props",
-					"key" => $props["name"],
-				],
-				[
-					"product_id" => $product["id"],
-					"type" => "props",
-					"param_id" => null,
-					"param_code_1c" => "",
-					"key" => $props["name"],
-					"param_value_id" => null,
-					"param_value_code_1c" => "",
-					"value" => $props["value"],
-					"prepare_delete" => 0,
-				]
-			);
-		}
 		
 		/* Удаляем старые значения */
 		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
@@ -984,9 +955,6 @@ class Task
 				}
 			}
 		}
-		
-		/* Обновляем цены для конкретного товара */
-		\Elberos\Commerce\Api::updateProductOffers($product['id']);
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $offer_code_1c; */

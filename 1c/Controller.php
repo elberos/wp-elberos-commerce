@@ -426,11 +426,7 @@ class Controller
 		/* Если закончили */
 		else if ($item['status'] == Helper::IMPORT_STATUS_DONE)
 		{
-			/* Удаляем файл */
-			if (is_file($file_path))
-			{
-				// @unlink($file_path);
-			}
+			static::actionSuccess();
 			echo "success";
 		}
 		
@@ -565,10 +561,7 @@ class Controller
 		global $wpdb;
 		
 		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
-		$sql = $wpdb->prepare
-		(
-			"select * from " . $table_name . " where export_status=0"
-		);
+		$sql = "select * from " . $table_name . " where export_status=0";
 		$results = $wpdb->get_results($sql, ARRAY_A);
 		$results = array_map
 		(
@@ -584,6 +577,7 @@ class Controller
 			$results
 		);
 		
+		$xml = "";
 		$xml = static::actionSaleQueryMakeXml($results);
 		header('Content-Type: application/xml');
 		echo $xml;
@@ -656,22 +650,9 @@ class Controller
 	static function addProductsCheckService($invoice, $is_service)
 	{
 		$basket_data = $invoice['basket_data'];
-		foreach ($basket_data["items"] as $basket_item)
+		foreach ($basket_data as $basket_item)
 		{
-			$offer_price_id = $basket_item["offer_price_id"];
-			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
-			if (!$offer_item)
-			{
-				continue;
-			}
-			
-			$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
-			if (!$product_item)
-			{
-				continue;
-			}
-			
-			$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
+			$product_is_service = isset($basket_item["product_is_service"]) ? $basket_item["product_is_service"] : false;
 			if ($product_is_service == $is_service)
 			{
 				return true;
@@ -712,25 +693,18 @@ class Controller
 		else $products = $doc->addChild('Товары');
 		
 		$basket_data = $invoice['basket_data'];
-		foreach ($basket_data["items"] as $basket_item)
+		foreach ($basket_data as $basket)
 		{
-			$offer_price_id = $basket_item["offer_price_id"];
-			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
-			if (!$offer_item)
-			{
-				continue;
-			}
-			
-			$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
-			$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
-			$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
-			$product_unit = isset($offer_item["unit"]) ? $offer_item["unit"] : "";
-			$product_coefficient = isset($offer_item["coefficient"]) ? $offer_item["coefficient"] : "";
-			$product_count = $basket_item["count"];
-			if (!$product_item)
-			{
-				continue;
-			}
+			$offer_unit = isset($basket["offer_unit"]) ? $basket["offer_unit"] : "";
+			$offer_price_id = isset($basket["offer_price_id"]) ? $basket["offer_price_id"] : "";
+			$offer_price = isset($basket["offer_price"]) ? $basket["offer_price"] : "";
+			$offer_coefficient = isset($basket["offer_coefficient"]) ? $basket["offer_coefficient"] : "";
+			$product_name = isset($basket["product_name"]) ? $basket["product_name"] : "";
+			$product_code_1c = isset($basket["product_code_1c"]) ? $basket["product_code_1c"] : "";
+			$product_count = isset($basket["count"]) ? $basket["count"] : "";
+			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
+			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
+			$product_is_service = isset($basket["product_is_service"]) ? $basket["product_is_service"] : false;
 			
 			$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
 			if ($product_is_service != $is_service)
@@ -746,7 +720,7 @@ class Controller
 			try
 			{
 				@ob_start();
-				$xml = new \SimpleXMLElement($product_item['xml']);
+				$xml = new \SimpleXMLElement($basket['product_xml']);
 				@ob_end_clean();
 			}
 			catch (\Exception $e)
@@ -760,11 +734,11 @@ class Controller
 				static::appendXMLChild($product, $xml, 'Наименование');
 				static::appendXMLChild($product, $xml, 'БазоваяЕдиница');
 				static::appendXMLChild($product, $xml, 'СтавкиНалогов');
-				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
-				$product->addChild('Количество', $basket_item['count']);
-				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
-				$product->addChild('Единица', $product_unit);
-				$product->addChild('Коэффициент', $product_coefficient);
+				$product->addChild('ЦенаЗаЕдиницу', $offer_price);
+				$product->addChild('Количество', $product_count);
+				$product->addChild('Сумма', $offer_price * $product_count);
+				$product->addChild('Единица', $offer_unit);
+				$product->addChild('Коэффициент', $offer_coefficient);
 				
 				// Значения реквизитов
 				$values = $product->addChild('ЗначенияРеквизитов');
@@ -806,7 +780,7 @@ class Controller
 										"amount" => 0,
 									];
 								}
-								$nalog_amount = $offer_item['price'] * $basket_item['count'] * $nalog_item_value / 100;
+								$nalog_amount = $offer_price * $product_count * $nalog_item_value / 100;
 								$nalog_xml_item = $nalog_xml->addChild('Налог');
 								$nalog_xml_item->addChild('Наименование', $nalog_item_name);
 								$nalog_xml_item->addChild('УчтеноВСумме', 'true');
@@ -820,12 +794,12 @@ class Controller
 			}
 			else
 			{
-				$product->addChild('Ид', $product_item['code_1c']);
-				$product->addChild('Артикул', $product_item['vendor_code']);
-				$product->addChild('Наименование', $product_item['name']);
-				$product->addChild('ЦенаЗаЕдиницу', $offer_item['price']);
-				$product->addChild('Количество', $basket_item['count']);
-				$product->addChild('Сумма', $offer_item['price'] * $basket_item['count']);
+				$product->addChild('Ид', $product_code_1c);
+				$product->addChild('Артикул', $product_vendor_code);
+				$product->addChild('Наименование', $product_name);
+				$product->addChild('ЦенаЗаЕдиницу', $offer_price);
+				$product->addChild('Количество', $product_count);
+				$product->addChild('Сумма', $offer_price * $product_count);
 			}
 			
 		}
@@ -869,16 +843,17 @@ class Controller
 			$name = "";
 			if ($form_data['type'] == 1)
 			{
-				$name = \Elberos\mb_trim
-				(
-					$form_data['surname'] . ' ' .
-					$form_data['name']. ' ' .
-					$form_data['lastname']
-				);
+				$name = isset($form_data['name']) ? $form_data['name'] : '';
+				$surname = isset($form_data['surname']) ? $form_data['surname'] : '';
+				$lastname = isset($form_data['lastname']) ? $form_data['lastname'] : '';
+				$name = \Elberos\mb_trim($name . $surname . $lastname);
 			}
 			else if ($form_data['type'] == 2)
 			{
-				$name = \Elberos\mb_trim($form_data['company_name']);
+				$name = \Elberos\mb_trim
+				(
+					isset($form_data['company_name']) ? $form_data['company_name'] : ''
+				);
 			}
 			
 			/* Контрагент */

@@ -457,20 +457,15 @@ class Invoice_Table extends \Elberos\Table
 		
 		$basket_data = @json_decode($invoice["basket_data"], true);
 		$basket_sum_total = 0;
-		if (gettype($basket_data) == 'array') foreach ($basket_data["items"] as $basket)
+		if (gettype($basket_data) == 'array') foreach ($basket_data as $basket)
 		{
-			$offer_price_id = $basket["offer_price_id"];
-			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
-			if (!$offer_item) continue;
-			
-			$product_item = \Elberos\find_item($basket_data["products"]["items"], "id", $offer_item["product_id"]);
-			$product_main_photo = \Elberos\Commerce\Api::getMainPhoto($product_item, $basket_data["products"]["photos"]);
-			$product_main_photo_id = isset($product_main_photo["id"]) ? $product_main_photo["id"] : "";
-			$product_main_photo_url = isset($product_main_photo["url"]) ? $product_main_photo["url"] : "";
-			
-			$product_name = isset($product_item["name"]) ? $product_item["name"] : "";
-			$product_price = (int) isset($offer_item["price"]) ? $offer_item["price"] : 0;
-			$product_count = $basket["count"];
+			$offer_unit = isset($basket["offer_unit"]) ? $basket["offer_unit"] : "";
+			$offer_price_id = isset($basket["offer_price_id"]) ? $basket["offer_price_id"] : "";
+			$offer_price = isset($basket["offer_price"]) ? $basket["offer_price"] : "";
+			$product_name = isset($basket["product_name"]) ? $basket["product_name"] : "";
+			$product_count = isset($basket["count"]) ? $basket["count"] : "";
+			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
+			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
 			
 			echo "<tr class='invoice_table_product_row'>";
 			
@@ -483,7 +478,7 @@ class Invoice_Table extends \Elberos\Table
 						echo esc_html( $product_name );
 					echo "</div>";
 					echo "<div class='invoice_table_product_title_row'>";
-						echo "Артикул: <span class='value'>" . esc_html($product_item["vendor_code"]) . "</span>";
+						echo "Артикул: <span class='value'>" . esc_html($product_vendor_code) . "</span>";
 					echo "</div>";
 					echo "<div class='invoice_table_product_title_row'>";
 						echo "";
@@ -492,24 +487,24 @@ class Invoice_Table extends \Elberos\Table
 			echo "</td>";
 			echo "<td>";
 				echo "<div class='invoice_table_product_price'>";
-					echo esc_html( \Elberos\formatMoney($product_price) );
+					echo esc_html( \Elberos\formatMoney($offer_price) );
 				echo "</div>";
 			echo "</td>";
 			echo "<td>";
-				echo esc_html($offer_item["unit"]);
+				echo esc_html($offer_unit);
 			echo "</td>";
 			echo "<td>";
 				echo esc_html($product_count);
 			echo "</td>";
 			echo "<td>";
 				echo "<div class='invoice_table_product_price'>";
-					echo esc_html( \Elberos\formatMoney($product_price * $product_count) );
+					echo esc_html( \Elberos\formatMoney($offer_price * $product_count) );
 				echo "</div>";
 			echo "</td>";
 			
 			echo "</tr>";
 			
-			$basket_sum_total += $product_price * $product_count;
+			$basket_sum_total += $offer_price * $product_count;
 		}
 		
 		echo "<tr class='invoice_table_product_row_total'>";

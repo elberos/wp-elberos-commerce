@@ -462,7 +462,8 @@ class Api
 			(
 				"select
 					t1.id as offer_price_id, t2.id as offer_id, t3.id as product_id,
-					t1.price, t1.currency, t1.unit, t1.coefficient, t1.name as offer_price_name
+					t1.price, t1.currency, t1.unit, t1.coefficient, t1.name as offer_price_name,
+					t2.xml as offer_xml, t2.code_1c as offer_code_1c, t1.price_type_code_1c
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
 				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as t2
 					on (t2.id = t1.offer_id)
@@ -486,17 +487,57 @@ class Api
 	{
 		global $wpdb;
 		
-		$basket = \Elberos\Commerce\Api::getBasketData();
-		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket);
-		$offers = static::getOffersByPriceId($offer_price_ids);
-		$products_id = array_map(function($item){ return $item["product_id"]; }, $offers);
-		$products_meta = \Elberos\Commerce\Api::getProducts($products_id);
+		$basket_data = static::getBasketData();
+		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket_data);
+		$offer_prices = static::getOffersByPriceId($offer_price_ids);
+		$products_id = array_map(function($item){ return $item["product_id"]; }, $offer_prices);
+		$products_meta = static::getProducts($products_id);
 		
-		return [
-			"items" => $basket,
-			"offers" => $offers,
-			"products" => $products_meta,
-		];
+		$basket = [];
+		foreach ($basket_data as $data)
+		{
+			$count = $data["count"];
+			$offer_price_id = $data["offer_price_id"];
+			$offer_item = \Elberos\find_item($offer_prices, "offer_price_id", $offer_price_id);
+			if (!$offer_item)
+			{
+				continue;
+			}
+			
+			$product_item = \Elberos\find_item($products_meta["items"], "id", $offer_item["product_id"]);
+			if (!$product_item)
+			{
+				continue;
+			}
+			
+			$product_main_photo = static::getMainPhoto($product_item, $products_meta["photos"]);
+			
+			$basket[] =
+			[
+				"count" => $count,
+				"offer_id" => (int) (isset($offer_item["offer_id"]) ? $offer_item["offer_id"] : 0),
+				"offer_price_id" => (int) (isset($offer_item["offer_price_id"]) ? $offer_item["offer_price_id"] : 0),
+				"offer_price" => (int) (isset($offer_item["price"]) ? $offer_item["price"] : 0),
+				"offer_currency" => isset($offer_item["currency"]) ? $offer_item["currency"] : "",
+				"offer_unit" => isset($offer_item["unit"]) ? $offer_item["unit"] : "",
+				"offer_coefficient" => isset($offer_item["coefficient"]) ? $offer_item["coefficient"] : "",
+				"offer_code_1c" => isset($offer_item["offer_code_1c"]) ? $offer_item["offer_code_1c"] : "",
+				"offer_price_code_1c" =>
+					isset($offer_item["price_type_code_1c"]) ? $offer_item["price_type_code_1c"] : "",
+				"offer_xml" => isset($offer_item["offer_xml"]) ? $offer_item["offer_xml"] : "",
+				"product_id" => isset($product_item["id"]) ? $product_item["id"] : "",
+				"product_code_1c" => isset($product_item["code_1c"]) ? $product_item["code_1c"] : "",
+				"product_name" => isset($product_item["name"]) ? $product_item["name"] : "",
+				"product_params" => isset($product_item["params"]) ? $product_item["params"] : [],
+				"product_main_photo_id" => $product_main_photo != null ? $product_main_photo["id"] : "",
+				"product_main_photo_url" => $product_main_photo != null ? $product_main_photo["url"] : "",
+				"product_text" => isset($product_item["text"]) ? $product_item["text"] : [],
+				"product_vendor_code" => isset($product_item["vendor_code"]) ? $product_item["vendor_code"] : "",
+				"product_xml" => isset($product_item["xml"]) ? $product_item["xml"] : "",
+			];
+		}
+		
+		return $basket;
 	}
 	
 	
@@ -507,17 +548,11 @@ class Api
 	public static function getBasketPrice($basket_data)
 	{
 		$price_total = 0;
-		foreach ($basket_data["items"] as $basket)
+		foreach ($basket_data as $basket)
 		{
-			$offer_price_id = $basket["offer_price_id"];
-			$basket_product_count = $basket["count"];
-			$offer_item = \Elberos\find_item($basket_data["offers"], "offer_price_id", $offer_price_id);
-			if ($basket_product_count < 0) $basket_product_count = 0;
-			if ($offer_item)
-			{
-				$price = $offer_item['price'];
-				$price_total = $price_total + $price * $basket_product_count;
-			}
+			$count = $basket["count"];
+			$offer_price = $basket["offer_price"];
+			$price_total = $price_total + $offer_price * $count;
 		}
 		return $price_total;
 	}
@@ -569,6 +604,7 @@ class Api
 	{
 		global $wpdb;
 		
+		$params = [];
 		$items = [];
 		if (count($products_id) > 0)
 		{
@@ -580,22 +616,39 @@ class Api
 				$products_id
 			);
 			$items = $wpdb->get_results($sql, ARRAY_A);
+			
+			$sql = $wpdb->prepare
+			(
+				"select * from " . $wpdb->base_prefix . "elberos_commerce_products_params as p " .
+				"where product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				$products_id
+			);
+			$params = $wpdb->get_results($sql, ARRAY_A);
 		}
 		
-		/* Параметры товара */
+		/* Обработка элементов */
 		$items = array_map
 		(
 			function ($item)
 			{
 				$item["text"] = @json_decode($item["text"], true);
-				$item["props"] = @json_decode($item["props"], true);
-				$item["params"] = @json_decode($item["params"], true);
-				$item["prices"] = @json_decode($item["prices"], true);
-				//unset($item["xml"]);
 				return $item;
 			},
 			$items
 		);
+		
+		/* Параметры товара */
+		foreach ($items as &$item)
+		{
+			$item['params'] = array_filter
+			(
+				$params,
+				function ($param) use ($item)
+				{
+					return $param["product_id"] == $item["id"];
+				}
+			);
+		}
 		
 		/* Список фотографий */
 		$photo_ids = array_map
@@ -765,36 +818,6 @@ class Api
 		return $product_offers;
 	}
 	
-	
-	
-	/**
-	 * Обновляет список оферов у товара
-	 */
-	static function updateProductOffers($product_id)
-	{
-		global $wpdb;
-		
-		$offers = static::getProductOffers($product_id);
-		$offers = array_filter
-		(
-			$offers,
-			function ($item)
-			{
-				return $item["prepare_delete_offers"] == 0 and $item["prepare_delete_offers_prices"] == 0;
-			}
-		);
-		
-		$wpdb->update
-		(
-			$wpdb->base_prefix . "elberos_commerce_products",
-			[
-				"prices" => json_encode($offers),
-			],
-			[
-				"id" => $product_id
-			]
-		);
-	}
 	
 }
 
