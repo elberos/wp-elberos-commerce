@@ -138,24 +138,48 @@ class Category_Api
 		$name = $item["name"];
 		$code_1c = $item["code_1c"];
 		$image_file_path = $item["image_file_path"];
+		$parent_category_id = $item["parent_category_id"];
+		$classifier_id = $item["classifier_id"];
+		
+		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
 		
 		/* Update */
-		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
-		$wpdb->update
-		(
-			$table_name,
-			[
-				"name" => $name,
-				"code_1c" => $code_1c,
-				"image_file_path" => $image_file_path,
-			],
-			[
-				"id" => $id,
-			]
-		);
+		if ($id != "")
+		{
+			$wpdb->update
+			(
+				$table_name,
+				[
+					"name" => $name,
+					"code_1c" => $code_1c,
+					"image_file_path" => $image_file_path,
+				],
+				[
+					"id" => $id,
+				]
+			);
+		}
+		
+		/* Add */
+		else
+		{
+			$wpdb->insert
+			(
+				$table_name,
+				[
+					"name" => $name,
+					"code_1c" => $code_1c,
+					"image_file_path" => $image_file_path,
+					"classifier_id" => $classifier_id,
+					"parent_category_id" => $parent_category_id,
+				]
+			);
+			$id = $wpdb->insert_id;
+		}
 		
 		return
 		[
+			"item_id" => $id,
 			"message" => "OK",
 			"code" => 1,
 		];

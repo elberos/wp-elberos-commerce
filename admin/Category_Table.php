@@ -590,6 +590,8 @@ class Category_Table extends \Elberos\Table
 		$this->form_item = $this->struct->getDefault();
 		$this->form_item['id'] = 0;
 		
+		$classifier_id = (int)(isset($_GET["id"]) ? $_GET["id"] : 0);
+		
 		?>
 		<div class='category_admin_page'>
 			<div class='category_admin_page_item'>
@@ -598,6 +600,8 @@ class Category_Table extends \Elberos\Table
 			<div class='category_admin_page_item category_admin_page_item--edit_form'>
 				<form class="elberos_form elberos_form_edit_category" method="POST" style="display: none;">
 					<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
+					<input type='hidden' name='classifier_id' data-name='classifier_id'
+						value="<?= esc_attr($classifier_id) ?>" />
 					<?php $this->display_form() ?>
 					<div class="elberos_form_buttons">
 						<input type="button" class="button-primary button--save" value="Сохранить">
@@ -822,11 +826,12 @@ class Category_Table extends \Elberos\Table
 						var api_name = $(this).attr('data-name');
 						var value = obj.getObjectValue(data, api_name);
 						
-						if (value != null)
-							obj.setFieldValue(this, value);
+						if (value != null) obj.setFieldValue(this, value);
+						else obj.setFieldValue(this, '');
 					};
 				})(obj));
 				if (data != null) $form.find('.image_file_path_image').attr('src', data.image_file_path);
+				else $form.find('.image_file_path_image').attr('src', '');
 			},
 			
 			/**
@@ -943,6 +948,8 @@ class Category_Table extends \Elberos\Table
 				fancytree.updateCurrentNode(item);
 			}
 			
+			item["classifier_id"] = <?= json_encode((int)(isset($_GET["id"]) ? $_GET["id"] : 0)) ?>;
+			
 			var send_data = {
 				"item": item,
 			};
@@ -951,14 +958,18 @@ class Category_Table extends \Elberos\Table
 				"elberos_commerce_admin",
 				"categories_save",
 				send_data,
-				(function (obj)
+				(function ($form, obj)
 				{
 					return function(res)
 					{
-						var $form = $('.elberos_form');
 						ElberosFormSetResponse($form, res);
+						
+						if (res.code == 1)
+						{
+							$form.find('.web_form_value[data-name="id"]').val(res.item_id);
+						}
 					};
-				})(this),
+				})($form, this),
 			);
 		});
 		
