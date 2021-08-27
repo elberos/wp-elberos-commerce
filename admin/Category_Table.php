@@ -302,10 +302,6 @@ class Category_Table extends \Elberos\Table
 		else
 		{
 			/* Add parent category */
-			/*
-			$where[] = "parent_category_id=:parent_category_id";
-			if (isset($_GET["sub_id"])) $args["parent_category_id"] = $_GET["sub_id"];
-			else $args["parent_category_id"] = 0;*/
 			$where[] = "parent_category_id=:parent_category_id";
 			$args["parent_category_id"] = 0;
 			$where[] = "is_deleted=0";
@@ -593,21 +589,26 @@ class Category_Table extends \Elberos\Table
 		$classifier_id = (int)(isset($_GET["id"]) ? $_GET["id"] : 0);
 		
 		?>
-		<div class='category_admin_page'>
-			<div class='category_admin_page_item'>
-				<div id='fancytree' class='mar10--top fancytree'></div>
-			</div>
-			<div class='category_admin_page_item category_admin_page_item--edit_form'>
-				<form class="elberos_form elberos_form_edit_category" method="POST" style="display: none;">
-					<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
-					<input type='hidden' name='classifier_id' data-name='classifier_id'
-						value="<?= esc_attr($classifier_id) ?>" />
-					<?php $this->display_form() ?>
-					<div class="elberos_form_buttons">
-						<input type="button" class="button-primary button--save" value="Сохранить">
-					</div>
-					<div class="web_form_result"></div>
-				</form>
+		<div class="wrap">
+			<h1 class="wp-heading-inline">Категории</h1>
+			<a class="page-title-action button_category_add">Добавить категорию</a>
+			<hr class="wp-header-end">
+			<div class='category_admin_page'>
+				<div class='category_admin_page_item'>
+					<div id='fancytree' class='mar10--top fancytree'></div>
+				</div>
+				<div class='category_admin_page_item category_admin_page_item_edit_form'>
+					<form class="elberos_form elberos_form_edit_category" method="POST" style="display: none;">
+						<input type="hidden" name="nonce" value="<?php echo wp_create_nonce(basename(__FILE__))?>"/>
+						<input type='hidden' name='classifier_id' data-name='classifier_id'
+							value="<?= esc_attr($classifier_id) ?>" />
+						<?php $this->display_form() ?>
+						<div class="elberos_form_buttons">
+							<input type="button" class="button-primary button--save" value="Сохранить">
+						</div>
+						<div class="web_form_result"></div>
+					</form>
+				</div>
 			</div>
 		</div>
 		<script>
@@ -617,7 +618,6 @@ class Category_Table extends \Elberos\Table
 			data: null,
 			tree: null,
 			tree_selector: '#fancytree',
-			current_node: null,
 			
 			buildTitle: function(obj)
 			{
@@ -727,7 +727,7 @@ class Category_Table extends \Elberos\Table
 			 */
 			showAdd: function (node){
 				
-				var $content = $('.category_admin_page_item--edit_form');
+				var $content = $('.category_admin_page_item_edit_form');
 				
 				this.add_dialog = new ElberosFormDialog();
 				this.add_dialog.setContent($content.html());
@@ -736,9 +736,10 @@ class Category_Table extends \Elberos\Table
 				
 				var $form = this.add_dialog.$el.find(".elberos_form");
 				this.setFormData($form, null);
+				ElberosFormClearResult($form);
 				
 				/* Add input */
-				var $input = $('<input type="hidden" class="web_form_value" name="parent_category_id" data-name="parent_category_id"></input>');
+				var $input = $('<input type="hidden" class="web_form_value" name="parent_category_id" data-name="parent_category_id" value="0"></input>');
 				if (node != null) $input.val(node.data.id);
 				$form.append($input);
 				
@@ -755,7 +756,6 @@ class Category_Table extends \Elberos\Table
 				$form.show();
 				this.clearFormData();
 				this.setFormData($form, node.data);
-				this.current_node = node;
 			},
 			
 			/**
@@ -769,11 +769,13 @@ class Category_Table extends \Elberos\Table
 					<form class="elberos_form" method="POST" style="">
 						<input type="hidden" class="web_form_value" name="id" data-name="id" value="${id}">
 						<div style="padding-bottom: 10px;">
-							Вы действительно хотите удалить категорию ${name}?
+							Вы действительно хотите удалить категорию "${name}"?
 						</div>
 						<div class="elberos_form_buttons">
-							<input type="button" class="button-primary button-danger button--save" value="Удалить">
+							<input type="button" class="button-primary button-danger button_category_delete"
+								data-id="${id}" value="Удалить">
 						</div>
+						<div class="web_form_result"></div>
 					</form>
 				`;
 			},
@@ -781,26 +783,23 @@ class Category_Table extends \Elberos\Table
 			/**
 			 * Show delete form
 			 */
-			showDelete: function(node){
-				
-				node.data.id = "'{\"a\":2}'";
-				node.data.name = "<div>123</div>";
-				
+			showDelete: function(node)
+			{				
 				var content = this.renderContentDelete(node);
 				var $content = $(content);
 				this.delete_dialog = new ElberosFormDialog();
-				this.delete_dialog.setContent($content.html());
+				this.delete_dialog.setContent($content);
 				this.delete_dialog.open();
 				this.delete_dialog.setTitle("Удалить категорию");
-				
-				//console.log(node.data.id);
 			},
 			
-			updateCurrentNode: function(item)
+			updateNode: function(node, item)
 			{
-				this.current_node.data.name = item.name;
-				this.current_node.data.code_1c = item.code_1c;
-				this.current_node.data.image_file_path = item.image_file_path;
+				if (node)
+				{
+					node.data = item;
+					node.setTitle( this.buildTitle(item) );
+				}
 			},
 			
 			/**
@@ -809,10 +808,12 @@ class Category_Table extends \Elberos\Table
 			clearFormData: function()
 			{
 				var obj = this;
-				$('.elberos_form').find('.web_form_value').each(function(){
+				var $form = $('.category_admin_page_item_edit_form');
+				$form.find('.web_form_value').each(function(){
 					var api_name = $(this).attr('data-name');
 					obj.setFieldValue(this, null);
 				});
+				ElberosFormClearResult($form);
 			},
 			
 			/**
@@ -937,17 +938,16 @@ class Category_Table extends \Elberos\Table
 			fancytree.init();
 		});
 		
+		$(document).on("click", ".button_category_add", function(){
+			fancytree.showAdd(null);
+		});
+		
 		$(document).on("click", ".elberos_form_edit_category .button--save", function(){
 			
-			var $form = $('.elberos_form');
+			var $form = $(this).parents('.elberos_form');
 			ElberosFormSetWaitMessage($form);
 			
 			var item = ElberosFormGetData($form);
-			if (fancytree.current_node)
-			{
-				fancytree.updateCurrentNode(item);
-			}
-			
 			item["classifier_id"] = <?= json_encode((int)(isset($_GET["id"]) ? $_GET["id"] : 0)) ?>;
 			
 			var send_data = {
@@ -963,14 +963,75 @@ class Category_Table extends \Elberos\Table
 					return function(res)
 					{
 						ElberosFormSetResponse($form, res);
-						
 						if (res.code == 1)
 						{
 							$form.find('.web_form_value[data-name="id"]').val(res.item_id);
+							if (res.action == "add")
+							{
+								var parent_category_id = res.item.parent_category_id;
+								
+								var node = null;
+								if (parent_category_id == 0)
+								{
+									node = fancytree.tree.getRootNode();
+								}
+								else
+								{
+									node = fancytree.tree.getNodeByKey( "node" + new String(parent_category_id) );
+								}
+								
+								if (node != null)
+								{
+									node.addChildren( fancytree.buildEntity(res.item) );
+								}
+							}
+							else
+							{
+								node = fancytree.tree.getNodeByKey( "node" + new String(res.item_id) );
+								fancytree.updateNode(node, res.item);
+							}
+							if (fancytree.add_dialog) fancytree.add_dialog.close();
+							fancytree.add_dialog = null;
 						}
 					};
 				})($form, this),
 			);
+			
+		});
+		
+		$(document).on("click", ".button_category_delete", function(){
+			
+			var $form = $(this).parents('.elberos_form');
+			ElberosFormSetWaitMessage($form);
+			
+			var send_data = {};
+			send_data["id"] = $(this).attr("data-id");
+			send_data["classifier_id"] = <?= json_encode((int)(isset($_GET["id"]) ? $_GET["id"] : 0)) ?>;
+			
+			elberos_api_send
+			(
+				"elberos_commerce_admin",
+				"categories_delete",
+				send_data,
+				(function ($form, obj)
+				{
+					return function(res)
+					{
+						ElberosFormSetResponse($form, res);
+						if (res.code == 1)
+						{
+							var node = fancytree.tree.getNodeByKey( "node" + new String(res.item_id) );
+							if (node != null)
+							{
+								if (fancytree.delete_dialog) fancytree.delete_dialog.close();
+								fancytree.delete_dialog = null;
+								node.remove();
+							}
+						}
+					};
+				})($form, this),
+			);
+			
 		});
 		
 		</script>

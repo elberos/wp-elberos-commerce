@@ -211,6 +211,7 @@ class Task
 				"name" => $name_ru,
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+				"is_deleted" => 0,
 			]
 		);
 		
@@ -285,6 +286,7 @@ class Task
 				"slug" => sanitize_title($name_ru),
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+				"is_deleted" => 0,
 			]
 		);
 		$product_update = [];

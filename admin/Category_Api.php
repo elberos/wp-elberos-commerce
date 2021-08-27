@@ -42,6 +42,7 @@ class Category_Api
 	{
 		$site->add_api("elberos_commerce_admin", "categories_load", "\\Elberos\\Commerce\\Category_Api::load");
 		$site->add_api("elberos_commerce_admin", "categories_save", "\\Elberos\\Commerce\\Category_Api::save");
+		$site->add_api("elberos_commerce_admin", "categories_delete", "\\Elberos\\Commerce\\Category_Api::delete");
 	}
 	
 	
@@ -134,18 +135,20 @@ class Category_Api
 			];
 		}
 		
-		$id = $item["id"];
-		$name = $item["name"];
-		$code_1c = $item["code_1c"];
-		$image_file_path = $item["image_file_path"];
-		$parent_category_id = $item["parent_category_id"];
-		$classifier_id = $item["classifier_id"];
+		$id = isset($item["id"]) ? $item["id"]: "";
+		$name = isset($item["name"]) ? $item["name"] : "";
+		$code_1c = isset($item["code_1c"]) ? $item["code_1c"] : "";
+		$image_file_path = isset($item["image_file_path"]) ? $item["image_file_path"] : "";
+		$parent_category_id = isset($item["parent_category_id"]) ? $item["parent_category_id"] : 0;
+		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"] : 0;
 		
+		$action = "";
 		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
 		
 		/* Update */
 		if ($id != "")
 		{
+			$action = "update";
 			$wpdb->update
 			(
 				$table_name,
@@ -163,6 +166,7 @@ class Category_Api
 		/* Add */
 		else
 		{
+			$action = "add";
 			$wpdb->insert
 			(
 				$table_name,
@@ -176,6 +180,40 @@ class Category_Api
 			);
 			$id = $wpdb->insert_id;
 		}
+		
+		/* Find item */
+		$sql = $wpdb->prepare("select * from " . $table_name . " where id=%d", $id);
+		$item = $wpdb->get_row($sql);
+		
+		return
+		[
+			"action" => $action,
+			"item" => $item,
+			"item_id" => $id,
+			"message" => "OK",
+			"code" => 1,
+		];
+	}
+	
+	
+	/**
+	 * Delete item
+	 */
+	public static function delete($site)
+	{
+		global $wpdb;
+		
+		/* Check is admin */
+		$res = static::checkIsAdmin();
+		if ($res) return $res;
+		
+		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
+		$id = isset($_POST["id"]) ? $_POST["id"] : null;
+		$classifier_id = isset($_POST["classifier_id"]) ? $_POST["classifier_id"] : null;
+		
+		$sql = $wpdb->prepare("delete from " . $table_name . " where id=%d and classifier_id=%d",
+			$id, $classifier_id);
+		$wpdb->query($sql);
 		
 		return
 		[
