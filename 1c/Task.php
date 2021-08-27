@@ -171,7 +171,7 @@ class Task
 		
 		$table_name_categories = $wpdb->base_prefix . "elberos_commerce_categories";
 		$xml_str = $task['data'];
-		$code_1c = (string)$xml->Ид;
+		$code_1c = \Elberos\mb_trim( (string)$xml->Ид );
 		$parent_category_code_1c = (string)$xml->ParentID;
 		$parent_category_id = 0;
 		
@@ -248,8 +248,8 @@ class Task
 		global $wpdb;
 		
 		$xml_str = $task['data'];
-		$code_1c = (string)$xml->Ид;
-		$vendor_code = (string)$xml->Артикул;
+		$code_1c = \Elberos\mb_trim((string)$xml->Ид);
+		$vendor_code = \Elberos\mb_trim((string)$xml->Артикул);
 		
 		/* Получаем название товара */
 		$names = Helper::getNamesByXml($xml, 'Наименование');
@@ -365,8 +365,12 @@ class Task
 			{
 				if ($item->getName() == 'ЗначенияСвойства')
 				{
-					$product_param = Helper::findProductParamByCode( (string)$item->Ид );
-					$product_param_value = Helper::findProductParamValueByCode( (string)$item->Значение );
+					$product_param = Helper::findProductParamByCode(
+						\Elberos\mb_trim((string)$item->Ид)
+					);
+					$product_param_value = Helper::findProductParamValueByCode(
+						\Elberos\mb_trim((string)$item->Значение)
+					);
 					
 					if ($product_param && $product_param_value)
 					{
@@ -404,8 +408,8 @@ class Task
 			{
 				if ($item->getName() == 'ЗначениеРеквизита')
 				{
-					$props_name = (string)$item->Наименование;
-					$props_value = (string)$item->Значение;
+					$props_name = \Elberos\mb_trim((string)$item->Наименование);
+					$props_value = \Elberos\mb_trim((string)$item->Значение);
 					
 					\Elberos\wpdb_insert_or_update
 					(
@@ -647,7 +651,7 @@ class Task
 			{
 				if ($item->getName() == 'Справочник')
 				{
-					$value_id = (string)$item->ИдЗначения;
+					$value_id = \Elberos\mb_trim((string)$item->ИдЗначения);
 					
 					/* Получаем значение параметра */
 					$names = Helper::getNamesByXml($item, 'Значение');
@@ -833,7 +837,7 @@ class Task
 		
 		/* Получаем код товара */
 		$product_code_1c = "";
-		$offer_code_1c = (string)$xml->Ид;
+		$offer_code_1c = \Elberos\mb_trim((string)$xml->Ид);
 		$offer_code_1c_arr = explode("#", $offer_code_1c);
 		if (count($offer_code_1c_arr) > 0) $product_code_1c = $offer_code_1c_arr[0];
 		//var_dump($product_code_1c);
@@ -871,8 +875,10 @@ class Task
 			{
 				if ($item->getName() == 'ЗначенияСвойства')
 				{
-					$product_param = Helper::findProductParamByCode( (string)$item->Ид );
-					$product_param_value = Helper::findProductParamValueByCode( (string)$item->Значение );
+					$product_param = Helper::findProductParamByCode( \Elberos\mb_trim((string)$item->Ид) );
+					$product_param_value = Helper::findProductParamValueByCode(
+						\Elberos\mb_trim((string)$item->Значение)
+					);
 					
 					if ($product_param && $product_param_value)
 					{
@@ -925,13 +931,13 @@ class Task
 				if ($item->getName() == 'Цена')
 				{
 					$price_name = (string)$item->Представление;
-					$price_code_1c = (string)$item->ИдТипаЦены;
-					$price_unit = (string)$item->Единица;
-					$price_type = Helper::findPriceTypeByCode( (string)$item->ИдТипаЦены );
+					$price_code_1c = \Elberos\mb_trim((string)$item->ИдТипаЦены);
+					$price_unit = \Elberos\mb_trim((string)$item->Единица);
+					$price_type = Helper::findPriceTypeByCode( $price_code_1c );
 					$price_type_id = null; if ($price_type) $price_type_id = $price_type["id"];
-					$price = (string)$item->ЦенаЗаЕдиницу;
-					$currency = (string)$item->Валюта;
-					$coefficient = (string)$item->Коэффициент;
+					$price = \Elberos\mb_trim((string)$item->ЦенаЗаЕдиницу);
+					$currency = \Elberos\mb_trim((string)$item->Валюта);
+					$coefficient = \Elberos\mb_trim((string)$item->Коэффициент);
 					
 					\Elberos\wpdb_insert_or_update
 					(

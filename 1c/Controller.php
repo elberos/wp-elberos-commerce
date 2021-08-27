@@ -188,10 +188,15 @@ class Controller
 			static::actionSaleSuccess();
 		}
 		
+		/* Invoice upload */
+		else if ($type == 'sale' && $mode == 'file')
+		{
+			static::actionSaleFile();
+		}
+		
 		/* Success */
 		else if ($type == 'success')
 		{
-			static::actionSuccess();
 		}
 		
 		return null;
@@ -1053,5 +1058,44 @@ class Controller
 			"update " . $table_name . " set export_status=1 where export_status=0"
 		);
 		$wpdb->query($sql);
+	}
+	
+	
+	
+	/**
+	 * Загрузка инвойсов
+	 */
+	static function actionSaleFile()
+	{
+		$content = file_get_contents("php://input");
+		
+		try
+		{
+			@ob_start();
+			$xml = new \SimpleXMLElement($content);
+			@ob_end_clean();
+		}
+		catch (\Exception $e){
+			$error_message = $e->getMessage();
+		}
+		
+		if ($error_message != null)
+		{
+			echo "error" . "\n" . $error_message;
+			return;
+		}
+		
+		if ($xml != null)
+		{
+			foreach ($xml->children() as $item)
+			{
+				if ($item->getName() == 'Документ')
+				{
+					$invoice_number = \Elberos\mb_trim( (string)$item->Номер );
+				}
+			}
+		}
+		
+		echo "success";
 	}
 }
