@@ -851,7 +851,7 @@ class Controller
 				$name = isset($form_data['name']) ? $form_data['name'] : '';
 				$surname = isset($form_data['surname']) ? $form_data['surname'] : '';
 				$lastname = isset($form_data['lastname']) ? $form_data['lastname'] : '';
-				$name = \Elberos\mb_trim($name . $surname . $lastname);
+				$name = \Elberos\mb_trim($name . ' ' . $surname . ' ' . $lastname);
 			}
 			else if ($form_data['type'] == 2)
 			{
@@ -1058,6 +1058,7 @@ class Controller
 			"update " . $table_name . " set export_status=1 where export_status=0"
 		);
 		$wpdb->query($sql);
+		echo "success";
 	}
 	
 	
