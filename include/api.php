@@ -744,7 +744,7 @@ class Api
 		(
 			"select t1.* from $table_name as t1 " .
 			"inner join $table_name_classifier as t2 on (t1.classifier_id = t2.id) " .
-			"where t2.code_1c = :classifier_id",
+			"where t2.code_1c = :classifier_id and is_deleted = 0",
 			[
 				"classifier_id" => $classifier_id,
 			]
@@ -755,7 +755,7 @@ class Api
 		$table_name = $wpdb->base_prefix . "elberos_commerce_params_values";
 		$sql = \Elberos\wpdb_prepare
 		(
-			"select * from $table_name order by name asc",
+			"select * from $table_name where is_deleted = 0 order by name asc",
 			[
 			]
 		);

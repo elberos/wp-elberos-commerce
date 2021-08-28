@@ -334,7 +334,9 @@ class ProductParamValue_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$id = isset($_GET['id']) ? $_GET['id'] : "";
 		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
-		$url = "admin.php?page=" . $page_name . "&action=products_params_values&id=" . $id;
+		$product_param_id = isset($_GET['product_param_id']) ? $_GET['product_param_id'] : "";
+		$url = "admin.php?page=" . $page_name . "&action=products_params_values&id=" . $id .
+			"&product_param_id=" . $product_param_id;
 		?>
 		<ul class="subsubsub">
 			<li>
