@@ -57,17 +57,21 @@ class Category_Table extends \Elberos\Table
 			"admin_table",
 			function ($struct)
 			{
-				$struct->editField("image_file_path", [
+				$struct->editField("image_file_id", [
 					//"form_show" => false,
 					"form_render" => function($struct, $field, $item)
 					{
-						$image_file_path = isset($item['image_file_path']) ? $item['image_file_path'] : '';
+						$image_file_id = isset($item['image_id']) ? $item['image_id'] : '';
+						$image_file_path = \Elberos\get_image_url($image_file_id, "thumbnail");
 						?>
 						<div class='image_file_path_wrap'>
 							<input type='button' class='button image_file_path_add_photo' value='Добавить файл'><br/>
+							<input type='hidden' class='image_file_id web_form_value'
+								name='image_id' data-name='image_id'
+								value='<?= esc_attr($image_file_id) ?>' readonly>
 							<input type='hidden' class='image_file_path web_form_value'
 								name='image_file_path' data-name='image_file_path'
-								value='<?= esc_attr($image_file_path) ?>' readonly style='width: 100%;'>
+								value='<?= esc_attr($image_file_path) ?>' readonly>
 							<img class='image_file_path_image'
 								src='<?= esc_attr($image_file_path) ?>' style="height: 250px;">
 						</div>
@@ -80,7 +84,7 @@ class Category_Table extends \Elberos\Table
 					"id",
 					"name",
 					"code_1c",
-					"image_file_path",
+					"image_file_id",
 				];
 				
 				$struct->form_fields =
@@ -89,7 +93,7 @@ class Category_Table extends \Elberos\Table
 					"slug",
 					"code_1c",
 					"show_in_catalog",
-					"image_file_path",
+					"image_file_id",
 				];
 				
 				return $struct;
@@ -317,6 +321,7 @@ class Category_Table extends \Elberos\Table
 			"args" => $args,
 			"page" => 0,
 			"per_page" => -1,
+			"order_by" => "name asc",
 			//"log"=>true,
 		]);
 		
@@ -415,6 +420,9 @@ class Category_Table extends \Elberos\Table
 							var photo_time = photo.date;
 							if (photo_time.getTime != undefined) photo_time = photo_time.getTime();
 							
+							//jQuery($wrap).find('.image_file_path').val(photo.url);
+							//jQuery($wrap).find('.image_file_path_image').attr('src', photo.url);
+							jQuery($wrap).find('.image_file_id').val(photo.id);
 							jQuery($wrap).find('.image_file_path').val(photo.url);
 							jQuery($wrap).find('.image_file_path_image').attr('src', photo.url);
 						}
@@ -833,8 +841,14 @@ class Category_Table extends \Elberos\Table
 						else obj.setFieldValue(this, '');
 					};
 				})(obj));
-				if (data != null) $form.find('.image_file_path_image').attr('src', data.image_file_path);
-				else $form.find('.image_file_path_image').attr('src', '');
+				if (data != null)
+				{
+					$form.find('.image_file_path_image').attr('src', data.image_file_path);
+				}
+				else
+				{
+					$form.find('.image_file_path_image').attr('src', '');
+				}
 			},
 			
 			/**

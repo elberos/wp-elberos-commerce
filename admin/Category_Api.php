@@ -101,6 +101,7 @@ class Category_Api
 			"args" => $args,
 			"page" => 0,
 			"per_page" => -1,
+			"order_by" => "name asc",
 			//"log"=>true,
 		]);
 		
@@ -138,6 +139,7 @@ class Category_Api
 		$id = isset($item["id"]) ? $item["id"]: "";
 		$name = isset($item["name"]) ? $item["name"] : "";
 		$code_1c = isset($item["code_1c"]) ? $item["code_1c"] : "";
+		$image_file_id = isset($item["image_id"]) ? $item["image_id"] : "";
 		$image_file_path = isset($item["image_file_path"]) ? $item["image_file_path"] : "";
 		$parent_category_id = isset($item["parent_category_id"]) ? $item["parent_category_id"] : 0;
 		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"] : 0;
@@ -155,6 +157,7 @@ class Category_Api
 				[
 					"name" => $name,
 					"code_1c" => $code_1c,
+					"image_id" => $image_file_id,
 					"image_file_path" => $image_file_path,
 				],
 				[
@@ -173,6 +176,7 @@ class Category_Api
 				[
 					"name" => $name,
 					"code_1c" => $code_1c,
+					"image_id" => $image_file_id,
 					"image_file_path" => $image_file_path,
 					"classifier_id" => $classifier_id,
 					"parent_category_id" => $parent_category_id,
