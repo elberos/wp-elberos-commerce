@@ -209,6 +209,7 @@ class Task
 				"classifier_id" => $task["classifier_id"],
 				"code_1c" => $code_1c,
 				"name" => $name_ru,
+				"slug" => sanitize_title($name_ru),
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 				"is_deleted" => 0,
@@ -303,7 +304,7 @@ class Task
 		$wpdb->query($sql);
 		
 		/* Группы */
-		if ($xml->Группы != null && $xml->getName() == 'Группы')
+		if ($xml->Группы != null && $xml->Группы->getName() == 'Группы')
 		{
 			$groups = $xml->Группы;
 			foreach ($groups->children() as $group)

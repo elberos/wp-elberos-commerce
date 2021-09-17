@@ -70,6 +70,25 @@ class Category extends \Elberos\StructBuilder
 			
 			->addField
 			([
+				"api_name" => "slug",
+				"label" => "Ссылка на английском",
+				"type" => "input",
+			])
+			
+			->addField
+			([
+				"api_name" => "show_in_catalog",
+				"label" => "Показать в каталоге",
+				"type" => "select",
+				"options" =>
+				[
+					["id"=>0, "value"=>"Нет"],
+					["id"=>1, "value"=>"Да"],
+				],
+			])
+			
+			->addField
+			([
 				"api_name" => "image_file_path",
 				"label" => "Картинка",
 				"type" => "input",

@@ -86,7 +86,9 @@ class Category_Table extends \Elberos\Table
 				$struct->form_fields =
 				[
 					"name",
+					"slug",
 					"code_1c",
+					"show_in_catalog",
 					"image_file_path",
 				];
 				

@@ -58,8 +58,6 @@ class Api
 		$site->add_api("elberos_commerce", "remove_from_basket", "\\Elberos\\Commerce\\Api::api_remove_from_basket");
 		$site->add_api("elberos_commerce", "clear_basket", "\\Elberos\\Commerce\\Api::api_clear_basket");
 		$site->add_api("elberos_commerce", "send_basket", "\\Elberos\\Commerce\\Api::api_send_basket");
-		$site->add_api("elberos_commerce", "change_site_price_type", 
-			"\\Elberos\\Commerce\\Api::api_change_site_price_type");
 	}
 	
 	
@@ -360,7 +358,7 @@ class Api
 		$invoice_id = $wpdb->insert_id;
 		
 		/* Clear basket */
-		// static::api_clear_basket($site);
+		static::api_clear_basket($site);
 		
 		/* Auth client if need */
 		/*
@@ -374,29 +372,6 @@ class Api
 		[
 			"invoice_id" => $invoice_id,
 			"secret_code" => $secret_code,
-			"message" => "OK",
-			"code" => 1,
-		];
-	}
-	
-	
-	
-	/**
-	 * Send basket
-	 */
-	public static function api_change_site_price_type($site)
-	{
-		global $wpdb;
-		
-		$code_1c = isset($_POST['code_1c']) ? $_POST['code_1c'] : '';
-		if ($code_1c != '')
-		{
-			setcookie('site_price_type', $code_1c, time() + 30*24*60*60, '/');
-		}
-		
-		return
-		[
-			"code_1c" => $code_1c,
 			"message" => "OK",
 			"code" => 1,
 		];

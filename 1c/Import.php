@@ -176,7 +176,7 @@ class Import
 				$catalog_id = $catalog['id'];
 			}
 			
-			/* Флаг содержит только изменения */
+			/* Флаг не содержит только изменения */
 			$products_update_only = mb_strtolower((string) ($this->xml->Каталог->attributes()->СодержитТолькоИзменения));
 			if ($products_update_only === "нет" ||
 				$products_update_only === "false" ||
