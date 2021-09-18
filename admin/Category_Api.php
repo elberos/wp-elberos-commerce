@@ -143,6 +143,7 @@ class Category_Api
 		$image_file_path = isset($item["image_file_path"]) ? $item["image_file_path"] : "";
 		$parent_category_id = isset($item["parent_category_id"]) ? $item["parent_category_id"] : 0;
 		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"] : 0;
+		$show_in_catalog = isset($item["show_in_catalog"]) ? $item["show_in_catalog"] : 0;
 		
 		$action = "";
 		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
@@ -159,6 +160,7 @@ class Category_Api
 					"code_1c" => $code_1c,
 					"image_id" => $image_file_id,
 					"image_file_path" => $image_file_path,
+					"show_in_catalog" => $show_in_catalog,
 				],
 				[
 					"id" => $id,
@@ -180,6 +182,7 @@ class Category_Api
 					"image_file_path" => $image_file_path,
 					"classifier_id" => $classifier_id,
 					"parent_category_id" => $parent_category_id,
+					"show_in_catalog" => $show_in_catalog,
 				]
 			);
 			$id = $wpdb->insert_id;
