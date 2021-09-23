@@ -524,6 +524,17 @@ class Api
 	{
 		global $wpdb;
 		
+		/* Remove duplicates */
+		if (count($products_id) > 0)
+		{
+			$res = [];
+			foreach ($products_id as $id)
+			{
+				if (!in_array($id, $res)) $res[] = $id;
+			}
+			$products_id = $res;
+		}
+		
 		$items = [];
 		$params = [];
 		$photos = [];
@@ -538,6 +549,15 @@ class Api
 				$products_id
 			);
 			$items = $wpdb->get_results($sql, ARRAY_A);
+			
+			/* Sort items by $products_id */
+			$res = [];
+			foreach ($products_id as $id)
+			{
+				$item = \Elberos\find_item($items, "id", $id);
+				if ($item) $res[] = $item;
+			}
+			$items = $res;
 			
 			/* Params */
 			$sql = $wpdb->prepare
