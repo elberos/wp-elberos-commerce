@@ -20,17 +20,17 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Category_Api::class ) ) 
+if ( !class_exists( Admin_Api::class ) ) 
 {
 
-class Category_Api 
+class Admin_Api 
 {
 	/**
 	 * Init api
 	 */
 	public static function init()
 	{
-		add_action('elberos_register_routes', '\\Elberos\\Commerce\\Category_Api::register_routes');
+		add_action('elberos_register_routes', '\\Elberos\\Commerce\\Admin_Api::register_routes');
 	}
 	
 	
@@ -40,9 +40,16 @@ class Category_Api
 	 */
 	public static function register_routes($site)
 	{
-		$site->add_api("elberos_commerce_admin", "categories_load", "\\Elberos\\Commerce\\Category_Api::load");
-		$site->add_api("elberos_commerce_admin", "categories_save", "\\Elberos\\Commerce\\Category_Api::save");
-		$site->add_api("elberos_commerce_admin", "categories_delete", "\\Elberos\\Commerce\\Category_Api::delete");
+		$site->add_api("elberos_commerce_admin", "categories_load",
+			"\\Elberos\\Commerce\\Admin_Api::categories_load");
+		$site->add_api("elberos_commerce_admin", "categories_save",
+			"\\Elberos\\Commerce\\Admin_Api::categories_save");
+		$site->add_api("elberos_commerce_admin", "categories_delete",
+			"\\Elberos\\Commerce\\Admin_Api::categories_delete");
+		$site->add_api("elberos_commerce_admin", "add_relative_product",
+			"\\Elberos\\Commerce\\Admin_Api::add_relative_product");
+		$site->add_api("elberos_commerce_admin", "delete_relative_product",
+			"\\Elberos\\Commerce\\Admin_Api::delete_relative_product");
 	}
 	
 	
@@ -69,7 +76,7 @@ class Category_Api
 	/**
 	 * Load items
 	 */
-	public static function load($site)
+	public static function categories_load($site)
 	{
 		global $wpdb;
 		
@@ -118,7 +125,7 @@ class Category_Api
 	/**
 	 * Save item
 	 */
-	public static function save($site)
+	public static function categories_save($site)
 	{
 		global $wpdb;
 		
@@ -206,7 +213,7 @@ class Category_Api
 	/**
 	 * Delete item
 	 */
-	public static function delete($site)
+	public static function categories_delete($site)
 	{
 		global $wpdb;
 		
@@ -225,6 +232,118 @@ class Category_Api
 		return
 		[
 			"item_id" => $id,
+			"message" => "OK",
+			"code" => 1,
+		];
+	}
+	
+	
+	/**
+	 * Add relative product
+	 */
+	public static function add_relative_product($site)
+	{
+		global $wpdb;
+		
+		/* Check is admin */
+		$res = static::checkIsAdmin();
+		if ($res) return $res;
+		
+		$code = 1;
+		$item = null;
+		$kind = isset($_POST["kind"]) ? $_POST["kind"] : "";
+		$value = isset($_POST["value"]) ? $_POST["value"] : "";
+		$product_id = (int)(isset($_POST["product_id"]) ? $_POST["product_id"] : "");
+		$message = "Товар добавлен";
+		$main_photo = null;
+		$main_photo_id = null;
+		$table_name = $wpdb->prefix . "elberos_commerce_products";
+		
+		if ($kind == "vendor_code" && $value != "")
+		{
+			$sql = $wpdb->prepare("select * from " . $table_name . " where vendor_code=%s limit 1", [$value]);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+		}
+		if ($kind == "product_id")
+		{
+			$sql = $wpdb->prepare("select * from " . $table_name . " where id=%d limit 1", [$value]);
+			$item = $wpdb->get_row($sql, ARRAY_A);
+		}
+		
+		if ($item)
+		{
+			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
+			$sql = $wpdb->prepare("select * from " . $table_name_relative .
+				" where product_id=%d and relative_id=%d limit 1", [$product_id, $value]);
+			$relative_record = $wpdb->get_row($sql, ARRAY_A);
+			if (!$relative_record)
+			{
+				$main_photo_id = $item["main_photo_id"];
+				if ($main_photo_id)
+				{
+					$main_photo = \Elberos\get_image_url($main_photo_id, "thumbnail");
+				}
+			}
+			else
+			{
+				$item = null;
+			}
+		}
+		
+		/* Add relative product */
+		if ($item)
+		{
+			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
+			$wpdb->insert
+			(
+				$table_name_relative,
+				[
+					"product_id" => $product_id,
+					"relative_id" => $item["id"],
+				]
+			);
+		}
+		else
+		{
+			$code = -1;
+			$message = "Товар не найден";
+		}
+		
+		return
+		[
+			"kind" => $kind,
+			"value" => $value,
+			"item" => $item,
+			"main_photo" => $main_photo,
+			"main_photo_id" => $main_photo_id,
+			"message" => $message,
+			"code" => $code,
+		];
+	}
+	
+	
+	/**
+	 * Delete relative product
+	 */
+	public static function delete_relative_product($site)
+	{
+		global $wpdb;
+		
+		/* Check is admin */
+		$res = static::checkIsAdmin();
+		if ($res) return $res;
+		
+		$product_id = isset($_POST["product_id"]) ? $_POST["product_id"] : "";
+		$relative_id = isset($_POST["relative_id"]) ? $_POST["relative_id"] : "";
+		$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
+		$sql = $wpdb->prepare("delete from " . $table_name_relative .
+			" where product_id=%d and relative_id=%d limit 1", [$product_id, $relative_id]);
+		$wpdb->query($sql);
+		
+		return
+		[
+			"product_id" => $product_id,
+			"relative_id" => $relative_id,
 			"message" => "OK",
 			"code" => 1,
 		];

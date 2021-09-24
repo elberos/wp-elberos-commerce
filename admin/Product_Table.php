@@ -466,7 +466,10 @@ class Product_Table extends \Elberos\Table
 	{
 		parent::display_css();
 		wp_enqueue_media();
-		wp_enqueue_script( 'vue', '/wp-content/plugins/wp-elberos-core/assets/vue.min.js', false );
+		wp_enqueue_script( 'script.js',
+			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
+		wp_enqueue_script( 'vue',
+			'/wp-content/plugins/wp-elberos-core/assets/vue.min.js', false );
 		?>
 		<style>
 		.elberos-commerce td.main_photo_id{
@@ -688,6 +691,7 @@ class Product_Table extends \Elberos\Table
 		parent::display_add_or_edit();
 		$this->show_offers();
 		$this->show_params();
+		$this->show_relative();
 	}
 	
 	
@@ -1198,6 +1202,217 @@ class Product_Table extends \Elberos\Table
 			</table>
 		</div>
 		<?php
+	}
+	
+	
+	public function show_relative()
+	{
+		global $wpdb;
+		
+		$products= [];
+		
+		/* Список оферов у товара */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select products.* from {$wpdb->base_prefix}elberos_commerce_products_relative as t " .
+			"inner join {$wpdb->base_prefix}elberos_commerce_products as products " .
+				"on (t.relative_id = products.id)" .
+			"where t.product_id=:product_id order by pos desc",
+			[
+				"product_id" => $this->form_item_id
+			]
+		);
+		$products = $wpdb->get_results($sql, ARRAY_A);
+		
+		?>
+		<style>
+		.product_related_tab .product_related_tab_products th,
+		.product_related_tab .product_related_tab_products td{
+			padding: 10px;
+			text-align: center;
+		}
+		.product_related_tab .product_related_tab_products img{
+			height: 100px;
+			width: 100px;
+		}
+		.product_related_tab_products_delete{
+			cursor: pointer;
+		}
+		</style>
+		<div class="product_related_tab">
+			
+			<h2>Сопутствующие товары</h2>
+			
+			<table class="product_related_tab_products">
+				<tr>
+					<th>ID товара</th>
+					<th>Название</th>
+					<th>Артикул</th>
+					<th></th>
+					<th></th>
+				</tr>
+				<?php
+					foreach ($products as $product)
+					{
+						$photo_id = $product["main_photo_id"];
+						$main_photo_url = \Elberos\get_image_url($photo_id, "thumbnail");
+						?>
+						<tr data-id="<?= $product['id'] ?>">
+							<td><?= esc_html($product["id"]) ?></td>
+							<td><?= esc_html($product["name"]) ?></td>
+							<td><?= esc_html($product["vendor_code"]) ?></td>
+							<td>
+								<img src="<?= esc_attr($main_photo_url) ?>" />
+							</th>
+							<td>
+								<button class="product_related_tab_products_delete"
+									data-id="<?= $product['id'] ?>">Delete</button>
+							</td>
+						</tr>
+						<?php
+					}
+				?>
+			</table>
+			
+			<div class="product_related_add">
+				
+				<label>Добавить товар</label>
+				
+				<table>
+					<tr class="product_related_add_row">
+						<td>По артикулу</td>
+						<td><input class="product_related_add_vendor_code_input" value="" /></td>
+						<td><button class="product_related_add_vendor_code">Добавить</button></td>
+					</tr>
+					<tr class="product_related_add_row">
+						<td>По ID Товара</td>
+						<td><input class="product_related_add_product_id_input" value="" /></td>
+						<td><button class="product_related_add_product_id">Добавить</button></td>
+					</tr>
+				</table>
+				
+			</div>
+			
+			<div class="product_related__result web_form_result"></div>
+			
+			<script>
+			var $ = jQuery;
+			</script>
+			
+			<script type="text/javascript">
+			
+			function add_relative_product(value, text)
+			{
+				var $form = $('.product_related_tab');
+				var send_data =
+				{
+					"product_id": <?= json_encode($this->form_item_id) ?>,
+					"value": value,
+					"kind": text,
+				};
+				ElberosFormSetWaitMessage($form);
+				elberos_api_send
+				(
+					"elberos_commerce_admin",
+					"add_relative_product",
+					send_data,
+					(function (obj)
+					{
+						return function(res)
+						{
+							ElberosFormSetResponse($form, res);
+							if (res.code == 1 && res.item)
+							{
+								var $row = $('<tr></tr>')
+									.attr('data-id', res.item.id)
+									.append
+									(
+										$('<td></td>').append( res.item.id )
+									)
+									.append
+									(
+										$('<td></td>').append( res.item.name )
+									)
+									.append
+									(
+										$('<td></td>').append( res.item.vendor_code )
+									)
+									.append
+									(
+										$('<td></td>').
+											append
+											(
+												$('<img />')
+													.attr('src', res.main_photo)
+											)
+									)
+									.append
+									(
+										$('<td></td>').append
+										(
+											$('<button>Delete</button>')
+												.attr('data-id', res.item.id)
+										)
+									)
+								;
+								$('.product_related_tab table.product_related_tab_products').append($row);
+							}
+						};
+					})(this),
+				);
+			}
+			
+			$('.product_related_add_vendor_code').click(function(){
+				var value = $(this)
+					.parents('.product_related_add_row')
+					.find('.product_related_add_vendor_code_input')
+					.val();
+				add_relative_product(value, "vendor_code");
+			});
+			
+			$('.product_related_add_product_id').click(function(){
+				var value = $(this)
+					.parents('.product_related_add_row')
+					.find('.product_related_add_product_id_input')
+					.val();
+				add_relative_product(value, "product_id");
+			});
+			
+			$('.product_related_tab_products_delete').click(function(){
+				var id = $(this).attr("data-id");
+				var send_data =
+				{
+					"product_id": <?= json_encode($this->form_item_id) ?>,
+					"relative_id": id,
+				};
+				elberos_api_send
+				(
+					"elberos_commerce_admin",
+					"delete_relative_product",
+					send_data,
+					(function (obj)
+					{
+						return function(res)
+						{
+							if (res.code == 1)
+							{
+								$('.product_related_tab_products tr').each(function(){
+									var id = $(this).attr('data-id');
+									if (id == res.relative_id)
+									{
+										$(this).remove();
+									}
+								})
+							}
+						};
+					})(this),
+				);
+			});
+			</script>
+			
+		</div>
+		<?php
+		
 	}
 }
 
