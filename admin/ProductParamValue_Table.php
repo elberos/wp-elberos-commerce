@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( ProductParamValue_Table::class ) ) 
+if ( !class_exists( ProductParamValue_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 
 class ProductParamValue_Table extends \Elberos\Table 

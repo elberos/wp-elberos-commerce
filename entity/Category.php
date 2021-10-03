@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Category::class ) ) 
+if ( !class_exists( Category::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Category extends \Elberos\StructBuilder

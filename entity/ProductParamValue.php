@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( ProductParamValue::class ) ) 
+if ( !class_exists( ProductParamValue::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class ProductParamValue extends \Elberos\StructBuilder

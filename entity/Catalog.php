@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Catalog::class ) ) 
+if ( !class_exists( Catalog::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Catalog extends \Elberos\StructBuilder

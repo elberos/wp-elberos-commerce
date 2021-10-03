@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Product_Table::class ) ) 
+if ( !class_exists( Product_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 
 class Product_Table extends \Elberos\Table 
@@ -78,6 +78,7 @@ class Product_Table extends \Elberos\Table
 				[
 					"catalog_id",
 					"show_in_catalog",
+					"show_in_top",
 					"name",
 					"code_1c",
 				];
@@ -240,7 +241,7 @@ class Product_Table extends \Elberos\Table
 	 */
 	function process_item($item, $old_item)
 	{
-		$product_text = isset($_POST['product_text']) ? $_POST['product_text'] : [];
+		$product_text = stripslashes_deep(isset($_POST['product_text']) ? $_POST['product_text'] : []);
 		$item["text"] = json_encode($product_text);
 		return $item;
 	}
@@ -346,6 +347,7 @@ class Product_Table extends \Elberos\Table
 			$orderby = isset($_GET["orderby"]) ? $_GET["orderby"] : "";
 			$is_deleted = isset($_GET["is_deleted"]) ? $_GET["is_deleted"] : "";
 			$show_in_catalog = isset($_GET["show_in_catalog"]) ? $_GET["show_in_catalog"] : "";
+			$show_in_top = isset($_GET["show_in_top"]) ? $_GET["show_in_top"] : "";
 			?>
 			<span class="table_filter">
 				<select name="catalog_id" class="web_form_value">
@@ -372,6 +374,7 @@ class Product_Table extends \Elberos\Table
 				var filter = [];
 				<?= $is_deleted == "true" ? "filter.push('is_deleted=true');" : "" ?>
 				<?= $show_in_catalog == "true" ? "filter.push('show_in_catalog=true');" : "" ?>
+				<?= $show_in_top == "true" ? "filter.push('show_in_top=true');" : "" ?>
 				<?= $order != "" ? "filter.push('order='+" . json_encode($order) . ");" : "" ?>
 				<?= $orderby != "" ? "filter.push('orderby='+" . json_encode($orderby) . ");" : "" ?>
 				jQuery(".table_filter .web_form_value").each(function(){
@@ -425,6 +428,13 @@ class Product_Table extends \Elberos\Table
 		if (isset($_GET["show_in_catalog"]) && $_GET["show_in_catalog"] == "true")
 		{
 			$where[] = "show_in_catalog=1";
+			$where[] = "is_deleted=0";
+		}
+		
+		/* Show in top */
+		if (isset($_GET["show_in_top"]) && $_GET["show_in_top"] == "true")
+		{
+			$where[] = "show_in_top=1";
 			$where[] = "is_deleted=0";
 		}
 		
@@ -643,16 +653,21 @@ class Product_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		$is_deleted = isset($_GET['is_deleted']) ? $_GET['is_deleted'] : "";
 		$show_in_catalog = isset($_GET['show_in_catalog']) ? $_GET['show_in_catalog'] : "";
+		$show_in_top = isset($_GET['show_in_top']) ? $_GET['show_in_top'] : "";
 		$url = "admin.php?page=" . $page_name;
 		?>
 		<ul class="subsubsub">
 			<li>
 				<a href="admin.php?page=<?= $page_name ?>"
-					class="<?= (($show_in_catalog != "true" && $is_deleted != "true") ? "current" : "")?>"  >Все товары</a> |
+					class="<?= (($show_in_catalog != "true" && $show_in_top != "true" && $is_deleted != "true") ? "current" : "")?>"  >Все товары</a> |
 			</li>
 			<li>
 				<a href="admin.php?page=<?= $page_name ?>&show_in_catalog=true"
 					class="<?= ($show_in_catalog == "true" ? "current" : "")?>" >Размещено на сайте</a> |
+			</li>
+			<li>
+				<a href="admin.php?page=<?= $page_name ?>&show_in_top=true"
+					class="<?= ($show_in_top == "true" ? "current" : "")?>" >Размещено на главной</a> |
 			</li>
 			<li>
 				<a href="admin.php?page=<?= $page_name ?>&is_deleted=true"

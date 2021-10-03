@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( PriceType_Table::class ) ) 
+if ( !class_exists( PriceType_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 
 class PriceType_Table extends \Elberos\Table 

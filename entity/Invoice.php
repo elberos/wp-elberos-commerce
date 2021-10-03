@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Invoice::class ) ) 
+if ( !class_exists( Invoice::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Invoice extends \Elberos\StructBuilder

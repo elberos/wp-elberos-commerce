@@ -121,15 +121,7 @@ class Api
 		/* Get product data */
 		$offer_price_id = isset($_POST['offer_price_id']) ? $_POST['offer_price_id'] : -1;
 		$count = (int) (isset($_POST['count']) ? $_POST['count'] : 0);
-		
-		if ($count <= 0)
-		{
-			return
-			[
-				"message" => "Product count less than zero",
-				"code" => -1,
-			];
-		}
+		if ($count < 1) $count = 1;
 		
 		/* Получаем offer */
 		$offers = static::getOffersByPriceId([$offer_price_id]);
@@ -152,7 +144,7 @@ class Api
 		
 		/* Basket products */
 		$product_id = $offer["product_id"];
-		$products_items = \Elberos\Commerce\Api::getProducts($offer["product_id"]);
+		$products_items = \Elberos\Commerce\Api::getProducts([$product_id]);
 		$product_item = \Elberos\find_item($products_items, "id", $product_id);
 		if ($product_item == null)
 		{
@@ -520,12 +512,12 @@ class Api
 	/**
 	 * Get products by ids
 	 */
-	public static function getProducts($products_id, $params = [])
+	public static function getProducts($products_id, $settings = [])
 	{
 		global $wpdb;
 		
 		/* Remove duplicates */
-		if (count($products_id) > 0)
+		if (gettype($products_id) == "array" && count($products_id) > 0)
 		{
 			$res = [];
 			foreach ($products_id as $id)
@@ -539,7 +531,8 @@ class Api
 		$params = [];
 		$photos = [];
 		$offers = [];
-		if (count($products_id) > 0)
+		$photo_size = isset($settings["photo_size"]) ? $settings["photo_size"] : "medium";
+		if (gettype($products_id) == "array" && count($products_id) > 0)
 		{
 			/* Items */
 			$sql = $wpdb->prepare
@@ -640,7 +633,7 @@ class Api
 				}
 			);
 			$photo_id = $item["main_photo_id"];
-			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, "medium_large");
+			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, $photo_size);
 		}
 		
 		return $items;

@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Product::class ) ) 
+if ( !class_exists( Product::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Product extends \Elberos\StructBuilder
@@ -46,6 +46,18 @@ class Product extends \Elberos\StructBuilder
 			([
 				"api_name" => "show_in_catalog",
 				"label" => "Разместить в каталоге",
+				"type" => "select",
+				"options" =>
+				[
+					["id"=>0, "value"=>"Нет"],
+					["id"=>1, "value"=>"Да"],
+				]
+			])
+			
+			->addField
+			([
+				"api_name" => "show_in_top",
+				"label" => "Показывать на главной",
 				"type" => "select",
 				"options" =>
 				[

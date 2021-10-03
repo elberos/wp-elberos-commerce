@@ -325,6 +325,17 @@ class Task
 			}
 		}
 		
+		/* Удаление фото */
+		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"delete from $table_name_products_photos where product_id=:product_id",
+			[
+				"product_id" => $product["id"],
+			]
+		);
+		$wpdb->query($sql);
+		
 		/* Загрузка фото */
 		$pos = 0;
 		$main_photo_id = null;
@@ -332,6 +343,7 @@ class Task
 		foreach ($images as $image)
 		{
 			$photo_id = $this->importProductImage($product, $image, $pos);
+			var_dump($photo_id);
 			if ($photo_id)
 			{
 				$main_photo_id = $photo_id;
@@ -501,17 +513,7 @@ class Task
 		$session_id = session_id();
 		$image_path = (string)$xml;
 		$image_path_full = Controller::getFilePath($session_id, $image_path);
-		
-		/* Удаление фото */
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
-		$sql = \Elberos\wpdb_prepare
-		(
-			"delete from $table_name_products_photos where product_id=:product_id",
-			[
-				"product_id" => $product["id"],
-			]
-		);
-		$wpdb->query($sql);
 		
 		if (is_file($image_path_full))
 		{

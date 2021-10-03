@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Catalog_Table::class ) ) 
+if ( !class_exists( Catalog_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 
 class Catalog_Table extends \Elberos\Table 

@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Warehouse::class ) ) 
+if ( !class_exists( Warehouse::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Warehouse extends \Elberos\StructBuilder

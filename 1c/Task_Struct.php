@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce\_1C;
 
-if ( !class_exists( Task_Struct::class ) ) 
+if ( !class_exists( Task_Struct::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Task_Struct extends \Elberos\StructBuilder

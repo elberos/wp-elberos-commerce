@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( PriceType::class ) ) 
+if ( !class_exists( PriceType::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class PriceType extends \Elberos\StructBuilder

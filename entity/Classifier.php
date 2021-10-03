@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce;
 
-if ( !class_exists( Classifier::class ) ) 
+if ( !class_exists( Classifier::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Classifier extends \Elberos\StructBuilder

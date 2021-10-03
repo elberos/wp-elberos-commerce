@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce\_1C;
 
-if ( !class_exists( Task_Table::class ) ) 
+if ( !class_exists( Task_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 
 class Task_Table extends \Elberos\Table 

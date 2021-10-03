@@ -20,7 +20,7 @@
 
 namespace Elberos\Commerce\_1C;
 
-if ( !class_exists( Import_Struct::class ) ) 
+if ( !class_exists( Import_Struct::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 
 class Import_Struct extends \Elberos\StructBuilder
