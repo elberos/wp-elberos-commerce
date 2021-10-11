@@ -251,16 +251,27 @@ class Api
 		$form_data = isset($_POST['data']) ? $_POST['data'] : [];
 		
 		/* Validation */
-		$validation = apply_filters
+		$res = apply_filters
 		(
 			'elberos_commerce_basket_validation',
-			null, $form_data, $basket_data
+			[
+				'validation'=>[],
+				'validation_error'=>null,
+				'form_data'=>$form_data,
+				'basket_data'=>$basket_data
+			]
 		);
-		if ($validation != null)
+		$form_data = $res['form_data'];
+		$basket_data = $res['basket_data'];
+		
+		/* If error */
+		$validation = $res['validation'];
+		$validation_error = $res['validation_error'];
+		if ($validation != null && count($validation) > 0)
 		{
 			return
 			[
-				"message" => "Ошибка валидации",
+				"message" => ($validation_error != null) ? $validation_error : "Ошибка валидации",
 				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
 				"code" => -1,
 			];
@@ -349,8 +360,30 @@ class Api
 		/* Invoice id */
 		$invoice_id = $wpdb->insert_id;
 		
+		/* Get invoice */
+		$invoice = $wpdb->get_row
+		(
+			$wpdb->prepare("SELECT * FROM ".$wpdb->prefix."elberos_commerce_invoice WHERE id = %d", $invoice_id),
+			ARRAY_A
+		);
+		if ($invoice)
+		{
+			$invoice['utm'] = json_decode($invoice['utm'], true);
+			$invoice['form_data'] = json_decode($invoice['form_data'], true);
+			$invoice['basket_data'] = json_decode($invoice['basket_data'], true);
+		}
+		
 		/* Clear basket */
 		static::api_clear_basket($site);
+		
+		/* Basket after */
+		do_action
+		(
+			'elberos_commerce_basket_after',
+			[
+				'invoice'=>$invoice
+			]
+		);
 		
 		/* Auth client if need */
 		/*
@@ -434,11 +467,10 @@ class Api
 	/**
 	 * Get basket products
 	 */
-	public static function getBasketProducts()
+	public static function getBasketProducts($basket_data)
 	{
 		global $wpdb;
 		
-		$basket_data = static::getBasketData();
 		$offer_price_ids = array_map(function($item){ return $item["offer_price_id"]; }, $basket_data);
 		$offer_prices = static::getOffersByPriceId($offer_price_ids);
 		$products_id = array_map(function($item){ return $item["product_id"]; }, $offer_prices);

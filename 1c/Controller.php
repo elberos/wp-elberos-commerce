@@ -873,7 +873,6 @@ class Controller
 			if ($form_data['type'] == 1)
 			{
 				$client->addChild('ИНН', \Elberos\mb_trim($form_data['user_identifier']));
-				/*
 				$node = $client->addChild('РеквизитыФизЛица');
 				$node->addChild('ПолноеНаименование', 
 					\Elberos\mb_trim
@@ -887,21 +886,17 @@ class Controller
 				$node->addChild('Имя', \Elberos\mb_trim($form_data['name']));
 				$node->addChild('Отчество', \Elberos\mb_trim($form_data['lastname']));
 				$node->addChild('ИИН', \Elberos\mb_trim($form_data['user_identifier']));
-				*/
 			}
 			else if ($form_data['type'] == 2)
 			{
 				$client->addChild('ИНН', \Elberos\mb_trim($form_data['company_bin']));
-				/*
 				$node = $client->addChild('РеквизитыЮрЛица');
 				$node->addChild('ОфициальноеНаименование', \Elberos\mb_trim($form_data['company_name']) );
 				$node->addChild('БИН', \Elberos\mb_trim($form_data['company_bin']) );
 				$node->addChild('ЮридическийАдрес', \Elberos\mb_trim($form_data['company_address']) );
-				*/
 			}
 			
 			// Контакты
-			/*
 			$contacts = $client->addChild('Контакты');
 			if ($form_data['phone'] != '')
 			{
@@ -917,7 +912,6 @@ class Controller
 				$contact->addChild('Значение', $form_data['email']);
 				$contact->addChild('Комментарий');
 			}
-			*/
 			
 			// Адрес
 			/*

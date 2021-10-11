@@ -343,7 +343,6 @@ class Task
 		foreach ($images as $image)
 		{
 			$photo_id = $this->importProductImage($product, $image, $pos);
-			var_dump($photo_id);
 			if ($photo_id)
 			{
 				$main_photo_id = $photo_id;
@@ -843,7 +842,6 @@ class Task
 		$offer_code_1c = \Elberos\mb_trim((string)$xml->Ид);
 		$offer_code_1c_arr = explode("#", $offer_code_1c);
 		if (count($offer_code_1c_arr) > 0) $product_code_1c = $offer_code_1c_arr[0];
-		//var_dump($product_code_1c);
 		if ($product_code_1c == "")
 		{
 			$task["status"] = Helper::TASK_STATUS_ERROR;

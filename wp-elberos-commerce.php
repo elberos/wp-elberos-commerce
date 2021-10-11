@@ -41,7 +41,6 @@ class Elberos_Commerce_Plugin
 			'admin_init', 
 			function()
 			{
-				require_once __DIR__ . "/1c/Settings.php";
 				require_once __DIR__ . "/1c/Import_Table.php";
 				require_once __DIR__ . "/1c/Task_Table.php";
 				require_once __DIR__ . "/admin/Catalog_Table.php";
@@ -52,6 +51,7 @@ class Elberos_Commerce_Plugin
 				require_once __DIR__ . "/admin/Product_Table.php";
 				require_once __DIR__ . "/admin/ProductParam_Table.php";
 				require_once __DIR__ . "/admin/ProductParamValue_Table.php";
+				require_once __DIR__ . "/admin/Settings.php";
 				require_once __DIR__ . "/admin/Warehouse_Table.php";
 			}
 		);
@@ -186,11 +186,11 @@ class Elberos_Commerce_Plugin
 		add_submenu_page
 		(
 			'elberos-commerce', 
-			'Настройки 1С', 'Настройки 1С', 
-			'manage_options', 'elberos-commerce-1c-settings',
+			'Настройки магазина', 'Настройки магазина', 
+			'manage_options', 'elberos-commerce-settings',
 			function()
 			{
-				\Elberos\Commerce\_1C\Settings::show();
+				\Elberos\Commerce\Settings::show();
 			}
 		);
 		
