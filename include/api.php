@@ -256,7 +256,6 @@ class Api
 			'elberos_commerce_basket_validation',
 			[
 				'validation'=>[],
-				'validation_error'=>null,
 				'form_data'=>$form_data,
 				'basket_data'=>$basket_data
 			]
@@ -266,14 +265,15 @@ class Api
 		
 		/* If error */
 		$validation = $res['validation'];
-		$validation_error = $res['validation_error'];
 		if ($validation != null && count($validation) > 0)
 		{
+			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
 			return
 			[
-				"message" => ($validation_error != null) ? $validation_error : "Ошибка валидации",
+				"message" => ($validation_error != null) ? $validation_error :
+					__("Ошибка. Проверьте корректность данных", "elberos"),
 				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
-				"code" => -1,
+				"code" => -2,
 			];
 		}
 		
@@ -299,6 +299,7 @@ class Api
 			'client_id' => null,
 			'form_data' => $form_data,
 			'products_meta' => $products_meta,
+			'validation' => [],
 			'basket' => $basket,
 			'item' => null,
 		];
@@ -309,6 +310,20 @@ class Api
 		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
 		$client_code_1c = isset($client['code_1c']) ? $client['code_1c'] : '';
 		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
+		
+		/* If validation error */
+		$validation = isset($find_client_res['validation']) ? $find_client_res['validation'] : null;
+		if ($validation != null && count($validation) > 0)
+		{
+			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
+			return
+			[
+				"message" => ($validation_error != null) ? $validation_error :
+					__("Ошибка. Проверьте корректность данных", "elberos"),
+				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
+				"code" => -1,
+			];
+		}
 		
 		/* Error */
 		if ($find_client_res['code'] < 0)
@@ -436,6 +451,7 @@ class Api
 			$res = \Elberos\UserCabinet\Api::user_register($form_data);
 			$client_res['code'] = $res['code'];
 			$client_res['message'] = $res['message'];
+			$client_res['validation'] = isset($res["validation"]) ? $res["validation"] : null;
 			
 			if ($res['code'] == 1)
 			{
