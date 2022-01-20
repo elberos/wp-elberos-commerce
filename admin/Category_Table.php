@@ -358,7 +358,7 @@ class Category_Table extends \Elberos\Table
 		wp_enqueue_script( 'script.js', 
 			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
 		wp_enqueue_style( 'dialog.css', 
-			'/wp-content/plugins/wp-elberos-core/assets/dialog.css', false );	
+			'/wp-content/plugins/wp-elberos-core/assets/dialog.css', false );
 		?>
 		<script>
 		//var $ = jQuery.noConflict();
@@ -1057,4 +1057,4 @@ class Category_Table extends \Elberos\Table
 	
 }
 
-}
+}}

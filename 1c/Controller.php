@@ -25,7 +25,7 @@ namespace Elberos\Commerce\_1C;
 class Controller
 {
 	static $max_size = 8 * 1024 * 1024;
-	static $task_run_limits = 5;
+	static $task_run_limits = 20;
 	
 	
 	/**
@@ -463,6 +463,11 @@ class Controller
 		$wpdb->query($sql);
 		$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
 		$sql = "delete from " . $table_name_products_offers_prices . " where `prepare_delete` = 1";
+		$wpdb->query($sql);
+		
+		/* Удаляем фотографии */
+		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		$sql = "delete from " . $table_name_products_photos . " where `is_deleted` = 1";
 		$wpdb->query($sql);
 	}
 	

@@ -353,6 +353,34 @@ class Import
 					]
 				);
 				$this->count_products += 1;
+				
+				/* Картинка */
+				$images = $item->Картинка;
+				$image_pos = 0;
+				foreach ($images as $image)
+				{
+					$image_path = (string)$image;
+					$image->addAttribute('pos', $image_pos);
+					$image->addAttribute('code_1c', $item_id);
+					
+					$wpdb->insert
+					(
+						$table_name_1c_task,
+						[
+							"name" => "Картинка " . $image_path,
+							"code_1c" => $item_id,
+							"import_id" => $this->import["id"],
+							"catalog_id" => $catalog_id,
+							"classifier_id" => $classifier_id,
+							"type" => "product_image",
+							"data" => (string) $image->asXML(),
+							"status" => Helper::TASK_STATUS_PLAN,
+							"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+						]
+					);
+					
+					$image_pos++;
+				}
 			}
 		}
 	}

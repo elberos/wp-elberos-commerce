@@ -56,11 +56,14 @@ class Task
 				'status' => Helper::TASK_STATUS_PLAN,
 			]
 		);
+		
+		$start = time();
 		$tasks = $wpdb->get_results($sql, ARRAY_A);
 		foreach ($tasks as $task)
 		{
 			try
 			{
+				set_time_limit(600);
 				$task = $this->runTask($task);
 			}
 			catch (\Exception $e)
@@ -86,6 +89,10 @@ class Task
 			);
 			$wpdb->query($sql);
 			
+			if (time() - $start > 10)
+			{
+				break;
+			}
 		}
 	}
 	
@@ -124,27 +131,26 @@ class Task
 		{
 			$task = $this->importProduct($task, $xml);
 		}
-		
+		else if ($task["type"] == "product_image")
+		{
+			$task = $this->importProductImage($task, $xml);
+		}
 		else if ($task["type"] == "product_param")
 		{
 			$task = $this->importProductParam($task, $xml);
 		}
-		
 		else if ($task["type"] == "price_type")
 		{
 			$task = $this->importPriceType($task, $xml);
 		}
-		
 		else if ($task["type"] == "warehouse")
 		{
 			$task = $this->importWarehouse($task, $xml);
 		}
-		
 		else if ($task["type"] == "offer")
 		{
 			$task = $this->importOffer($task, $xml);
 		}
-		
 		else
 		{
 			$task['status'] = Helper::TASK_STATUS_ERROR;
@@ -329,26 +335,12 @@ class Task
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
 		$sql = \Elberos\wpdb_prepare
 		(
-			"delete from $table_name_products_photos where product_id=:product_id",
+			"update $table_name_products_photos set is_deleted=1 where product_id=:product_id",
 			[
 				"product_id" => $product["id"],
 			]
 		);
 		$wpdb->query($sql);
-		
-		/* Загрузка фото */
-		$pos = 0;
-		$main_photo_id = null;
-		$images = $xml->Картинка;
-		foreach ($images as $image)
-		{
-			$photo_id = $this->importProductImage($product, $image, $pos);
-			if ($photo_id)
-			{
-				$main_photo_id = $photo_id;
-			}
-			$pos++;
-		}
 		
 		/* Обновляем id фото */
 		$product_update["main_photo_id"] = $main_photo_id;
@@ -505,7 +497,7 @@ class Task
 	/**
 	 * Загрузка картинки
 	 */
-	public function importProductImage($product, $xml, $pos)
+	public function importProductImage($task, $xml)
 	{
 		global $wpdb;
 		
@@ -513,6 +505,19 @@ class Task
 		$image_path = (string)$xml;
 		$image_path_full = Controller::getFilePath($session_id, $image_path);
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		
+		$photo_pos = (string) ($xml->attributes()->pos);
+		$code_1c = (string) ($xml->attributes()->code_1c);
+		
+		$product = Helper::findProductByCode($code_1c);
+		if (!$product)
+		{
+			/* Отмечаем задачу как обработанную */
+			$task["error_code"] = -1;
+			$task["error_message"] = "Product not found";
+			$task["status"] = Helper::TASK_STATUS_DONE;
+			return $task;
+		}
 		
 		if (is_file($image_path_full))
 		{
@@ -577,20 +582,62 @@ class Task
 					);
 				}
 			}
-			
+			/*
+			var_dump("---");
+			var_dump($product["id"]);
+			var_dump($photo_id);
+			var_dump($photo_pos);
+			*/
 			/* Загрузка картинки */
-			$wpdb->insert
+			$sql = \Elberos\wpdb_prepare
 			(
-				$table_name_products_photos,
+				"select * from $table_name_products_photos " .
+				"where product_id=:product_id and photo_id=:photo_id limit 1",
 				[
 					"product_id" => $product["id"],
 					"photo_id" => $photo_id,
-					"pos" => $pos,
 				]
 			);
+			/*var_dump($sql);*/
+			$item = $wpdb->get_row($sql, ARRAY_A);
+			
+			if (!$item)
+			{
+				/*var_dump("Insert");*/
+				$wpdb->insert
+				(
+					$table_name_products_photos,
+					[
+						"product_id" => $product["id"],
+						"photo_id" => $photo_id,
+						"pos" => $photo_pos,
+						"is_deleted" => 0,
+					]
+				);
+			}
+			else
+			{
+				/*var_dump("Update");*/
+				$sql = \Elberos\wpdb_prepare
+				(
+					"update $table_name_products_photos set pos=:pos, is_deleted=0 " .
+					"where product_id=:product_id and photo_id=:photo_id limit 1",
+					[
+						"pos" => $photo_pos,
+						"product_id" => $product["id"],
+						"photo_id" => $photo_id,
+					]
+				);
+				/*var_dump($sql);*/
+				$wpdb->query($sql);
+			}
+			
 		}
 		
-		return $photo_id;
+		/* Отмечаем задачу как обработанную */
+		$task["error_code"] = 1;
+		$task["status"] = Helper::TASK_STATUS_DONE;
+		return $task;
 	}
 	
 	

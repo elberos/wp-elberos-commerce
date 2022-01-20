@@ -26,6 +26,10 @@ if ( !class_exists( Product_Table::class ) && class_exists( \Elberos\Table::clas
 class Product_Table extends \Elberos\Table 
 {
 	
+	var $items_id = [];
+	var $items_categories = [];
+	
+	
 	/**
 	 * Table name
 	 */
@@ -68,6 +72,7 @@ class Product_Table extends \Elberos\Table
 				[
 					"id",
 					"catalog_id",
+					"category_id",
 					"main_photo_id",
 					"vendor_code",
 					"name",
@@ -111,6 +116,37 @@ class Product_Table extends \Elberos\Table
 					]
 				);
 				
+				/* Запрос категорий */
+				$sql = \Elberos\wpdb_prepare
+				(
+					"select * from " . $wpdb->base_prefix . "elberos_commerce_categories " .
+					"where is_deleted = 0 order by name asc",
+					[]
+				);
+				$categories = $wpdb->get_results($sql, ARRAY_A);
+				$categories_options = array_map
+				(
+					function ($item)
+					{
+						return
+						[
+							"id" => $item["id"],
+							"value" => $item["name"],
+							"code_1c" => $item["code_1c"],
+						];
+					},
+					$categories
+				);
+				$struct->addField
+				(
+					[
+						"api_name" => "category_id",
+						"label" => "Категория",
+						"options" => $categories_options,
+						"virtual" => true,
+					]
+				);
+				
 				return $struct;
 			}
 		);
@@ -126,6 +162,38 @@ class Product_Table extends \Elberos\Table
 	function initStruct()
 	{
 		parent::initStruct();
+	}
+	
+	
+	
+	/**
+	 * Column category
+	 */
+	function column_category_id($item)
+	{
+		$product_id = isset($item["id"]) ? $item["id"] : "";
+		
+		/* Фильтруем категории по product_id */
+		$categories = array_filter
+		(
+			$this->items_categories,
+			function ($cat) use ($product_id)
+			{
+				return $cat["product_id"] == $product_id;
+			}
+		);
+		
+		/* Оставляем только имя */
+		$categories = array_map
+		(
+			function ($cat)
+			{
+				return $cat["name"];
+			},
+			$categories
+		);
+		
+		return implode("<br/>", $categories);
 	}
 	
 	
@@ -339,9 +407,12 @@ class Product_Table extends \Elberos\Table
 	{
 		$catalog_field = $this->struct->getField("catalog_id");
 		$catalog_options = isset($catalog_field["options"]) ? $catalog_field["options"] : [];
+		$category_field = $this->struct->getField("category_id");
+		$category_options = isset($category_field["options"]) ? $category_field["options"] : [];
 		if ( $which == "top" )
 		{
 			$catalog_id = isset($_GET["catalog_id"]) ? $_GET["catalog_id"] : "";
+			$category_id = isset($_GET["category_id"]) ? $_GET["category_id"] : "";
 			$name = isset($_GET["name"]) ? $_GET["name"] : "";
 			$order = isset($_GET["order"]) ? $_GET["order"] : "";
 			$orderby = isset($_GET["orderby"]) ? $_GET["orderby"] : "";
@@ -349,6 +420,7 @@ class Product_Table extends \Elberos\Table
 			$show_in_catalog = isset($_GET["show_in_catalog"]) ? $_GET["show_in_catalog"] : "";
 			$show_in_top = isset($_GET["show_in_top"]) ? $_GET["show_in_top"] : "";
 			?>
+			<div style="clear: both; padding-top: 10px;"></div>
 			<span class="table_filter">
 				<select name="catalog_id" class="web_form_value">
 					<option value="">Выберите каталог</option>
@@ -356,6 +428,19 @@ class Product_Table extends \Elberos\Table
 						foreach ($catalog_options as $option)
 						{
 							$checked = \Elberos\is_get_selected("catalog_id", $option["id"]);
+							echo '<option value="'.
+								esc_attr($option['id']) . '"' . $checked . '>' .
+								esc_html($option['value']) .
+							'</option>';
+						}
+					?>
+				</select>
+				<select name="category_id" class="web_form_value">
+					<option value="">Выберите категорию</option>
+					<?php
+						foreach ($category_options as $option)
+						{
+							$checked = \Elberos\is_get_selected("category_id", $option["id"]);
 							echo '<option value="'.
 								esc_attr($option['id']) . '"' . $checked . '>' .
 								esc_html($option['value']) .
@@ -402,12 +487,24 @@ class Product_Table extends \Elberos\Table
 		
 		$args = [];
 		$where = [];
+		$join = [];
 		
 		/* Catalog id */
 		if (isset($_GET["catalog_id"]))
 		{
 			$where[] = "catalog_id=:catalog_id";
 			$args["catalog_id"] = (int)$_GET["catalog_id"];
+		}
+		
+		/* Category id */
+		if (isset($_GET["category_id"]))
+		{
+			$products_categories_table = $wpdb->base_prefix .
+				"elberos_commerce_products_categories as products_categories";
+			$join[] = "inner join " . $products_categories_table .
+				" on (t.id = products_categories.product_id) ";
+			$where[] = "products_categories.category_id = :current_category_id";
+			$args["current_category_id"] = (int)$_GET["category_id"];
 		}
 		
 		/* Vendor code */
@@ -453,6 +550,7 @@ class Product_Table extends \Elberos\Table
 		([
 			"table_name" => $this->get_table_name(),
 			"where" => implode(" and ", $where),
+			"join" => implode(" ", $join),
 			"args" => $args,
 			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
 			"per_page" => $per_page,
@@ -465,6 +563,30 @@ class Product_Table extends \Elberos\Table
 			'per_page' => $per_page,
 			'total_pages' => ceil($total_items / $per_page) 
 		));
+		
+		/* Items id */
+		$this->items_id = array_map
+		(
+			function($item)
+			{
+				return $item["id"];
+			},
+			$this->items
+		);
+		
+		/* Список категорий у товара */
+		if (count($this->items_id) > 0)
+		{
+			$sql = $wpdb->prepare
+			(
+				"SELECT t.product_id, c.* FROM {$wpdb->base_prefix}elberos_commerce_products_categories as t
+				inner join {$wpdb->base_prefix}elberos_commerce_categories as c
+				  on (c.id = t.category_id)
+				WHERE t.product_id in (" . implode(",", array_fill(0, count($this->items_id), "%d")) . ") ",
+				$this->items_id
+			);
+			$this->items_categories = $wpdb->get_results($sql, ARRAY_A);
+		}
 	}
 	
 	
