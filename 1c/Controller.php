@@ -337,7 +337,8 @@ class Controller
 	{
 		global $wpdb;
 		
-		$session_id = session_id();
+		//$session_id = session_id();
+		$session_id = "0";
 		$filename = isset($_GET['filename']) ? $_GET['filename'] : "";		
 		if ($filename == "")
 		{
@@ -359,7 +360,8 @@ class Controller
 		$sql = \Elberos\wpdb_prepare
 		(
 			"select * from $table_name_1c_import " .
-			"where session_id = :session_id and status in (0,2) and filename = :filename",
+			"where session_id = :session_id and status in (0,2) and filename = :filename " .
+			"order by id asc",
 			[
 				'session_id' => $session_id,
 				'filename' => $filename,
@@ -551,6 +553,7 @@ class Controller
 		$total = Helper::getTaskTotal($import['id']);
 		$errors = Helper::getTaskError($import['id']);
 		$str = $progress . " / " . $total . ". Errors: " . $errors;
+		$str .= ". ID: " . implode(",", $instance->id);
 		
 		/* Если все выполнено */
 		if ($progress == $total)

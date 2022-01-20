@@ -107,7 +107,8 @@ class Import
 		$catalog_id = 0;
 		
 		/* Создаем классификатор */
-		if ($this->xml->Классификатор != null && $this->xml->getName() == 'Классификатор')
+		$xml = $this->xml->Классификатор;
+		if ($this->xml->Классификатор != null && $this->xml->Классификатор->getName() == 'Классификатор')
 		{
 			/* Получаем название */
 			$name = [];
@@ -141,7 +142,8 @@ class Import
 		}
 		
 		/* Создаем каталог */
-		if ($this->xml->Каталог != null && $this->xml->getName() == 'Каталог')
+		$xml = $this->xml->Каталог;
+		if ($this->xml->Каталог != null && $this->xml->Каталог->getName() == 'Каталог')
 		{
 			/* Получаем название */
 			$name = [];
@@ -194,7 +196,7 @@ class Import
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
 		{
-			$offers_update_only = mb_strtolower((string) ($this->xml->Каталог->attributes()->СодержитТолькоИзменения));
+			$offers_update_only = mb_strtolower((string) ($xml->attributes()->СодержитТолькоИзменения));
 			if ($offers_update_only === "нет" ||
 				$offers_update_only === "false" ||
 				$offers_update_only === false ||

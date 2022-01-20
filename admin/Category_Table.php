@@ -1057,4 +1057,4 @@ class Category_Table extends \Elberos\Table
 	
 }
 
-}}
+}

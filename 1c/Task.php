@@ -26,6 +26,7 @@ class Task
 	var $import = null;
 	var $task_count = 0;
 	var $task_run_limits = 10;
+	var $id = [];
 	
 	
 	/**
@@ -65,6 +66,7 @@ class Task
 			{
 				set_time_limit(600);
 				$task = $this->runTask($task);
+				$this->id[] = $task["id"];
 			}
 			catch (\Exception $e)
 			{
@@ -261,6 +263,7 @@ class Task
 		/* Получаем название товара */
 		$names = Helper::getNamesByXml($xml, 'Наименование');
 		$name_ru = isset($names['ru']) ? $names['ru'] : '';
+		//var_dump($names);
 		
 		/* Получаем описание товара */
 		$descriptions = Helper::getNamesByXml($xml, 'Описание');
@@ -342,19 +345,7 @@ class Task
 		);
 		$wpdb->query($sql);
 		
-		/* Обновляем id фото */
-		$product_update["main_photo_id"] = $main_photo_id;
-		
-		/* Установить флаг только что загружен */
-		if ($main_photo_id)
-		{
-			// $product_update["show_in_catalog"] = 1;
-			$product_update["just_show_in_catalog"] = 1;
-		}
-		else
-		{
-			$product_update["just_show_in_catalog"] = 0;
-		}
+		$product_update["just_show_in_catalog"] = 0;
 		
 		/* Обновляем данные параметров товара */
 		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
@@ -632,11 +623,33 @@ class Task
 				$wpdb->query($sql);
 			}
 			
+			/* Обновляем id фото */
+			if ($photo_pos == 0)
+			{
+				$product_update = [
+					"main_photo_id" => $photo_id,
+					"just_show_in_catalog" => 1,
+				];
+				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+				$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+			}
+			
+			/* Отмечаем задачу как обработанную */
+			$task["error_code"] = 1;
+			$task["status"] = Helper::TASK_STATUS_DONE;
 		}
 		
-		/* Отмечаем задачу как обработанную */
-		$task["error_code"] = 1;
-		$task["status"] = Helper::TASK_STATUS_DONE;
+		else
+		{
+			/* Отмечаем ошибку файл не найден */
+			$task["error_code"] = -1;
+			$task["error_message"] = "Image not found " . $image_path_full;
+			$task["status"] = Helper::TASK_STATUS_DONE;
+		}
+		
+		
+		
+		
 		return $task;
 	}
 	
