@@ -452,6 +452,12 @@ class Product_Table extends \Elberos\Table
 					value="<?= esc_attr( isset($_GET["vendor_code"]) ? $_GET["vendor_code"] : "" ) ?>">
 				<input type="text" name="name" class="web_form_value" placeholder="Название товара"
 					value="<?= esc_attr( isset($_GET["name"]) ? $_GET["name"] : "" ) ?>">
+				<input type="text" name="product_id" class="web_form_value" placeholder="ID товара"
+					value="<?= esc_attr( isset($_GET["product_id"]) ? $_GET["product_id"] : "" ) ?>">
+				<input type="text" name="code_1c" class="web_form_value" placeholder="Код 1С"
+					value="<?= esc_attr( isset($_GET["code_1c"]) ? $_GET["code_1c"] : "" ) ?>">
+				<br/>
+				<br/>
 				<input type="button" class="button dosearch" value="Поиск">
 			</span>
 			<script>
@@ -519,6 +525,20 @@ class Product_Table extends \Elberos\Table
 		{
 			$where[] = "name like :name";
 			$args["name"] = "%" . $wpdb->esc_like($_GET["name"]) . "%";
+		}
+		
+		/* code 1c */
+		if (isset($_GET["code_1c"]))
+		{
+			$where[] = "code_1c = :code_1c";
+			$args["code_1c"] = $_GET["code_1c"];
+		}
+		
+		/* code 1c */
+		if (isset($_GET["product_id"]))
+		{
+			$where[] = "id = :product_id";
+			$args["product_id"] = $_GET["product_id"];
 		}
 		
 		/* Show in catalog */

@@ -62,6 +62,19 @@ class Task
 		$tasks = $wpdb->get_results($sql, ARRAY_A);
 		foreach ($tasks as $task)
 		{
+			/* Обновляем статус задачи */
+			$sql = \Elberos\wpdb_prepare
+			(
+				"update $table_name_1c_task " .
+				"set status=:status " .
+				"where id = :id",
+				[
+					'id' => $task['id'],
+					'status' => Helper::TASK_STATUS_WORK,
+				]
+			);
+			$wpdb->query($sql);
+			
 			try
 			{
 				set_time_limit(600);
