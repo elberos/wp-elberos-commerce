@@ -68,7 +68,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["email"];
+							return isset($form_data["email"]) ? $form_data["email"] : "";
 						}
 					])
 					->addField
@@ -80,7 +80,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["name"];
+							return isset($form_data["name"]) ? $form_data["name"] : "";
 						}
 					])
 					->addField
@@ -92,7 +92,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["surname"];
+							return isset($form_data["surname"]) ? $form_data["surname"] : "";
 						}
 					])
 					->addField
@@ -104,7 +104,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["user_identifier"];
+							return isset($form_data["user_identifier"]) ? $form_data["user_identifier"] : "";
 						}
 					])
 					->addField
@@ -116,7 +116,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["company_name"];
+							return isset($form_data["company_name"]) ? $form_data["company_name"] : "";
 						}
 					])
 					->addField
@@ -128,7 +128,7 @@ class Invoice_Table extends \Elberos\Table
 						"column_value" => function ($struct, $item)
 						{
 							$form_data = @json_decode($item["form_data"], true);
-							return $form_data["company_bin"];
+							return isset($form_data["company_bin"]) ? $form_data["company_bin"] : "";
 						}
 					])
 					->addField

@@ -38,13 +38,6 @@ class Api
 	public static function init()
 	{
 		add_action('elberos_register_routes', '\\Elberos\\Commerce\\Api::register_routes');
-		
-		/* Find client */
-		add_filter
-		(
-			'elberos_commerce_basket_find_client', '\\Elberos\\Commerce\\Api::elberos_commerce_basket_find_client',
-			10, 4
-		);
 	}
 	
 	
@@ -247,6 +240,42 @@ class Api
 		/* Get products data */
 		$basket_data = \Elberos\Commerce\Api::getBasketProducts($basket);
 		
+		/* Clear basket data */
+		$basket_data = array_map
+		(
+			function ($item)
+			{
+				$new_data = [
+					"product_id" => $item["product_id"],
+					"product_vendor_code" => $item["product_vendor_code"],
+					"product_name" => $item["product_name"],
+					"product_code_1c" => $item["product_code_1c"],
+					"product_main_photo_id" => $item["product_main_photo_id"],
+					"product_main_photo_url" => $item["product_main_photo_url"],
+					"count" => $item["count"],
+					"offer_code_1c" => $item["offer_code_1c"],
+					"offer_price" => $item["offer_price"],
+					"offer_price_code_1c" => $item["offer_price_code_1c"],
+					"offer_currency" => $item["offer_currency"],
+					"offer_coefficient" => $item["offer_coefficient"],
+					"offer_unit" => $item["offer_unit"],
+				];
+				
+				$res = apply_filters
+				(
+					'elberos_commerce_basket_clear_data',
+					[
+						"old_data" => $item,
+						"new_data" => $new_data,
+					]
+				);
+				
+				$new_data = $res["new_data"];
+				return $new_data;
+			},
+			$basket_data
+		);
+		
 		/* Send data */
 		$form_data = isset($_POST['data']) ? $_POST['data'] : [];
 		
@@ -270,22 +299,13 @@ class Api
 			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
 			return
 			[
+				"type" => "validation",
 				"message" => ($validation_error != null) ? $validation_error :
 					__("Ошибка. Проверьте корректность данных", "elberos"),
 				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
 				"code" => -2,
 			];
 		}
-		
-		/* Get utm */
-		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
-		$utm = apply_filters( 'elberos_form_utm', $utm );
-		
-		/* Generate code 1c */
-		$code_1c = \Elberos\uid();
-		
-		/* Create secret code */
-		$secret_code = wp_generate_password(12, false, false);
 		
 		/* Calculate price */
 		$basket_price = static::getBasketPrice($basket_data);
@@ -298,26 +318,21 @@ class Api
 			'register' => false,
 			'client_id' => null,
 			'form_data' => $form_data,
-			'products_meta' => $products_meta,
 			'validation' => [],
 			'basket' => $basket,
+			'basket_data' => $basket_data,
 			'item' => null,
 		];
 		$find_client_res = apply_filters('elberos_commerce_basket_find_client', $find_client_res);
 		
-		$client = isset($find_client_res['client']) ? $find_client_res['client'] : [];
-		$client_id = isset($find_client_res['client_id']) ? $find_client_res['client_id'] : null;
-		$client_register = isset($find_client_res['register']) ? $find_client_res['register'] : false;
-		$client_code_1c = isset($client['code_1c']) ? $client['code_1c'] : '';
-		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
-		
-		/* If validation error */
+		/* Find client validation error */
 		$validation = isset($find_client_res['validation']) ? $find_client_res['validation'] : null;
 		if ($validation != null && count($validation) > 0)
 		{
 			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
 			return
 			[
+				"type" => "find_client_validation_error",
 				"message" => ($validation_error != null) ? $validation_error :
 					__("Ошибка. Проверьте корректность данных", "elberos"),
 				"fields" => isset($validation["fields"]) ? $validation["fields"] : [],
@@ -325,25 +340,21 @@ class Api
 			];
 		}
 		
-		/* Error */
+		/* Find client error */
 		if ($find_client_res['code'] < 0)
 		{
 			return
 			[
+				"type" => "find_client_error",
 				"message" => $find_client_res["message"],
 				"code" => $find_client_res["code"],
 			];
 		}
 		
-		/* Client not found */
-		if ($client_id == null)
-		{
-			return
-			[
-				"message" => "Клиент не найден",
-				"code" => -1,
-			];
-		}
+		$client = isset($find_client_res['client']) ? $find_client_res['client'] : [];
+		$client_id = isset($client['id']) ? $client['id'] : null;
+		$client_code_1c = isset($client['code_1c']) ? $client['code_1c'] : '';
+		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
 		
 		$comment = isset($form_data["comment"]) ? $form_data["comment"] : "";
 		if (isset($form_data["comment"]))
@@ -351,25 +362,67 @@ class Api
 			unset($form_data["comment"]);
 		}
 		
+		/* Generate code 1c */
+		$code_1c = \Elberos\uid();
+		
+		/* Create secret code */
+		$secret_code = wp_generate_password(12, false, false);
+		
+		/* Get utm */
+		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
+		
+		/* Table data */
+		$table_data = [
+			"code_1c" => $code_1c,
+			"secret_code" => $secret_code,
+			"form_data" => $form_data,
+			"basket_data" => $basket_data,
+			"comment" => $comment,
+			"utm" => $utm,
+			"price" => $basket_price,
+			"client_id" => $client_id,
+			"client_code_1c" => $client_code_1c,
+			"gmtime_add" => \Elberos\dbtime(),
+			"gmtime_change" => \Elberos\dbtime(),
+		];
+		
+		/* Basket before */
+		$before_res = apply_filters
+		(
+			'elberos_commerce_basket_before',
+			[
+				'code' => 0,
+				'message' => '',
+				'table_data'=>$table_data,
+				'find_client_res'=>$find_client_res,
+			]
+		);
+		$table_data = $before_res["table_data"];
+		$find_client_res = $before_res["find_client_res"];
+		
+		/* Before error */
+		if ($before_res['code'] < 0)
+		{
+			return
+			[
+				"type" => "before_res_error",
+				"message" => $before_res["message"],
+				"code" => $before_res["code"],
+			];
+		}
+		
+		/* Json encode */
+		$table_data["form_data"] = json_encode($form_data);
+		$table_data["basket_data"] = json_encode($basket_data);
+		$table_data["utm"] = json_encode($utm);
+		
 		/* Insert data */
 		// $wpdb->show_errors();
 		$table_invoice = $wpdb->prefix . 'elberos_commerce_invoice';
 		$wpdb->insert
 		(
 			$table_invoice,
-			[
-				"code_1c" => $code_1c,
-				"secret_code" => $secret_code,
-				"form_data" => json_encode($form_data),
-				"basket_data" => json_encode($basket_data),
-				"comment" => $comment,
-				"utm" => json_encode($utm),
-				"price" => $basket_price,
-				"client_id" => $client_id,
-				"client_code_1c" => $client_code_1c,
-				"gmtime_add" => \Elberos\dbtime(),
-				"gmtime_change" => \Elberos\dbtime(),
-			]
+			$table_data
 		);
 		
 		/* Invoice id */
@@ -396,17 +449,10 @@ class Api
 		(
 			'elberos_commerce_basket_after',
 			[
-				'invoice'=>$invoice
+				'invoice'=>$invoice,
+				'find_client_res'=>$find_client_res,
 			]
 		);
-		
-		/* Auth client if need */
-		/*
-		if ($client_register == true && isset($find_client_res['item']))
-		{
-			\Elberos\UserCabinet\Api::create_session($find_client_res['item']);
-		}
-		*/
 		
 		return
 		[
@@ -415,53 +461,6 @@ class Api
 			"message" => "OK",
 			"code" => 1,
 		];
-	}
-	
-	
-	
-	/**
-	 * Find client
-	 */
-	public static function elberos_commerce_basket_find_client($client_res)
-	{
-		global $wpdb;
-		
-		if ($client_res['client_id'] != null) return $client_res;
-		
-		$form_data = isset($client_res['form_data']) ? $client_res['form_data'] : [];
-		$email = isset($form_data['email']) ? $form_data['email'] : '';
-		
-		/* Find client */
-		$table_clients = $wpdb->prefix . 'elberos_clients';
-		$sql = $wpdb->prepare
-		(
-			"SELECT * FROM $table_clients WHERE email = %s", $email
-		);
-		$row = $wpdb->get_row($sql, ARRAY_A);
-		if ($row)
-		{
-			$client_res['register'] = false;
-			$client_res['client_id'] = $row['id'];
-			$client_res['client'] = $row;
-		}
-		
-		/* Register client */
-		else
-		{
-			$res = \Elberos\UserCabinet\Api::user_register($form_data);
-			$client_res['code'] = $res['code'];
-			$client_res['message'] = $res['message'];
-			$client_res['validation'] = isset($res["validation"]) ? $res["validation"] : null;
-			
-			if ($res['code'] == 1)
-			{
-				$client_res['register'] = true;
-				$client_res['client_id'] = $res['item']['id'];
-				$client_res['client'] = $res['item'];
-			}
-		}
-		
-		return $client_res;
 	}
 	
 	
