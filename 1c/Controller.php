@@ -360,7 +360,7 @@ class Controller
 		$sql = \Elberos\wpdb_prepare
 		(
 			"select * from $table_name_1c_import " .
-			"where session_id = :session_id and status in (0,2) and filename = :filename " .
+			"where session_id = :session_id and status in (0,2) and filename = :filename and is_deleted = 0 " .
 			"order by id asc",
 			[
 				'session_id' => $session_id,
@@ -1067,78 +1067,152 @@ class Controller
 		
 		if ($xml != null)
 		{
+			$invoices = [];
 			foreach ($xml->children() as $item)
 			{
 				if ($item->getName() == 'Документ')
 				{
-					$invoice_number = \Elberos\mb_trim( (string)$item->Номер );
-					
-					
-					/* Find invoice */
-					$table_name_invoice = $wpdb->base_prefix . "elberos_commerce_invoice";
-					$sql = \Elberos\wpdb_prepare
-					(
-						"select * from $table_name_invoice where id = :id",
-						[
-							'id' => $invoice_number,
-						]
-					);
-					$invoice = $wpdb->get_row($sql, ARRAY_A);
-					
-					if ($invoice)
+					$invoices[] = \Elberos\mb_trim( (string)$item->Номер );
+				}
+			}
+			
+			$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+			
+			/* Insert task */
+			$res = apply_filters
+			(
+				'elberos_commerce_1c_insert_task',
+				[
+					'xml'=>$item,
+					'data'=>
+					[
+						"name" => "Invoices: " . implode(", ", $invoices),
+						"code_1c" => "",
+						"import_id" => null,
+						"catalog_id" => 0,
+						"classifier_id" => 0,
+						"type" => "invoices",
+						"data" => (string) $content,
+						"status" => Helper::TASK_STATUS_WORK,
+						"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+					]
+				]
+			);
+			$insert_data = $res["data"];
+			
+			$wpdb->insert
+			(
+				$table_name_1c_task,
+				$insert_data
+			);
+			
+			$error_message = "";
+			$task_id = $wpdb->insert_id;
+			
+			/* Try to update invoices */
+			try
+			{
+				foreach ($xml->children() as $item)
+				{
+					if ($item->getName() == 'Документ')
 					{
-						$update_data = [];
+						$invoice_number = \Elberos\mb_trim( (string)$item->Номер );
 						
-						/* Json decode */
-						$invoice["form_data"] = @json_decode($invoice["form_data"], true);
-						$invoice["basket_data"] = @json_decode($invoice["basket_data"], true);
-						$invoice["utm"] = @json_decode($invoice["utm"], true);
-						
-						$update_data["form_data"] = $invoice["form_data"];
-						$update_data["basket_data"] = $invoice["basket_data"];
-						
-						list($invoice, $item, $update_data) = static::updateInvoiceClientData
+						/* Find invoice */
+						$table_name_invoice = $wpdb->base_prefix . "elberos_commerce_invoice";
+						$sql = \Elberos\wpdb_prepare
 						(
-							$invoice, $item, $update_data
-						);
-						list($invoice, $item, $update_data) = static::updateInvoiceBasketData
-						(
-							$invoice, $item, $update_data, false
-						);
-						list($invoice, $item, $update_data) = static::updateInvoiceBasketData
-						(
-							$invoice, $item, $update_data, true
-						);
-						
-						/* Update invoice */
-						$params = apply_filters
-						(
-							'elberos_commerce_1c_update_ivoice',
-							[
-								'xml'=>$xml,
-								'invoice'=>$invoice,
-								'update_data'=>$update_data,
-							]
-						);
-						$update_data = $params["update_data"];
-						
-						/* Json encode */
-						$update_data["form_data"] = json_encode($update_data["form_data"]);
-						$update_data["basket_data"] = json_encode($update_data["basket_data"]);
-						$update_data["utm"] = json_encode($update_data["utm"]);
-						
-						$wpdb->update
-						(
-							$table_name_invoice,
-							$update_data,
+							"select * from $table_name_invoice where id = :id",
 							[
 								'id' => $invoice_number,
 							]
 						);
+						$invoice = $wpdb->get_row($sql, ARRAY_A);
+						
+						if ($invoice)
+						{
+							$update_data = [];
+							
+							/* Json decode */
+							$invoice["form_data"] = @json_decode($invoice["form_data"], true);
+							$invoice["basket_data"] = @json_decode($invoice["basket_data"], true);
+							$invoice["utm"] = @json_decode($invoice["utm"], true);
+							
+							$update_data["form_data"] = $invoice["form_data"];
+							$update_data["basket_data"] = $invoice["basket_data"];
+							
+							list($invoice, $item, $update_data) = static::updateInvoiceClientData
+							(
+								$invoice, $item, $update_data
+							);
+							list($invoice, $item, $update_data) = static::updateInvoiceBasketData
+							(
+								$invoice, $item, $update_data, false
+							);
+							list($invoice, $item, $update_data) = static::updateInvoiceBasketData
+							(
+								$invoice, $item, $update_data, true
+							);
+							
+							/* Update invoice */
+							$params = apply_filters
+							(
+								'elberos_commerce_1c_update_ivoice',
+								[
+									'xml'=>$xml,
+									'invoice'=>$invoice,
+									'update_data'=>$update_data,
+								]
+							);
+							$update_data = $params["update_data"];
+							
+							/* Json encode */
+							$update_data["form_data"] = json_encode($update_data["form_data"]);
+							$update_data["basket_data"] = json_encode($update_data["basket_data"]);
+							$update_data["utm"] = json_encode($update_data["utm"]);
+							
+							$wpdb->update
+							(
+								$table_name_invoice,
+								$update_data,
+								[
+									'id' => $invoice_number,
+								]
+							);
+						}
+						
 					}
-					
 				}
 			}
+			
+			catch (\Exception $e)
+			{
+				$error_message = $e->getMessage();
+			}
+			
+			$update_task =
+			[
+				"error_code" => 1,
+				"status" => Helper::TASK_STATUS_DONE,
+			];
+			
+			/* If error */
+			if ($error_message != "")
+			{
+				$update_task['status'] = Helper::TASK_STATUS_ERROR;
+				$update_task['error_code'] = -1;
+				$update_task['error_message'] = $error_message;
+			}
+			
+			/* Update task */
+			$wpdb->update
+			(
+				$table_name_1c_task,
+				$update_task,
+				[
+					"id" => $task_id
+				]
+			);
 		}
 		
 		echo "success";

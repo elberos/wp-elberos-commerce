@@ -260,26 +260,41 @@ class Import
 					$names = Helper::getNamesByXml($sub_item, 'Наименование');
 					$name_ru = isset($names['ru']) ? $names['ru'] : '';
 					
+					/* Insert task */
+					$res = apply_filters
+					(
+						'elberos_commerce_1c_insert_task',
+						[
+							'xml'=>$sub_item,
+							'data'=>
+							[
+								"name" => $name_ru,
+								"code_1c" => $item_id,
+								"import_id" => $this->import["id"],
+								"classifier_id" => $classifier_id,
+								"type" => "category",
+								"data" => $task_xml,
+								"status" => Helper::TASK_STATUS_PLAN,
+								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+							]
+						]
+					);
+					$insert_data = $res["data"];
+					
 					/* Добавление задания в базу данных */
 					$wpdb->insert
 					(
 						$table_name_1c_task,
-						[
-							"name" => $name_ru,
-							"code_1c" => $item_id,
-							"import_id" => $this->import["id"],
-							"classifier_id" => $classifier_id,
-							"type" => "category",
-							"data" => $task_xml,
-							"status" => Helper::TASK_STATUS_PLAN,
-							"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-						]
+						$insert_data
 					);
 					
 					$this->count_category += 1;
 					
 					$subarr = $item->Группы;
 					$this->loadGroupsByItems($subarr, $item_id);
+					
+					/* Set time limit */
+					set_time_limit(600);
 				}
 				
 			}
@@ -339,21 +354,35 @@ class Import
 				$names = Helper::getNamesByXml($item, 'Наименование');
 				$name_ru = isset($names['ru']) ? $names['ru'] : '';
 				
+				/* Insert task */
+				$res = apply_filters
+				(
+					'elberos_commerce_1c_insert_task',
+					[
+						'xml'=>$item,
+						'data'=>
+						[
+							"name" => $name_ru,
+							"code_1c" => $item_id,
+							"import_id" => $this->import["id"],
+							"catalog_id" => $catalog_id,
+							"classifier_id" => $classifier_id,
+							"type" => "product",
+							"data" => (string) $item->asXML(),
+							"status" => Helper::TASK_STATUS_PLAN,
+							"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+						]
+					]
+				);
+				$insert_data = $res["data"];
+
+				/* Добавление задания в базу данных */
 				$wpdb->insert
 				(
 					$table_name_1c_task,
-					[
-						"name" => $name_ru,
-						"code_1c" => $item_id,
-						"import_id" => $this->import["id"],
-						"catalog_id" => $catalog_id,
-						"classifier_id" => $classifier_id,
-						"type" => "product",
-						"data" => (string) $item->asXML(),
-						"status" => Helper::TASK_STATUS_PLAN,
-						"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-					]
+					$insert_data
 				);
+				
 				$this->count_products += 1;
 				
 				/* Картинка */
@@ -365,23 +394,38 @@ class Import
 					$image->addAttribute('pos', $image_pos);
 					$image->addAttribute('code_1c', $item_id);
 					
+					/* Insert task */
+					$res = apply_filters
+					(
+						'elberos_commerce_1c_insert_task',
+						[
+							'xml'=>$image,
+							'data'=>
+							[
+								"name" => "Картинка " . $image_path,
+								"code_1c" => $item_id,
+								"import_id" => $this->import["id"],
+								"catalog_id" => $catalog_id,
+								"classifier_id" => $classifier_id,
+								"type" => "product_image",
+								"data" => (string) $image->asXML(),
+								"status" => Helper::TASK_STATUS_PLAN,
+								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+							]
+						]
+					);
+					$insert_data = $res["data"];
+					
 					$wpdb->insert
 					(
 						$table_name_1c_task,
-						[
-							"name" => "Картинка " . $image_path,
-							"code_1c" => $item_id,
-							"import_id" => $this->import["id"],
-							"catalog_id" => $catalog_id,
-							"classifier_id" => $classifier_id,
-							"type" => "product_image",
-							"data" => (string) $image->asXML(),
-							"status" => Helper::TASK_STATUS_PLAN,
-							"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-						]
+						$insert_data
 					);
 					
 					$image_pos++;
+					
+					/* Set time limit */
+					set_time_limit(600);
 				}
 			}
 		}
@@ -423,21 +467,36 @@ class Import
 						$names = Helper::getNamesByXml($item, 'Наименование');
 						$name_ru = isset($names['ru']) ? $names['ru'] : '';
 						
+						/* Insert task */
+						$res = apply_filters
+						(
+							'elberos_commerce_1c_insert_task',
+							[
+								'xml'=>$item,
+								'data'=>
+								[
+									"name" => $name_ru,
+									"code_1c" => $item_id,
+									"import_id" => $this->import["id"],
+									"catalog_id" => $catalog_id,
+									"classifier_id" => $classifier_id,
+									"type" => "price_type",
+									"data" => (string) $item->asXML(),
+									"status" => Helper::TASK_STATUS_PLAN,
+									"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								]
+							]
+						);
+						$insert_data = $res["data"];
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
-							[
-								"name" => $name_ru,
-								"code_1c" => $item_id,
-								"import_id" => $this->import["id"],
-								"catalog_id" => $catalog_id,
-								"classifier_id" => $classifier_id,
-								"type" => "price_type",
-								"data" => (string) $item->asXML(),
-								"status" => Helper::TASK_STATUS_PLAN,
-								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-							]
+							$insert_data
 						);
+						
+						/* Set time limit */
+						set_time_limit(600);
 					}
 				}
 			}
@@ -476,20 +535,35 @@ class Import
 						$names = Helper::getNamesByXml($item, 'Наименование');
 						$name_ru = isset($names['ru']) ? $names['ru'] : '';
 						
+						/* Insert task */
+						$res = apply_filters
+						(
+							'elberos_commerce_1c_insert_task',
+							[
+								'xml'=>$item,
+								'data'=>
+								[
+									"name" => $name_ru,
+									"code_1c" => $item_id,
+									"import_id" => $this->import["id"],
+									"classifier_id" => $classifier_id,
+									"type" => "product_param",
+									"data" => (string) $item->asXML(),
+									"status" => Helper::TASK_STATUS_PLAN,
+									"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								]
+							]
+						);
+						$insert_data = $res["data"];
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
-							[
-								"name" => $name_ru,
-								"code_1c" => $item_id,
-								"import_id" => $this->import["id"],
-								"classifier_id" => $classifier_id,
-								"type" => "product_param",
-								"data" => (string) $item->asXML(),
-								"status" => Helper::TASK_STATUS_PLAN,
-								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-							]
+							$insert_data
 						);
+						
+						/* Set time limit */
+						set_time_limit(600);
 					}
 				}
 			}
@@ -532,21 +606,36 @@ class Import
 						$names = Helper::getNamesByXml($item, 'Наименование');
 						$name_ru = isset($names['ru']) ? $names['ru'] : '';
 						
+						/* Insert task */
+						$res = apply_filters
+						(
+							'elberos_commerce_1c_insert_task',
+							[
+								'xml'=>$item,
+								'data'=>
+								[
+									"name" => $name_ru,
+									"code_1c" => $item_id,
+									"import_id" => $this->import["id"],
+									"catalog_id" => $catalog_id,
+									"classifier_id" => $classifier_id,
+									"type" => "warehouse",
+									"data" => (string) $item->asXML(),
+									"status" => Helper::TASK_STATUS_PLAN,
+									"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								]
+							]
+						);
+						$insert_data = $res["data"];
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
-							[
-								"name" => $name_ru,
-								"code_1c" => $item_id,
-								"import_id" => $this->import["id"],
-								"catalog_id" => $catalog_id,
-								"classifier_id" => $classifier_id,
-								"type" => "warehouse",
-								"data" => (string) $item->asXML(),
-								"status" => Helper::TASK_STATUS_PLAN,
-								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-							]
+							$insert_data
 						);
+						
+						/* Set time limit */
+						set_time_limit(600);
 					}
 				}
 			}
@@ -589,21 +678,36 @@ class Import
 						$names = Helper::getNamesByXml($item, 'Наименование');
 						$name_ru = isset($names['ru']) ? $names['ru'] : '';
 						
+						/* Insert task */
+						$res = apply_filters
+						(
+							'elberos_commerce_1c_insert_task',
+							[
+								'xml'=>$item,
+								'data'=>
+								[
+									"name" => $name_ru,
+									"code_1c" => $item_id,
+									"import_id" => $this->import["id"],
+									"catalog_id" => $catalog_id,
+									"classifier_id" => $classifier_id,
+									"type" => "offer",
+									"data" => (string) $item->asXML(),
+									"status" => Helper::TASK_STATUS_PLAN,
+									"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								]
+							]
+						);
+						$insert_data = $res["data"];
+						
 						$wpdb->insert
 						(
 							$table_name_1c_task,
-							[
-								"name" => $name_ru,
-								"code_1c" => $item_id,
-								"import_id" => $this->import["id"],
-								"catalog_id" => $catalog_id,
-								"classifier_id" => $classifier_id,
-								"type" => "offer",
-								"data" => (string) $item->asXML(),
-								"status" => Helper::TASK_STATUS_PLAN,
-								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-							]
+							$insert_data
 						);
+						
+						/* Set time limit */
+						set_time_limit(600);
 					}
 				}
 			}

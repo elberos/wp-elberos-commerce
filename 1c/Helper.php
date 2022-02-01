@@ -27,6 +27,7 @@ class Helper
 	const IMPORT_STATUS_DONE = 1;
 	const IMPORT_STATUS_WORK = 2;
 	const IMPORT_STATUS_ERROR = -1;
+	const IMPORT_STATUS_UPLOAD = -2;
 	const TASK_STATUS_PLAN = 0;
 	const TASK_STATUS_DONE = 1;
 	const TASK_STATUS_WORK = 2;

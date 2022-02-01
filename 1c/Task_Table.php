@@ -243,10 +243,10 @@ class Task_Table extends \Elberos\Table
 						}
 					?>
 				</select>
-				<input type="text" name="code_1c" class="web_form_value" placeholder="Код 1С"
-					value="<?= esc_attr( isset($_GET["code_1c"]) ? $_GET["code_1c"] : "" ) ?>">
 				<input type="text" name="name" class="web_form_value" placeholder="Название"
 					value="<?= esc_attr( isset($_GET["name"]) ? $_GET["name"] : "" ) ?>">
+				<input type="text" name="code_1c" class="web_form_value" placeholder="Код 1С"
+					value="<?= esc_attr( isset($_GET["code_1c"]) ? $_GET["code_1c"] : "" ) ?>">
 				<select name="status" class="web_form_value">
 					<option value="">Статус</option>
 					<option value="0" <?= \Elberos\is_get_selected("status", "0") ?>>Запланировано</option>
@@ -368,6 +368,13 @@ class Task_Table extends \Elberos\Table
 	function display_css()
 	{
 		parent::display_css();
+		?>
+		<style>
+		textarea[data-name=data]{
+			min-height: 500px !important;
+		}
+		</style>
+		<?php
 	}
 	
 	
