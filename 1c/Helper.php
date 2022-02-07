@@ -330,10 +330,9 @@ class Helper
 		$sql = \Elberos\wpdb_prepare
 		(
 			"select count(*) as c from $table_name_1c_task " .
-			"where import_id = :import_id and status=:status",
+			"where import_id = :import_id and status<0",
 			[
 				'import_id' => $import_id,
-				'status' => Helper::TASK_STATUS_ERROR,
 			]
 		);
 		$c = $wpdb->get_var($sql);

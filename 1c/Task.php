@@ -439,23 +439,13 @@ class Task
 							"prepare_delete" => 0,
 						]
 					);
-					
-					if ($props_name == "НаименованиеДляСайта")
-					{
-						$product_update["name"] = $props_value;
-						$product_update["slug"] = sanitize_title($props_value);
-						$text["ru_RU"]["name"] = $props_value;
-						$product_update["text"] = json_encode($text);
-					}
 				}
 			}
 		}
 		
-		/* Обновляем данные товара */
-		if (count($product_update) > 0)
-		{
-			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
-		}
+		/* Удаляем старые значения */
+		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
+		
 		
 		/* Обновляем текста для поиска */
 		$search_text = [];
@@ -483,8 +473,24 @@ class Task
 			]
 		);
 		
-		/* Удаляем старые значения */
-		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
+		
+		/* Do filter elberos_commerce_1c_import_product */
+		$res = apply_filters
+		(
+			'elberos_commerce_1c_import_product',
+			[
+				'xml'=>$xml,
+				'product_update' => $product_update,
+			]
+		);
+		$product_update = $res["product_update"];
+		
+		/* Обновляем данные товара */
+		if (count($product_update) > 0)
+		{
+			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+		}
+		
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $code_1c; */
@@ -519,79 +525,24 @@ class Task
 			/* Отмечаем задачу как обработанную */
 			$task["error_code"] = -1;
 			$task["error_message"] = "Product not found";
-			$task["status"] = Helper::TASK_STATUS_DONE;
+			$task["status"] = Helper::TASK_STATUS_ERROR;
 			return $task;
 		}
 		
 		if (is_file($image_path_full))
 		{
-			$sha1 = sha1_file($image_path_full);
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from " . $wpdb->base_prefix . "postmeta " .
-				"where meta_key='file_sha1' and meta_value=:meta_value limit 1",
-				[
-					"meta_value" => $sha1,
-				]
-			);
-			$row = $wpdb->get_row($sql, ARRAY_A);
-			$photo_id = 0;
 			
-			/* Найден файл */
-			if ($row)
-			{
-				$photo_id = $row["post_id"];
-			}
+			$photo_id = \Elberos\upload_file($image_path_full, [
+				"title" => $product["name"],
+			]);
 			
-			/* Загружаем файл, если не найден */
-			else
-			{
-				$file_content = file_get_contents($image_path_full);
-				$new_file_name = basename($image_path_full);
-				$wp_filetype = wp_check_filetype($new_file_name, null );
-				$upload = wp_upload_bits( $new_file_name, null, $file_content );
-				
-				/* Если успешно загружен */
-				if ( !$upload['error'] )
-				{
-					$file_url = $upload['url'];
-					$attachment = array
-					(
-						'post_date' => date('Y-m-d H:i:s'),
-						'post_date_gmt' => gmdate('Y-m-d H:i:s'),
-						'post_title' => $new_file_name,
-						'post_status' => 'inherit',
-						'comment_status' => 'closed',
-						'ping_status' => 'closed',
-						'post_name' => $new_file_name,
-						'post_modified' => date('Y-m-d H:i:s'),
-						'post_modified_gmt' => gmdate('Y-m-d H:i:s'),
-						'post_type' => 'attachment',
-						'guid' => $file_url,
-						'post_mime_type' => $wp_filetype['type'],
-						'post_excerpt' => '',
-						'post_content' => ''
-					);
-					
-					$photo_id = wp_insert_attachment( $attachment, $filename );
-					update_post_meta( $photo_id, 'file_sha1', $sha1 );
-					
-					require_once ABSPATH . 'wp-admin/includes/image.php';
-					
-					/* Обновляем метаданные */
-					update_attached_file( $photo_id, $upload['file'] );
-					\wp_update_attachment_metadata
-					(
-						$photo_id, \wp_generate_attachment_metadata( $photo_id, $upload['file'] )
-					);
-				}
-			}
 			/*
 			var_dump("---");
 			var_dump($product["id"]);
 			var_dump($photo_id);
 			var_dump($photo_pos);
 			*/
+			
 			/* Загрузка картинки */
 			$sql = \Elberos\wpdb_prepare
 			(
@@ -639,7 +590,8 @@ class Task
 			/* Обновляем id фото */
 			if ($photo_pos == 0)
 			{
-				$product_update = [
+				$product_update =
+				[
 					"main_photo_id" => $photo_id,
 					"just_show_in_catalog" => 1,
 				];
@@ -657,11 +609,8 @@ class Task
 			/* Отмечаем ошибку файл не найден */
 			$task["error_code"] = -1;
 			$task["error_message"] = "Image not found " . $image_path_full;
-			$task["status"] = Helper::TASK_STATUS_DONE;
+			$task["status"] = Helper::TASK_STATUS_ERROR;
 		}
-		
-		
-		
 		
 		return $task;
 	}

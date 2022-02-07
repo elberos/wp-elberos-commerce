@@ -105,6 +105,10 @@ class Controller
 	public static function init()
 	{
 		add_action('elberos_register_routes', '\\Elberos\\Commerce\\_1C\\Controller::elberos_register_routes');
+		add_action('elberos_commerce_1c_products_update_only', 
+			'\\Elberos\\Commerce\\_1C\\Import::elberos_commerce_1c_products_update_only');
+		add_action('elberos_commerce_1c_offers_update_only', 
+			'\\Elberos\\Commerce\\_1C\\Import::elberos_commerce_1c_offers_update_only');
 	}
 	
 	
@@ -121,6 +125,22 @@ class Controller
 			[
 				'title' => 'Авторизация',
 				'description' => 'Авторизация',
+				'enable_locale' => false,
+				'render' => function ($site)
+				{
+					return static::actionIndex($site);
+				}
+			]
+		);
+		
+		$site->add_route
+		(
+			"api:1c:1c_exchange.php", "/api/1c_exchange.php",
+			null,
+			[
+				'title' => 'Авторизация',
+				'description' => 'Авторизация',
+				'enable_locale' => false,
 				'render' => function ($site)
 				{
 					return static::actionIndex($site);
@@ -262,7 +282,9 @@ class Controller
 	{
 		$res = [];
 		$res[] = "zip=no";
-		$res[] = static::$max_size;
+		
+		$file_default_size = static::getKey("elberos_commerce_1c_file_default_size", "");
+		$res[] = $file_default_size * 1024 * 1024;
 		
 		echo implode("\n", $res) . "\n";
 	}
@@ -275,6 +297,8 @@ class Controller
 	static function actionCatalogUploadFiled()
 	{
 		$filefolder = ABSPATH . "wp-content/uploads/1c_uploads";
+		$file_max_size = static::getKey("elberos_commerce_1c_file_max_size", "");
+		$file_max_size = $file_max_size * 1024 * 1024;
 		
 		/* Создаем папку если не была создана */
 		if (!file_exists($filefolder))
@@ -316,6 +340,15 @@ class Controller
 			
 			/* Загружаем файл */
 			$content = file_get_contents("php://input");
+			$content_sz = strlen($content);
+			
+			if ($content_sz >= $file_max_size)
+			{
+				echo "failed upload " . $filename . ". Max size exceed\n";
+				echo "size=" . strlen($content);
+				return;
+			}
+			
 			file_put_contents($filepath, $content);
 			
 			echo "success\n";
@@ -409,19 +442,21 @@ class Controller
 		}
 		
 		/* Обновляем запись в базе данных */
-		$sql = \Elberos\wpdb_prepare
+		$wpdb->update
 		(
-			"update $table_name_1c_import " .
-			"set status=:status, error_code=:error_code, error_message=:error_message " .
-			"where id = :id",
+			$table_name_1c_import,
 			[
-				'id' => $item['id'],
 				'status' => $item['status'],
+				'progress' => $item['progress'],
+				'total' => $item['total'],
+				'error' => $item['error'],
 				'error_code' => $item['error_code'],
 				'error_message' => $item['error_message'],
+			],
+			[
+				'id' => $item['id'],
 			]
 		);
-		$wpdb->query($sql);
 		
 		/* Если ошибка импорта */
 		if ($item['status'] == Helper::IMPORT_STATUS_ERROR)
@@ -553,7 +588,11 @@ class Controller
 		$total = Helper::getTaskTotal($import['id']);
 		$errors = Helper::getTaskError($import['id']);
 		$str = $progress . " / " . $total . ". Errors: " . $errors;
-		$str .= ". ID: " . implode(",", $instance->id);
+		// $str .= "\nID: " . implode(",", $instance->id);
+		
+		$import["progress"] = $progress;
+		$import["total"] = $total;
+		$import["error"] = $errors;
 		
 		/* Если все выполнено */
 		if ($progress == $total)

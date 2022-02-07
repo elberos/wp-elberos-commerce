@@ -60,7 +60,10 @@ class Settings
 		[
 			"elberos_commerce_1c_login",
 			"elberos_commerce_1c_password",
+			"elberos_commerce_1c_file_max_size",
+			"elberos_commerce_1c_file_default_size",
 			"elberos_commerce_invoice_admin_email",
+			"elberos_commerce_products_photos_term_id",
 		];
 		
 		if ( isset($_POST["nonce"]) && (int)wp_verify_nonce($_POST["nonce"], basename(__FILE__)) > 0 )
@@ -76,6 +79,16 @@ class Settings
 		foreach ($fields_name as $field_name)
 		{
 			$item[$field_name] = static::get_key($field_name, '');
+		}
+		
+		/* Default value */
+		if ($item["elberos_commerce_1c_file_max_size"] == "")
+		{
+			$item["elberos_commerce_1c_file_max_size"] = "32";
+		}
+		if ($item["elberos_commerce_1c_file_default_size"] == "")
+		{
+			$item["elberos_commerce_1c_file_default_size"] = "8";
 		}
 		
 		?>
@@ -123,6 +136,17 @@ class Settings
 				value="<?php echo esc_attr($item['elberos_commerce_invoice_admin_email'])?>" >
 		</p>
 		
+		<!-- Term ID -->
+		<p>
+		    <label for="elberos_commerce_products_photos_term_id">
+				<?php _e('Product photos term id:', 'elberos-commerce')?>
+			</label>
+		<br>
+            <input id="elberos_commerce_products_photos_term_id"
+				name="elberos_commerce_products_photos_term_id" type="text" style="width: 100%"
+				value="<?php echo esc_attr($item['elberos_commerce_products_photos_term_id'])?>" >
+		</p>
+		
 		<p>
 			<label class='vertical-align-middle'><?php _e('1C URL:', 'elberos-commerce')?></label>
 		<br/>
@@ -143,6 +167,28 @@ class Settings
 		<br>
             <input id="elberos_commerce_1c_password" name="elberos_commerce_1c_password" type="text" style="width: 100%"
 				value="<?php echo esc_attr($item['elberos_commerce_1c_password'])?>" >
+		</p>
+		
+		<!-- 1C File Default Size -->
+		<p>
+		    <label for="elberos_commerce_1c_file_default_size">
+				<?php _e('1C Default size (Mb):', 'elberos-commerce')?>
+			</label>
+		<br>
+            <input id="elberos_commerce_1c_file_default_size"
+				name="elberos_commerce_1c_file_default_size" type="text" style="width: 100%"
+				value="<?php echo esc_attr($item['elberos_commerce_1c_file_default_size'])?>" >
+		</p>
+		
+		<!-- 1C File Max Size -->
+		<p>
+		    <label for="elberos_commerce_1c_file_max_size">
+				<?php _e('1C Max Size (Mb):', 'elberos-commerce')?>
+			</label>
+		<br>
+            <input id="elberos_commerce_1c_file_max_size"
+				name="elberos_commerce_1c_file_max_size" type="text" style="width: 100%"
+				value="<?php echo esc_attr($item['elberos_commerce_1c_file_max_size'])?>" >
 		</p>
 		
 		<?php

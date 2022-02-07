@@ -75,6 +75,20 @@ class Import_Table extends \Elberos\Table
 				$struct
 					->addField
 					([
+						"api_name" => "result",
+						"label" => "Результат",
+						"type" => "input",
+						"virtual" => true,
+						"column_value" => function($struct, $item)
+						{
+							return $item["progress"] . " / " . $item["total"] . ". Errors: " . $item["error"];
+						},
+					])
+				;
+				
+				$struct
+					->addField
+					([
 						"api_name" => "error",
 						"label" => "Ошибка",
 						"type" => "input",
@@ -89,9 +103,10 @@ class Import_Table extends \Elberos\Table
 				$struct->table_fields =
 				[
 					"id",
-					"session_id",
+					//"session_id",
 					"filename",
 					"status",
+					"result",
 					//"error",
 					"gmtime",
 				];
@@ -99,9 +114,10 @@ class Import_Table extends \Elberos\Table
 				$struct->form_fields =
 				[
 					"id",
-					"session_id",
+					//"session_id",
 					"filename",
 					"status",
+					"result",
 					"error_code",
 					"error_message",
 				];

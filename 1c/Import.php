@@ -55,23 +55,63 @@ class Import
 	
 	
 	/**
-	 * Возращает true если каталог содержит только изменения
+	 * Products update only
 	 */
-	function isOnlyChange()
+	static function elberos_commerce_1c_products_update_only($res)
 	{
-		$catalog = $this->xml->Каталог;
-		if ($catalog && $catalog->getName() == 'Каталог')
+		$xml = $res["xml"];
+		$update_only = $res["update_only"];
+		if ($update_only)
 		{
-			$products_update_only = mb_strtolower((string) ($catalog->attributes()->СодержитТолькоИзменения));
-			if ($products_update_only == "да" || 
-				$products_update_only == "true" || 
-				$products_update_only === true || 
-				$products_update_only === 1)
-			{
-				return true;
-			}
+			return $res;
 		}
-		return false;
+		
+		$products_update_only = mb_strtolower((string) ($xml->Каталог->attributes()->СодержитТолькоИзменения));
+		if ($products_update_only === "нет" ||
+			$products_update_only === "false" ||
+			$products_update_only === false ||
+			$products_update_only === 0)
+		{
+			$update_only = false;
+		}
+		else
+		{
+			$update_only = true;
+		}
+		
+		$res["update_only"] = $update_only;
+		return $res;
+	}
+	
+	
+	
+	/**
+	 * Offers update only
+	 */
+	static function elberos_commerce_1c_offers_update_only($res)
+	{
+		$xml = $res["xml"];
+		$update_only = $res["update_only"];
+		if ($update_only)
+		{
+			return $res;
+		}
+		
+		$offers_update_only = mb_strtolower((string) ($xml->attributes()->СодержитТолькоИзменения));
+		if ($offers_update_only === "нет" ||
+			$offers_update_only === "false" ||
+			$offers_update_only === false ||
+			$offers_update_only === 0)
+		{
+			$update_only = false;
+		}
+		else
+		{
+			$update_only = true;
+		}
+		
+		$res["update_only"] = $update_only;
+		return $res;
 	}
 	
 	
@@ -179,11 +219,16 @@ class Import
 			}
 			
 			/* Флаг не содержит только изменения */
-			$products_update_only = mb_strtolower((string) ($this->xml->Каталог->attributes()->СодержитТолькоИзменения));
-			if ($products_update_only === "нет" ||
-				$products_update_only === "false" ||
-				$products_update_only === false ||
-				$products_update_only === 0)
+			$res = apply_filters
+			(
+				'elberos_commerce_1c_products_update_only',
+				[
+					'xml'=>$this->xml,
+					'update_only' => false,
+				]
+			);
+			$update_only = $res["update_only"];
+			if (!$update_only)
 			{
 				/* Сбрасываем флаг just_show_in_catalog */
 				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
@@ -196,11 +241,17 @@ class Import
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
 		{
-			$offers_update_only = mb_strtolower((string) ($xml->attributes()->СодержитТолькоИзменения));
-			if ($offers_update_only === "нет" ||
-				$offers_update_only === "false" ||
-				$offers_update_only === false ||
-				$offers_update_only === 0)
+			/* Флаг не содержит только изменения */
+			$res = apply_filters
+			(
+				'elberos_commerce_1c_offers_update_only',
+				[
+					'xml'=>$this->xml,
+					'update_only' => false,
+				]
+			);
+			$update_only = $res["update_only"];
+			if (!$update_only)
 			{
 				/* Сбрасываем флаг prepare_delete у предложений */
 				$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
@@ -394,38 +445,41 @@ class Import
 					$image->addAttribute('pos', $image_pos);
 					$image->addAttribute('code_1c', $item_id);
 					
-					/* Insert task */
-					$res = apply_filters
-					(
-						'elberos_commerce_1c_insert_task',
-						[
-							'xml'=>$image,
-							'data'=>
+					if (strlen($image_path) > 0)
+					{
+						/* Insert task */
+						$res = apply_filters
+						(
+							'elberos_commerce_1c_insert_task',
 							[
-								"name" => "Картинка " . $image_path,
-								"code_1c" => $item_id,
-								"import_id" => $this->import["id"],
-								"catalog_id" => $catalog_id,
-								"classifier_id" => $classifier_id,
-								"type" => "product_image",
-								"data" => (string) $image->asXML(),
-								"status" => Helper::TASK_STATUS_PLAN,
-								"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								'xml'=>$image,
+								'data'=>
+								[
+									"name" => "Картинка " . $image_path,
+									"code_1c" => $item_id,
+									"import_id" => $this->import["id"],
+									"catalog_id" => $catalog_id,
+									"classifier_id" => $classifier_id,
+									"type" => "product_image",
+									"data" => (string) $image->asXML(),
+									"status" => Helper::TASK_STATUS_PLAN,
+									"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+								]
 							]
-						]
-					);
-					$insert_data = $res["data"];
-					
-					$wpdb->insert
-					(
-						$table_name_1c_task,
-						$insert_data
-					);
-					
-					$image_pos++;
-					
-					/* Set time limit */
-					set_time_limit(600);
+						);
+						$insert_data = $res["data"];
+						
+						$wpdb->insert
+						(
+							$table_name_1c_task,
+							$insert_data
+						);
+						
+						$image_pos++;
+						
+						/* Set time limit */
+						set_time_limit(600);
+					}
 				}
 			}
 		}
