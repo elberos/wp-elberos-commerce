@@ -84,7 +84,7 @@ class Settings
 		/* Default value */
 		if ($item["elberos_commerce_1c_file_max_size"] == "")
 		{
-			$item["elberos_commerce_1c_file_max_size"] = "32";
+			$item["elberos_commerce_1c_file_max_size"] = "12";
 		}
 		if ($item["elberos_commerce_1c_file_default_size"] == "")
 		{
@@ -172,7 +172,7 @@ class Settings
 		<!-- 1C File Default Size -->
 		<p>
 		    <label for="elberos_commerce_1c_file_default_size">
-				<?php _e('1C Default size (Mb):', 'elberos-commerce')?>
+				<?php _e('1C Default file size (Mb):', 'elberos-commerce')?>
 			</label>
 		<br>
             <input id="elberos_commerce_1c_file_default_size"
@@ -183,7 +183,7 @@ class Settings
 		<!-- 1C File Max Size -->
 		<p>
 		    <label for="elberos_commerce_1c_file_max_size">
-				<?php _e('1C Max Size (Mb):', 'elberos-commerce')?>
+				<?php _e('1C Max file size (Mb):', 'elberos-commerce')?>
 			</label>
 		<br>
             <input id="elberos_commerce_1c_file_max_size"

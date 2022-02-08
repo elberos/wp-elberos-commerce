@@ -320,6 +320,30 @@ class Helper
 	
 	
 	/**
+	 * Update task progress
+	 */
+	static function updateTaskTotal($import_id)
+	{
+		global $wpdb;
+		
+		$total = static::getTaskTotal($import_id);
+		$table_name_1c_import = $wpdb->base_prefix . "elberos_commerce_1c_import";
+		
+		$wpdb->update
+		(
+			$table_name_1c_import,
+			[
+				"total" => $total,
+			],
+			[
+				"id" => $import_id,
+			]
+		);
+	}
+	
+	
+	
+	/**
 	 * Get total
 	 */
 	static function getTaskError($import_id)
@@ -340,4 +364,37 @@ class Helper
 		return $c;
 	}
 	
+	
+	
+	/**
+	 * Delete old task
+	 */
+	static function deleteOldTask()
+	{
+		global $wpdb;
+		
+		$max_task = 100000;
+		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		$table_name_1c_import = $wpdb->base_prefix . "elberos_commerce_1c_import";
+		
+		$sql = "select max(task.id) from ${table_name_1c_task} as task where task.status=1";
+		//var_dump( $sql );
+		
+		$max_task_id = $wpdb->get_var($sql);
+		//var_dump( $max_task_id );
+		
+		if ($max_task_id != null)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"delete from $table_name_1c_task " .
+				"where id < :task_id and status=1",
+				[
+					'task_id' => $max_task_id - $max_task,
+				]
+			);
+			//var_dump( $sql );
+			$wpdb->query($sql);
+		}
+	}
 }

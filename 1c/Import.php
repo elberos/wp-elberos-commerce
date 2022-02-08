@@ -276,6 +276,7 @@ class Import
 		$classifier_code_1c = (string)$this->xml->Классификатор->Ид;
 		$classifier = Helper::findClassifierByCode( $classifier_code_1c );
 		$classifier_id = ($classifier != null) ? $classifier["id"] : 0;
+		$task_count = 0;
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
@@ -346,6 +347,13 @@ class Import
 					
 					/* Set time limit */
 					set_time_limit(600);
+					
+					/* Update task progress */
+					if ($task_count % 20 == 0)
+					{
+						Helper::updateTaskTotal($this->import["id"]);
+					}
+					$task_count++;
 				}
 				
 			}
@@ -392,6 +400,7 @@ class Import
 		$catalog_code_1c = (string)$this->xml->Каталог->Ид;
 		$catalog = Helper::findCatalogByCode( $catalog_code_1c );
 		$catalog_id = ($catalog != null) ? $catalog["id"] : 0;
+		$task_count = 0;
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
@@ -433,6 +442,13 @@ class Import
 					$table_name_1c_task,
 					$insert_data
 				);
+				
+				/* Update task progress */
+				if ($task_count % 20 == 0)
+				{
+					Helper::updateTaskTotal($this->import["id"]);
+				}
+				$task_count++;
 				
 				$this->count_products += 1;
 				
@@ -479,6 +495,13 @@ class Import
 						
 						/* Set time limit */
 						set_time_limit(600);
+						
+						/* Update task progress */
+						if ($task_count % 20 == 0)
+						{
+							Helper::updateTaskTotal($this->import["id"]);
+						}
+						$task_count++;
 					}
 				}
 			}
@@ -496,6 +519,7 @@ class Import
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		$task_count = 0;
 		
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
@@ -551,6 +575,13 @@ class Import
 						
 						/* Set time limit */
 						set_time_limit(600);
+						
+						/* Update task progress */
+						if ($task_count % 20 == 0)
+						{
+							Helper::updateTaskTotal($this->import["id"]);
+						}
+						$task_count++;
 					}
 				}
 			}
@@ -568,6 +599,7 @@ class Import
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		$task_count = 0;
 		
 		$xml = $this->xml->Классификатор;
 		if ($xml != null && $xml->getName() == 'Классификатор')
@@ -618,6 +650,13 @@ class Import
 						
 						/* Set time limit */
 						set_time_limit(600);
+						
+						/* Update task progress */
+						if ($task_count % 20 == 0)
+						{
+							Helper::updateTaskTotal($this->import["id"]);
+						}
+						$task_count++;
 					}
 				}
 			}
@@ -635,6 +674,7 @@ class Import
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		$task_count = 0;
 		
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
@@ -690,6 +730,13 @@ class Import
 						
 						/* Set time limit */
 						set_time_limit(600);
+						
+						/* Update task progress */
+						if ($task_count % 20 == 0)
+						{
+							Helper::updateTaskTotal($this->import["id"]);
+						}
+						$task_count++;
 					}
 				}
 			}
@@ -707,6 +754,7 @@ class Import
 		
 		/* Таблица */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+		$task_count = 0;
 		
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
@@ -762,6 +810,13 @@ class Import
 						
 						/* Set time limit */
 						set_time_limit(600);
+						
+						/* Update task progress */
+						if ($task_count % 20 == 0)
+						{
+							Helper::updateTaskTotal($this->import["id"]);
+						}
+						$task_count++;
 					}
 				}
 			}

@@ -401,85 +401,203 @@ class Product_Table extends \Elberos\Table
 	
 	
 	/**
-	 * Фильтр
+	 * Returns true if show filter
 	 */
-	function extra_tablenav( $which )
+	function is_show_filter()
 	{
-		$catalog_field = $this->struct->getField("catalog_id");
-		$catalog_options = isset($catalog_field["options"]) ? $catalog_field["options"] : [];
-		$category_field = $this->struct->getField("category_id");
-		$category_options = isset($category_field["options"]) ? $category_field["options"] : [];
-		if ( $which == "top" )
+		list($_,$result) = apply_filters("elberos_table_is_show_filter_" . get_called_class(), [$this,true]);
+		return $result;
+	}
+	
+	
+	
+	/**
+	 * Returns filter elements
+	 */
+	function get_filter()
+	{
+		return [
+			"catalog_id",
+			"category_id",
+			"vendor_code",
+			"name",
+			"product_id",
+			"code_1c",
+		];
+	}
+	
+	
+	
+	/**
+	 * JQ filter sub
+	 */
+	function jq_filter_sub()
+	{
+		return
+		[
+			"is_deleted",
+			"order",
+			"orderby",
+			"show_in_catalog",
+			"show_in_top",
+		];
+	}
+	
+	
+	
+	/**
+	 * Show filter item
+	 */
+	function show_filter_item($item_name)
+	{
+		if ($item_name == "catalog_id")
 		{
-			$catalog_id = isset($_GET["catalog_id"]) ? $_GET["catalog_id"] : "";
-			$category_id = isset($_GET["category_id"]) ? $_GET["category_id"] : "";
-			$name = isset($_GET["name"]) ? $_GET["name"] : "";
-			$order = isset($_GET["order"]) ? $_GET["order"] : "";
-			$orderby = isset($_GET["orderby"]) ? $_GET["orderby"] : "";
-			$is_deleted = isset($_GET["is_deleted"]) ? $_GET["is_deleted"] : "";
-			$show_in_catalog = isset($_GET["show_in_catalog"]) ? $_GET["show_in_catalog"] : "";
-			$show_in_top = isset($_GET["show_in_top"]) ? $_GET["show_in_top"] : "";
+			$catalog_field = $this->struct->getField("catalog_id");
+			$catalog_options = isset($catalog_field["options"]) ? $catalog_field["options"] : [];
 			?>
-			<div style="clear: both; padding-top: 10px;"></div>
-			<span class="table_filter">
-				<select name="catalog_id" class="web_form_value">
-					<option value="">Выберите каталог</option>
-					<?php
-						foreach ($catalog_options as $option)
-						{
-							$checked = \Elberos\is_get_selected("catalog_id", $option["id"]);
-							echo '<option value="'.
-								esc_attr($option['id']) . '"' . $checked . '>' .
-								esc_html($option['value']) .
-							'</option>';
-						}
-					?>
-				</select>
-				<select name="category_id" class="web_form_value">
-					<option value="">Выберите категорию</option>
-					<?php
-						foreach ($category_options as $option)
-						{
-							$checked = \Elberos\is_get_selected("category_id", $option["id"]);
-							echo '<option value="'.
-								esc_attr($option['id']) . '"' . $checked . '>' .
-								esc_html($option['value']) .
-							'</option>';
-						}
-					?>
-				</select>
-				<input type="text" name="vendor_code" class="web_form_value" placeholder="Артикул"
-					value="<?= esc_attr( isset($_GET["vendor_code"]) ? $_GET["vendor_code"] : "" ) ?>">
-				<input type="text" name="name" class="web_form_value" placeholder="Название товара"
-					value="<?= esc_attr( isset($_GET["name"]) ? $_GET["name"] : "" ) ?>">
-				<input type="text" name="product_id" class="web_form_value" placeholder="ID товара"
-					value="<?= esc_attr( isset($_GET["product_id"]) ? $_GET["product_id"] : "" ) ?>">
-				<input type="text" name="code_1c" class="web_form_value" placeholder="Код 1С"
-					value="<?= esc_attr( isset($_GET["code_1c"]) ? $_GET["code_1c"] : "" ) ?>">
-				<br/>
-				<br/>
-				<input type="button" class="button dosearch" value="Поиск">
-			</span>
-			<script>
-			jQuery(".dosearch").click(function(){
-				var filter = [];
-				<?= $is_deleted == "true" ? "filter.push('is_deleted=true');" : "" ?>
-				<?= $show_in_catalog == "true" ? "filter.push('show_in_catalog=true');" : "" ?>
-				<?= $show_in_top == "true" ? "filter.push('show_in_top=true');" : "" ?>
-				<?= $order != "" ? "filter.push('order='+" . json_encode($order) . ");" : "" ?>
-				<?= $orderby != "" ? "filter.push('orderby='+" . json_encode($orderby) . ");" : "" ?>
-				jQuery(".table_filter .web_form_value").each(function(){
-					var name = jQuery(this).attr("name");
-					var value = jQuery(this).val();
-					if (value != "") filter.push(name + "=" + encodeURIComponent(value));
-				});
-				filter = filter.join("&");
-				if (filter != "") filter = "&" + filter;
-				document.location.href = 'admin.php?page=elberos-commerce'+filter;
-			});
-			</script>
+			<select name="catalog_id" class="web_form_value">
+				<option value="">Выберите каталог</option>
+				<?php
+					foreach ($catalog_options as $option)
+					{
+						$checked = \Elberos\is_get_selected("catalog_id", $option["id"]);
+						echo '<option value="'.
+							esc_attr($option['id']) . '"' . $checked . '>' .
+							esc_html($option['value']) .
+						'</option>';
+					}
+				?>
+			</select>
 			<?php
 		}
+		else if ($item_name == "category_id")
+		{
+			$category_field = $this->struct->getField("category_id");
+			$category_options = isset($category_field["options"]) ? $category_field["options"] : [];
+			?>
+			<select name="category_id" class="web_form_value">
+				<option value="">Выберите категорию</option>
+				<?php
+					foreach ($category_options as $option)
+					{
+						$checked = \Elberos\is_get_selected("category_id", $option["id"]);
+						echo '<option value="'.
+							esc_attr($option['id']) . '"' . $checked . '>' .
+							esc_html($option['value']) .
+						'</option>';
+					}
+				?>
+			</select>
+			<?php
+		}
+		else if ($item_name == "vendor_code")
+		{
+			?>
+			<input type="text" name="vendor_code" class="web_form_value" placeholder="Артикул"
+				value="<?= esc_attr( isset($_GET["vendor_code"]) ? $_GET["vendor_code"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "name")
+		{
+			?>
+			<input type="text" name="name" class="web_form_value" placeholder="Название товара"
+				value="<?= esc_attr( isset($_GET["name"]) ? $_GET["name"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "product_id")
+		{
+			?>
+			<input type="text" name="product_id" class="web_form_value" placeholder="ID товара"
+				value="<?= esc_attr( isset($_GET["product_id"]) ? $_GET["product_id"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "code_1c")
+		{
+			?>
+			<input type="text" name="code_1c" class="web_form_value" placeholder="Код 1С"
+				value="<?= esc_attr( isset($_GET["code_1c"]) ? $_GET["code_1c"] : "" ) ?>">
+			<?php
+		}
+		else
+		{
+			parent::show_filter_item($item_name);
+		}
+	}
+	
+	
+	
+	/**
+	 * Process items params
+	 */
+	function prepare_table_items_filter($params)
+	{
+		global $wpdb;
+		
+		$params = parent::prepare_table_items_filter($params);
+		
+		/* Catalog id */
+		if (isset($_GET["catalog_id"]))
+		{
+			$params["where"][] = "catalog_id=:catalog_id";
+			$params["args"]["catalog_id"] = (int)$_GET["catalog_id"];
+		}
+		
+		/* Category id */
+		if (isset($_GET["category_id"]))
+		{
+			$products_categories_table = $wpdb->base_prefix .
+				"elberos_commerce_products_categories as products_categories";
+			$params["join"][] = "inner join " . $products_categories_table .
+				" on (t.id = products_categories.product_id) ";
+			$params["where"][] = "products_categories.category_id = :current_category_id";
+			$params["args"]["current_category_id"] = (int)$_GET["category_id"];
+		}
+		
+		/* Vendor code */
+		if (isset($_GET["vendor_code"]))
+		{
+			$params["where"][] = "vendor_code like :vendor_code";
+			//$params["args"]["vendor_code"] = $_GET["vendor_code"];
+			$params["args"]["vendor_code"] = "%" . $wpdb->esc_like($_GET["vendor_code"]) . "%";
+		}
+		
+		/* Name */
+		if (isset($_GET["name"]))
+		{
+			$params["where"][] = "name like :name";
+			$params["args"]["name"] = "%" . $wpdb->esc_like($_GET["name"]) . "%";
+		}
+		
+		/* code 1c */
+		if (isset($_GET["code_1c"]))
+		{
+			$params["where"][] = "code_1c like :code_1c";
+			//$params["args"]["code_1c"] = $_GET["code_1c"];
+			$params["args"]["code_1c"] = "%" . $wpdb->esc_like($_GET["code_1c"]) . "%";
+		}
+		
+		/* code 1c */
+		if (isset($_GET["product_id"]))
+		{
+			$params["where"][] = "id = :product_id";
+			$params["args"]["product_id"] = $_GET["product_id"];
+		}
+		
+		/* Show in catalog */
+		if (isset($_GET["show_in_catalog"]) && $_GET["show_in_catalog"] == "true")
+		{
+			$params["where"][] = "show_in_catalog=1";
+			$params["where"][] = "is_deleted=0";
+		}
+		
+		/* Show in top */
+		if (isset($_GET["show_in_top"]) && $_GET["show_in_top"] == "true")
+		{
+			$params["where"][] = "show_in_top=1";
+			$params["where"][] = "is_deleted=0";
+		}
+		
+		return $params;
 	}
 	
 	
@@ -491,98 +609,7 @@ class Product_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
-		$args = [];
-		$where = [];
-		$join = [];
-		
-		/* Catalog id */
-		if (isset($_GET["catalog_id"]))
-		{
-			$where[] = "catalog_id=:catalog_id";
-			$args["catalog_id"] = (int)$_GET["catalog_id"];
-		}
-		
-		/* Category id */
-		if (isset($_GET["category_id"]))
-		{
-			$products_categories_table = $wpdb->base_prefix .
-				"elberos_commerce_products_categories as products_categories";
-			$join[] = "inner join " . $products_categories_table .
-				" on (t.id = products_categories.product_id) ";
-			$where[] = "products_categories.category_id = :current_category_id";
-			$args["current_category_id"] = (int)$_GET["category_id"];
-		}
-		
-		/* Vendor code */
-		if (isset($_GET["vendor_code"]))
-		{
-			$where[] = "vendor_code = :vendor_code";
-			$args["vendor_code"] = $_GET["vendor_code"];
-		}
-		
-		/* Name */
-		if (isset($_GET["name"]))
-		{
-			$where[] = "name like :name";
-			$args["name"] = "%" . $wpdb->esc_like($_GET["name"]) . "%";
-		}
-		
-		/* code 1c */
-		if (isset($_GET["code_1c"]))
-		{
-			$where[] = "code_1c = :code_1c";
-			$args["code_1c"] = $_GET["code_1c"];
-		}
-		
-		/* code 1c */
-		if (isset($_GET["product_id"]))
-		{
-			$where[] = "id = :product_id";
-			$args["product_id"] = $_GET["product_id"];
-		}
-		
-		/* Show in catalog */
-		if (isset($_GET["show_in_catalog"]) && $_GET["show_in_catalog"] == "true")
-		{
-			$where[] = "show_in_catalog=1";
-			$where[] = "is_deleted=0";
-		}
-		
-		/* Show in top */
-		if (isset($_GET["show_in_top"]) && $_GET["show_in_top"] == "true")
-		{
-			$where[] = "show_in_top=1";
-			$where[] = "is_deleted=0";
-		}
-		
-		/* Is deleted */
-		if (isset($_GET["is_deleted"]) && $_GET["is_deleted"] == "true")
-		{
-			$where[] = "is_deleted=1";
-		}
-		else
-		{
-			$where[] = "is_deleted=0";
-		}
-		
-		$per_page = $this->per_page();
-		list($items, $total_items, $pages, $page) = \Elberos\wpdb_query
-		([
-			"table_name" => $this->get_table_name(),
-			"where" => implode(" and ", $where),
-			"join" => implode(" ", $join),
-			"args" => $args,
-			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
-			"per_page" => $per_page,
-			//"log" => true,
-		]);
-		
-		$this->items = $items;
-		$this->set_pagination_args(array(
-			'total_items' => $total_items, 
-			'per_page' => $per_page,
-			'total_pages' => ceil($total_items / $per_page) 
-		));
+		parent::prepare_table_items();
 		
 		/* Items id */
 		$this->items_id = array_map

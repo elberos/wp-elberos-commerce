@@ -298,6 +298,7 @@ class Controller
 	{
 		$filefolder = ABSPATH . "wp-content/uploads/1c_uploads";
 		$file_max_size = static::getKey("elberos_commerce_1c_file_max_size", "");
+		$file_max_size_orig = $file_max_size;
 		$file_max_size = $file_max_size * 1024 * 1024;
 		
 		/* Создаем папку если не была создана */
@@ -344,7 +345,9 @@ class Controller
 			
 			if ($content_sz >= $file_max_size)
 			{
-				echo "failed upload " . $filename . ". Max size exceed\n";
+				echo "failed upload " . $filename .
+					" (" . round($content_sz / 1024 / 1024) . "Mb)" .
+					". Max size ${file_max_size_orig}Mb exceed\n";
 				echo "size=" . strlen($content);
 				return;
 			}
@@ -468,7 +471,7 @@ class Controller
 		/* Если закончили */
 		else if ($item['status'] == Helper::IMPORT_STATUS_DONE)
 		{
-			static::actionSuccess();
+			static::actionCatalogImportSuccess();
 			echo "success";
 		}
 		
@@ -483,9 +486,9 @@ class Controller
 	
 	
 	/**
-	 * Успешная загрузка
+	 * Успешная загрузка каталога
 	 */
-	static function actionSuccess()
+	static function actionCatalogImportSuccess()
 	{
 		global $wpdb;
 		
@@ -506,6 +509,9 @@ class Controller
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
 		$sql = "delete from " . $table_name_products_photos . " where `is_deleted` = 1";
 		$wpdb->query($sql);
+		
+		/* Оставляем последние 100 тысяч тасков */
+		Helper::deleteOldTask();
 	}
 	
 	
@@ -555,6 +561,7 @@ class Controller
 			$instance->loadContent();
 			
 			/* Меняем статус */
+			$import["total"] = Helper::getTaskTotal($instance->import["id"]);
 			$import['status'] = Helper::IMPORT_STATUS_WORK;
 			$import['error_code'] = 0;
 			$import['error_message'] = '';
@@ -1086,6 +1093,10 @@ class Controller
 	{
 		global $wpdb;
 		
+		/* Оставляем последние 100 тысяч тасков */
+		Helper::deleteOldTask();
+		
+		/* Читаем xml */
 		$content = file_get_contents("php://input");
 		
 		try

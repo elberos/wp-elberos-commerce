@@ -104,6 +104,7 @@ class Task_Struct extends \Elberos\StructBuilder
 				"options" =>
 				[
 					["id"=>"product_param", "value"=>"Параметр товара"],
+					["id"=>"product_image", "value"=>"Картинка товара"],
 					["id"=>"product", "value"=>"Товар"],
 					["id"=>"category", "value"=>"Категории"],
 					["id"=>"price_type", "value"=>"Тип цены"],

@@ -473,7 +473,6 @@ class Task
 			]
 		);
 		
-		
 		/* Do filter elberos_commerce_1c_import_product */
 		$res = apply_filters
 		(
@@ -515,6 +514,7 @@ class Task
 		$image_path = (string)$xml;
 		$image_path_full = Controller::getFilePath($session_id, $image_path);
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		$products_photo_term_id = (int)\Elberos\get_option("elberos_commerce_products_photos_term_id");
 		
 		$photo_pos = (string) ($xml->attributes()->pos);
 		$code_1c = (string) ($xml->attributes()->code_1c);
@@ -531,90 +531,99 @@ class Task
 		
 		if (is_file($image_path_full))
 		{
-			
 			$photo_id = \Elberos\upload_file($image_path_full, [
 				"title" => $product["name"],
 			]);
 			
-			/*
-			var_dump("---");
-			var_dump($product["id"]);
-			var_dump($photo_id);
-			var_dump($photo_pos);
-			*/
-			
-			/* Загрузка картинки */
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name_products_photos " .
-				"where product_id=:product_id and photo_id=:photo_id limit 1",
-				[
-					"product_id" => $product["id"],
-					"photo_id" => $photo_id,
-				]
-			);
-			/*var_dump($sql);*/
-			$item = $wpdb->get_row($sql, ARRAY_A);
-			
-			if (!$item)
+			/* Update term */
+			if ($photo_id > 0 && $products_photo_term_id > 0)
 			{
-				/*var_dump("Insert");*/
-				$wpdb->insert
-				(
-					$table_name_products_photos,
-					[
-						"product_id" => $product["id"],
-						"photo_id" => $photo_id,
-						"pos" => $photo_pos,
-						"is_deleted" => 0,
-					]
-				);
+				\Elberos\update_term_id($photo_id, $products_photo_term_id);
 			}
-			else
+			
+			/* If photo exists */
+			if ($photo_id > 0)
 			{
-				/*var_dump("Update");*/
+				/* Загрузка картинки */
 				$sql = \Elberos\wpdb_prepare
 				(
-					"update $table_name_products_photos set pos=:pos, is_deleted=0 " .
+					"select * from $table_name_products_photos " .
 					"where product_id=:product_id and photo_id=:photo_id limit 1",
 					[
-						"pos" => $photo_pos,
 						"product_id" => $product["id"],
 						"photo_id" => $photo_id,
 					]
 				);
 				/*var_dump($sql);*/
-				$wpdb->query($sql);
-			}
-			
-			/* Обновляем id фото */
-			if ($photo_pos == 0)
-			{
-				$product_update =
-				[
-					"main_photo_id" => $photo_id,
-					"just_show_in_catalog" => 1,
-				];
+				$item = $wpdb->get_row($sql, ARRAY_A);
 				
-				/* Do filter elberos_commerce_1c_update_product_main_photo */
-				$res = apply_filters
-				(
-					'elberos_commerce_1c_update_product_main_photo',
+				if (!$item)
+				{
+					/*var_dump("Insert");*/
+					$wpdb->insert
+					(
+						$table_name_products_photos,
+						[
+							"product_id" => $product["id"],
+							"photo_id" => $photo_id,
+							"pos" => $photo_pos,
+							"is_deleted" => 0,
+						]
+					);
+				}
+				else
+				{
+					/*var_dump("Update");*/
+					$sql = \Elberos\wpdb_prepare
+					(
+						"update $table_name_products_photos set pos=:pos, is_deleted=0 " .
+						"where product_id=:product_id and photo_id=:photo_id limit 1",
+						[
+							"pos" => $photo_pos,
+							"product_id" => $product["id"],
+							"photo_id" => $photo_id,
+						]
+					);
+					/*var_dump($sql);*/
+					$wpdb->query($sql);
+				}
+				
+				/* Обновляем id фото */
+				if ($photo_pos == 0)
+				{
+					$product_update =
 					[
-						'xml'=>$xml,
-						'photo_id'=>$photo_id,
-						'product_update' => $product_update,
-					]
-				);
-				$product_update = $res["product_update"];
+						"main_photo_id" => $photo_id,
+						"just_show_in_catalog" => 1,
+					];
+					
+					/* Do filter elberos_commerce_1c_update_product_main_photo */
+					$res = apply_filters
+					(
+						'elberos_commerce_1c_update_product_main_photo',
+						[
+							'xml'=>$xml,
+							'photo_id'=>$photo_id,
+							'product_update' => $product_update,
+						]
+					);
+					$product_update = $res["product_update"];
+					
+					$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+					$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+				}
 				
-				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-				$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+				/* Отмечаем задачу как обработанную */
+				$task["error_code"] = 1;
+				$task["status"] = Helper::TASK_STATUS_DONE;
 			}
-			
-			/* Отмечаем задачу как обработанную */
-			$task["error_code"] = 1;
-			$task["status"] = Helper::TASK_STATUS_DONE;
+			else
+			{
+				/* Отмечаем ошибку загрузка файлов не удалась */
+				$task["error_code"] = -1;
+				$task["error_message"] = "Image upload error " . $image_path_full;
+				$task["status"] = Helper::TASK_STATUS_ERROR;
+			}
 		}
 		
 		else
