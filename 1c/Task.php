@@ -595,6 +595,19 @@ class Task
 					"main_photo_id" => $photo_id,
 					"just_show_in_catalog" => 1,
 				];
+				
+				/* Do filter elberos_commerce_1c_update_product_main_photo */
+				$res = apply_filters
+				(
+					'elberos_commerce_1c_update_product_main_photo',
+					[
+						'xml'=>$xml,
+						'photo_id'=>$photo_id,
+						'product_update' => $product_update,
+					]
+				);
+				$product_update = $res["product_update"];
+				
 				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
 				$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
 			}
