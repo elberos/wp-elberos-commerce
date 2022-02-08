@@ -347,7 +347,7 @@ class Task
 			}
 		}
 		
-		/* Удаление фото */
+		/* Помечаем фото на удаление */
 		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
 		$sql = \Elberos\wpdb_prepare
 		(
@@ -358,6 +358,7 @@ class Task
 		);
 		$wpdb->query($sql);
 		
+		/* Помечаем товар, чтобы потом скрыть, если не обновится флаг */
 		$product_update["just_show_in_catalog"] = 0;
 		
 		/* Обновляем данные параметров товара */
@@ -446,7 +447,6 @@ class Task
 		/* Удаляем старые значения */
 		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
 		
-		
 		/* Обновляем текста для поиска */
 		$search_text = [];
 		foreach ($text as $arr1)
@@ -479,6 +479,7 @@ class Task
 			'elberos_commerce_1c_import_product',
 			[
 				'xml'=>$xml,
+				'product' => $product,
 				'product_update' => $product_update,
 			]
 		);
@@ -602,9 +603,10 @@ class Task
 					(
 						'elberos_commerce_1c_update_product_main_photo',
 						[
-							'xml'=>$xml,
-							'photo_id'=>$photo_id,
+							'xml' => $xml,
+							'product' => $product,
 							'product_update' => $product_update,
+							'photo_id' => $photo_id,
 						]
 					);
 					$product_update = $res["product_update"];

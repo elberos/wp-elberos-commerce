@@ -405,6 +405,8 @@ class Controller
 		);
 		
 		$item = $wpdb->get_row($sql, ARRAY_A);
+		$is_created = false;
+		$fastcgi_finish = false;
 		
 		/* Если элемент не найден */
 		if ($item == null)
@@ -428,6 +430,7 @@ class Controller
 				]
 			);
 			$item = $wpdb->get_row($sql, ARRAY_A);
+			$is_created = true;
 		}
 		
 		$progress = "";
@@ -435,7 +438,31 @@ class Controller
 		/* Если файл запланирован */
 		if ($item['status'] == Helper::IMPORT_STATUS_PLAN)
 		{
-			$item = static::catalogImportContent($item);
+			if ($is_created)
+			{
+				echo "progress\n";
+				
+				session_write_close();
+				fastcgi_finish_request();
+				$fastcgi_finish = true;
+				
+				$item = static::catalogImportContent($item);
+			}
+			else
+			{
+				/* Wait message */
+				sleep( mt_rand(10, 20) );
+				
+				$progress = Helper::getTaskProgress($item['id']);
+				$total = Helper::getTaskTotal($item['id']);
+				$errors = Helper::getTaskError($item['id']);
+				$str = $progress . " / " . $total . ". Errors: " . $errors;
+				
+				echo "progress\n";
+				echo $str . "\n";
+				
+				return;
+			}
 		}
 		
 		/* Выполняем задачи */
@@ -461,25 +488,28 @@ class Controller
 			]
 		);
 		
-		/* Если ошибка импорта */
-		if ($item['status'] == Helper::IMPORT_STATUS_ERROR)
+		if (!$fastcgi_finish)
 		{
-			echo "failed\n";
-			echo $item['error_message'];
-		}
-		
-		/* Если закончили */
-		else if ($item['status'] == Helper::IMPORT_STATUS_DONE)
-		{
-			static::actionCatalogImportSuccess();
-			echo "success";
-		}
-		
-		/* Продолжаем обработку */
-		else
-		{
-			echo "progress\n";
-			echo $progress . "\n";
+			/* Если ошибка импорта */
+			if ($item['status'] == Helper::IMPORT_STATUS_ERROR)
+			{
+				echo "failed\n";
+				echo $item['error_message'];
+			}
+			
+			/* Если закончили */
+			else if ($item['status'] == Helper::IMPORT_STATUS_DONE)
+			{
+				static::actionCatalogImportSuccess();
+				echo "success";
+			}
+			
+			/* Продолжаем обработку */
+			else
+			{
+				echo "progress\n";
+				echo $progress . "\n";
+			}
 		}
 	}
 	
