@@ -440,12 +440,13 @@ class Controller
 		{
 			if ($is_created)
 			{
-				echo "progress\n";
-				
-				session_write_close();
-				fastcgi_finish_request();
-				$fastcgi_finish = true;
-				
+				if (function_exists( 'fastcgi_finish_request' ))
+				{
+					echo "progress\n";
+					session_write_close();
+					fastcgi_finish_request();
+					$fastcgi_finish = true;
+				}
 				$item = static::catalogImportContent($item);
 			}
 			else
@@ -936,7 +937,7 @@ class Controller
 		}
 		
 		/* Get XML */
-		$xml_content = $content->asXml();
+		// $xml_content = $content->asXml();
 		
 		/* Convert to Windows-1251 */
 		/*
@@ -948,6 +949,10 @@ class Controller
 		);
 		$xml_content = iconv('utf-8','windows-1251',$xml_content);
 		*/
+		
+		$dom = dom_import_simplexml($content)->ownerDocument;
+		$dom->formatOutput = true;
+		$xml_content = $dom->saveXML();
 		
 		return $xml_content;
 	}
@@ -1128,6 +1133,7 @@ class Controller
 		
 		/* Читаем xml */
 		$content = file_get_contents("php://input");
+		$error_message = null;
 		
 		try
 		{
