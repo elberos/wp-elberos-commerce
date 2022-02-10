@@ -295,7 +295,7 @@ class Product_Table extends \Elberos\Table
 		$sql = $wpdb->prepare
 		(
 			"SELECT t.*, catalog.classifier_id FROM $table_name as t " .
-			"INNER JOIN $table_name_catalog as catalog on (catalog.id = t.catalog_id) " .
+			"LEFT JOIN $table_name_catalog as catalog on (catalog.id = t.catalog_id) " .
 			"WHERE t.id = %d limit 1",
 			$item_id
 		);

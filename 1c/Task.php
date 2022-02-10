@@ -1012,6 +1012,16 @@ class Task
 		/* Код 1с */
 		/* $task["code_1c"] = $offer_code_1c; */
 		
+		/* Do filter elberos_commerce_1c_update_product_offer */
+		$res = apply_filters
+		(
+			'elberos_commerce_1c_update_product_offer',
+			[
+				'xml' => $xml,
+				'product' => $product,
+			]
+		);
+		
 		/* Отмечаем задачу как обработанную */
 		$task["error_code"] = 1;
 		$task["status"] = Helper::TASK_STATUS_DONE;
