@@ -343,6 +343,11 @@ class Task
 							"category_id" => $category["id"],
 						]
 					);
+					
+					if (!isset($product_update["main_category_id"]))
+					{
+						$product_update["main_category_id"] = $category["id"];
+					}
 				}
 			}
 		}
@@ -985,6 +990,7 @@ class Task
 					$price = \Elberos\mb_trim((string)$item->ЦенаЗаЕдиницу);
 					$currency = \Elberos\mb_trim((string)$item->Валюта);
 					$coefficient = \Elberos\mb_trim((string)$item->Коэффициент);
+					$price = (double)preg_replace("/[^0-9\.]/","",$price);
 					
 					\Elberos\wpdb_insert_or_update
 					(

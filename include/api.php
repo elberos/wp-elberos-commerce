@@ -531,6 +531,7 @@ class Api
 				"product_text" => isset($product_item["text"]) ? $product_item["text"] : [],
 				"product_vendor_code" => isset($product_item["vendor_code"]) ? $product_item["vendor_code"] : "",
 				"product_xml" => isset($product_item["xml"]) ? $product_item["xml"] : "",
+				"product_item" => $product_item,
 			];
 		}
 		
