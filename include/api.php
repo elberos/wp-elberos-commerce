@@ -259,6 +259,8 @@ class Api
 					"offer_currency" => $item["offer_currency"],
 					"offer_coefficient" => $item["offer_coefficient"],
 					"offer_unit" => $item["offer_unit"],
+					"discount_value" => 0,
+					"discount_type" => "",
 				];
 				
 				$res = apply_filters
@@ -412,9 +414,9 @@ class Api
 		}
 		
 		/* Json encode */
-		$table_data["form_data"] = json_encode($form_data);
-		$table_data["basket_data"] = json_encode($basket_data);
-		$table_data["utm"] = json_encode($utm);
+		$table_data["form_data"] = json_encode($table_data["form_data"]);
+		$table_data["basket_data"] = json_encode($table_data["basket_data"]);
+		$table_data["utm"] = json_encode($table_data["utm"]);
 		
 		/* Insert data */
 		// $wpdb->show_errors();
@@ -818,19 +820,7 @@ class Api
 	 */
 	static function findCatalogByCode($code_1c)
 	{
-		global $wpdb;
-		
-		$table_name = $wpdb->base_prefix . "elberos_commerce_catalogs";
-		$sql = \Elberos\wpdb_prepare
-		(
-			"select * from $table_name " .
-			"where code_1c = :code_1c limit 1",
-			[
-				"code_1c" => $code_1c,
-			]
-		);
-		
-		return $wpdb->get_row($sql, ARRAY_A);
+		return \Elberos\Commerce\_1C\Helper::findCatalogByCode($code_1c);
 	}
 	
 	
@@ -840,27 +830,7 @@ class Api
 	 */
 	static function findPriceTypeByCode($code_1c)
 	{
-		global $wpdb;
-		
-		if ($code_1c == "") return null;
-		
-		if (!array_key_exists($code_1c, static::$price_types))
-		{
-			$table_name = $wpdb->base_prefix . "elberos_commerce_price_types";
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name " .
-				"where code_1c = :code_1c limit 1",
-				[
-					"code_1c" => $code_1c,
-				]
-			);
-			$item = $wpdb->get_row($sql, ARRAY_A);
-			static::$price_types[$code_1c] = $item;
-		}
-		
-		$item = static::$price_types[$code_1c];
-		return $item;
+		return \Elberos\Commerce\_1C\Helper::findPriceTypeByCode($code_1c);
 	}
 	
 	

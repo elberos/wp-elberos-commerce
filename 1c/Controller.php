@@ -789,14 +789,16 @@ class Controller
 		{
 			$offer_unit = isset($basket["offer_unit"]) ? $basket["offer_unit"] : "";
 			$offer_price_id = isset($basket["offer_price_id"]) ? $basket["offer_price_id"] : "";
-			$offer_price = isset($basket["offer_price"]) ? $basket["offer_price"] : "";
+			$offer_price = isset($basket["offer_price"]) ? (double)$basket["offer_price"] : "";
 			$offer_coefficient = isset($basket["offer_coefficient"]) ? $basket["offer_coefficient"] : "";
 			$product_name = isset($basket["product_name"]) ? $basket["product_name"] : "";
 			$product_code_1c = isset($basket["product_code_1c"]) ? $basket["product_code_1c"] : "";
-			$product_count = isset($basket["count"]) ? $basket["count"] : "";
+			$product_count = isset($basket["count"]) ? (double)$basket["count"] : "";
 			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
 			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
 			$product_is_service = isset($basket["product_is_service"]) ? $basket["product_is_service"] : false;
+			$discount_value = isset($basket["discount_value"]) ? (double)$basket["discount_value"] : 0;
+			$discount_type = isset($basket["discount_type"]) ? $basket["discount_type"] : "percent";
 			
 			$product_is_service = isset($product_item['is_service']) ? ((bool)$product_item['is_service']) : false;
 			if ($product_is_service != $is_service)
@@ -842,9 +844,22 @@ class Controller
 				static::copyXMLChild($product, $xml, 'СтавкиНалогов');
 				$product->addChild('ЦенаЗаЕдиницу', $offer_price);
 				$product->addChild('Количество', $product_count);
-				$product->addChild('Сумма', $offer_price * $product_count);
 				$product->addChild('Единица', $offer_unit);
 				$product->addChild('Коэффициент', $offer_coefficient);
+				
+				/* Скидки */
+				if ($discount_type == "percent" && $discount_value > 0 && $discount_value <= 100)
+				{
+					$product->addChild('Сумма', $offer_price * $product_count * (1 - $discount_value/100));
+					$xml_discounts = $product->addChild('Скидки', $offer_price);
+					$xml_discount = $xml_discounts->addChild('Скидка', $offer_price);
+					$xml_discounts->addChild('Процент', $discount_value);
+					$xml_discounts->addChild('УчтеноВСумме', true);
+				}
+				else
+				{
+					$product->addChild('Сумма', $offer_price * $product_count);
+				}
 				
 				// Значения реквизитов
 				$values = $product->addChild('ЗначенияРеквизитов');

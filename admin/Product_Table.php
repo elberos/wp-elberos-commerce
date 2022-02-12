@@ -84,6 +84,7 @@ class Product_Table extends \Elberos\Table
 					"catalog_id",
 					"show_in_catalog",
 					"show_in_top",
+					"vendor_code",
 					"name",
 					"code_1c",
 				];
@@ -558,14 +559,14 @@ class Product_Table extends \Elberos\Table
 		{
 			$params["where"][] = "vendor_code like :vendor_code";
 			//$params["args"]["vendor_code"] = $_GET["vendor_code"];
-			$params["args"]["vendor_code"] = "%" . $wpdb->esc_like($_GET["vendor_code"]) . "%";
+			$params["args"]["vendor_code"] = "%" . $wpdb->esc_like(\Elberos\mb_trim($_GET["vendor_code"])) . "%";
 		}
 		
 		/* Name */
 		if (isset($_GET["name"]))
 		{
 			$params["where"][] = "name like :name";
-			$params["args"]["name"] = "%" . $wpdb->esc_like($_GET["name"]) . "%";
+			$params["args"]["name"] = "%" . $wpdb->esc_like(\Elberos\mb_trim($_GET["name"])) . "%";
 		}
 		
 		/* code 1c */
@@ -573,14 +574,14 @@ class Product_Table extends \Elberos\Table
 		{
 			$params["where"][] = "code_1c like :code_1c";
 			//$params["args"]["code_1c"] = $_GET["code_1c"];
-			$params["args"]["code_1c"] = "%" . $wpdb->esc_like($_GET["code_1c"]) . "%";
+			$params["args"]["code_1c"] = "%" . $wpdb->esc_like(\Elberos\mb_trim($_GET["code_1c"])) . "%";
 		}
 		
 		/* code 1c */
 		if (isset($_GET["product_id"]))
 		{
 			$params["where"][] = "id = :product_id";
-			$params["args"]["product_id"] = $_GET["product_id"];
+			$params["args"]["product_id"] = (int)$_GET["product_id"];
 		}
 		
 		/* Show in catalog */

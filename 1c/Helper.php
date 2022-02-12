@@ -183,6 +183,29 @@ class Helper
 	
 	
 	/**
+	 * Find product by id
+	 */
+	static function findProductByID($id)
+	{
+		global $wpdb;
+		
+		$table_name = $wpdb->base_prefix . "elberos_commerce_products";
+		
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from $table_name " .
+			"where id = :id limit 1",
+			[
+				'id' => $id,
+			]
+		);
+		$item = $wpdb->get_row($sql, ARRAY_A);
+		return $item;
+	}
+	
+	
+	
+	/**
 	 * Find product param by 1c code
 	 */
 	static function findProductParamByCode($code_1c)
@@ -395,6 +418,42 @@ class Helper
 			);
 			//var_dump( $sql );
 			$wpdb->query($sql);
+		}
+	}
+	
+	
+	
+	/**
+	 * Add product photo
+	 */
+	static function addProductPhoto($product_id, $photo_id)
+	{
+		global $wpdb;
+		
+		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from " . $table_name_products_photos . " " .
+			"where product_id=:product_id and photo_id=:photo_id limit 1",
+			[
+				"product_id" => $product_id,
+				"photo_id" => $photo_id,
+			]
+		);
+		$product_photo_item = $wpdb->get_row($sql, ARRAY_A);
+		if (!$product_photo_item)
+		{
+			$wpdb->insert
+			(
+				$table_name_products_photos,
+				[
+					"product_id" => $product_id,
+					"photo_id" => $photo_id,
+					"pos" => 0,
+					"is_deleted" => 0,
+				]
+			);
 		}
 	}
 }
