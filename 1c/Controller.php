@@ -932,6 +932,8 @@ class Controller
 	 */
 	static function actionSaleQueryMakeXml($results)
 	{
+		$dt = new \DateTime();
+		$dt->setTimezone( new \DateTimeZone( \Elberos\get_wp_timezone() ) );
 		$content = new \SimpleXMLElement
 		(
 			'<?xml version="1.0" encoding="UTF-8"?>'.
@@ -941,7 +943,7 @@ class Controller
 		//$content->addAttribute('xmlns:xs', 'http://www.w3.org/2001/XMLSchema');
 		//$content->addAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
 		$content->addAttribute('ВерсияСхемы', '2.08');
-		$content->addAttribute('ДатаФормирования', ( new \DateTime() )->format('c'));
+		$content->addAttribute('ДатаФормирования', $dt->format('Y-m-d\TH:i:s'));
 		
 		
 		/* Results */
@@ -979,7 +981,7 @@ class Controller
 	static function makeIvoiceDocument($doc, $invoice)
 	{
 		$doc->addChild('Ид', $invoice['code_1c']);
-		$doc->addChild('Номер', $invoice['id']);
+		$doc->addChild('Номер', "Z-" . $invoice['id']);
 		$doc->addChild('Дата', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'Y-m-d'));
 		$doc->addChild('Время', \Elberos\wp_from_gmtime($invoice['gmtime_add'], 'H:i:s'));
 		$doc->addChild('ХозОперация', 'Заказ товара');
