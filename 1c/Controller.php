@@ -1240,9 +1240,13 @@ class Controller
 							$invoice["form_data"] = @json_decode($invoice["form_data"], true);
 							$invoice["basket_data"] = @json_decode($invoice["basket_data"], true);
 							$invoice["utm"] = @json_decode($invoice["utm"], true);
+							if (!$invoice["utm"]) $invoice["utm"] = [];
+							if (!$invoice["form_data"]) $invoice["form_data"] = [];
+							if (!$invoice["basket_data"]) $invoice["basket_data"] = [];
 							
 							$update_data["form_data"] = $invoice["form_data"];
 							$update_data["basket_data"] = $invoice["basket_data"];
+							$update_data["utm"] = $invoice["utm"];
 							
 							list($invoice, $item, $update_data) = static::updateInvoiceClientData
 							(
