@@ -57,92 +57,12 @@ class Invoice_Table extends \Elberos\Table
 			"admin_table",
 			function ($struct)
 			{
-				
-				$struct
-					->addField
-					([
-						"api_name" => "email",
-						"label" => "Email",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["email"]) ? $form_data["email"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "name",
-						"label" => "Имя",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["name"]) ? $form_data["name"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "surname",
-						"label" => "Фамилия",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["surname"]) ? $form_data["surname"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "user_identifier",
-						"label" => "ИИН",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["user_identifier"]) ? $form_data["user_identifier"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "company_name",
-						"label" => "Название компании",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["company_name"]) ? $form_data["company_name"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "company_bin",
-						"label" => "БИН",
-						"type" => "input",
-						"virtual" => true,
-						"column_value" => function ($struct, $item)
-						{
-							$form_data = @json_decode($item["form_data"], true);
-							return isset($form_data["company_bin"]) ? $form_data["company_bin"] : "";
-						}
-					])
-					->addField
-					([
-						"api_name" => "comment",
-						"label" => "Комментарий",
-						"type" => "input",
-						"virtual" => true,
-					])
-				;
-				
 				$struct->table_fields =
 				[
 					"id",
+					"status",
+					"status_pay",
+					"client_id",
 					"email",
 					"name",
 					"price",
@@ -151,15 +71,22 @@ class Invoice_Table extends \Elberos\Table
 				
 				$struct->form_fields =
 				[
-					"email",
+					"status",
+					"client_id",
+					"type",
 					"name",
 					"surname",
 					"user_identifier",
 					"company_name",
 					"company_bin",
+					"email",
+					"phone",
 					"comment",
 					"price",
+					"price_pay",
+					"status_pay",
 					"gmtime_add",
+					"gmtime_pay",
 				];
 				
 				return $struct;
@@ -272,29 +199,148 @@ class Invoice_Table extends \Elberos\Table
 	
 	
 	/**
+	 * Returns true if show filter
+	 */
+	function is_show_filter()
+	{
+		list($_,$result) = apply_filters("elberos_table_is_show_filter_" . get_called_class(), [$this,true]);
+		return $result;
+	}
+	
+	
+	
+	/**
+	 * Returns filter elements
+	 */
+	function get_filter()
+	{
+		return [
+			"invoice_id",
+			"status",
+			"status_pay",
+			"client_id",
+		];
+	}
+	
+	
+	
+	/**
+	 * Show filter item
+	 */
+	function show_filter_item($item_name)
+	{
+		if ($item_name == "invoice_id")
+		{
+			?>
+			<input type="text" name="invoice_id" class="web_form_value" placeholder="ID инвойса"
+				value="<?= esc_attr( isset($_GET["invoice_id"]) ? $_GET["invoice_id"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "client_id")
+		{
+			?>
+			<input type="text" name="client_id" class="web_form_value" placeholder="ID клиента"
+				value="<?= esc_attr( isset($_GET["client_id"]) ? $_GET["client_id"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "status")
+		{
+			$field = $this->struct->getField("status");
+			$options = isset($field["options"]) ? $field["options"] : [];
+			//var_dump($options);
+			//var_dump($_GET["status"]);
+			?>
+			<select name="status" class="web_form_value">
+				<option value="">Выберите статус</option>
+				<?php
+					foreach ($options as $option)
+					{
+						$checked = \Elberos\is_get_selected("status", $option["id"]);
+						echo '<option value="'.
+							esc_attr($option['id']) . '"' . $checked . '>' .
+							esc_html($option['value']) .
+						'</option>';
+					}
+				?>
+			</select>
+			<?php
+		}
+		else if ($item_name == "status_pay")
+		{
+			$field = $this->struct->getField("status_pay");
+			$options = isset($field["options"]) ? $field["options"] : [];
+			?>
+			<select name="status_pay" class="web_form_value">
+				<option value="">Выберите статус оплаты</option>
+				<?php
+					foreach ($options as $option)
+					{
+						$checked = \Elberos\is_get_selected("status_pay", $option["id"]);
+						echo '<option value="'.
+							esc_attr($option['id']) . '"' . $checked . '>' .
+							esc_html($option['value']) .
+						'</option>';
+					}
+				?>
+			</select>
+			<?php
+		}
+		else
+		{
+			parent::show_filter_item($item_name);
+		}
+	}
+	
+	
+	
+	/**
+	 * Process items params
+	 */
+	function prepare_table_items_filter($params)
+	{
+		global $wpdb;
+		
+		list($_,$params) = apply_filters("elberos_table_prepare_items_params_" . get_called_class(), [$this,$params]);
+		
+		/* invoice_id */
+		if (isset($_GET["invoice_id"]))
+		{
+			$params["where"][] = "id = :invoice_id";
+			$params["args"]["invoice_id"] = (int)$_GET["invoice_id"];
+		}
+		
+		/* client_id */
+		if (isset($_GET["client_id"]))
+		{
+			$params["where"][] = "client_id = :client_id";
+			$params["args"]["client_id"] = (int)$_GET["client_id"];
+		}
+		
+		/* status */
+		if (isset($_GET["status"]))
+		{
+			$params["where"][] = "status = :status";
+			$params["args"]["status"] = (int)$_GET["status"];
+		}
+		
+		/* status_pay */
+		if (isset($_GET["status_pay"]))
+		{
+			$params["where"][] = "status_pay = :status_pay";
+			$params["args"]["status_pay"] = (int)$_GET["status_pay"];
+		}
+		
+		return $params;
+	}
+	
+	
+	
+	/**
 	 * Prepare table items
 	 */
 	function prepare_table_items()
 	{
-		$args = [];
-		$where = [];
-		
-		$per_page = $this->per_page();
-		list($items, $total_items, $pages, $page) = \Elberos\wpdb_query
-		([
-			"table_name" => $this->get_table_name(),
-			"where" => implode(" and ", $where),
-			"args" => $args,
-			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
-			"per_page" => $per_page,
-		]);
-		
-		$this->items = $items;
-		$this->set_pagination_args(array(
-			'total_items' => $total_items, 
-			'per_page' => $per_page,
-			'total_pages' => ceil($total_items / $per_page) 
-		));
+		parent::prepare_table_items();
 	}
 	
 	
@@ -307,11 +353,14 @@ class Invoice_Table extends \Elberos\Table
 		parent::display_css();
 		?>
 		<style>
+		.invoice_table{
+			padding-top: 10px;
+		}
 		.invoice_table *{
 			box-sizing: border-box;
 		}
 		.invoice_table_row {
-			padding-top: 10px;
+			padding-top: 0px;
 			padding-bottom: 10px;
 		}
 		.invoice_table_label{
@@ -432,6 +481,7 @@ class Invoice_Table extends \Elberos\Table
 			$value = $this->struct->getColumnValue($this->form_item, $field_name);
 			if (!$field) continue;
 			if (!$value) continue;
+			//var_dump($field);
 			echo "<div class='invoice_table_row'>";
 			echo "<div class='invoice_table_label'>" . esc_html( isset($field["label"]) ? $field["label"] : "" ) .
 				":</div>";
@@ -449,9 +499,10 @@ class Invoice_Table extends \Elberos\Table
 		echo "<table>";
 		echo "<tr class='invoice_table_product_header'>";
 		echo "<th>Наименование</th>";
-		echo "<th>Цена</th>";
+		echo "<th>Цена за ед</th>";
 		echo "<th>Ед. изм.</th>";
 		echo "<th>Количество</th>";
+		echo "<th>Скидка</th>";
 		echo "<th>Сумма</th>";
 		echo "</tr>";
 		
@@ -466,6 +517,7 @@ class Invoice_Table extends \Elberos\Table
 			$product_count = isset($basket["count"]) ? $basket["count"] : "";
 			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
 			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
+			$discount_value = isset($basket["discount_value"]) ? $basket["discount_value"] : "";
 			
 			echo "<tr class='invoice_table_product_row'>";
 			
@@ -495,6 +547,9 @@ class Invoice_Table extends \Elberos\Table
 			echo "</td>";
 			echo "<td>";
 				echo esc_html($product_count);
+			echo "</td>";
+			echo "<td>";
+				echo esc_html($discount_value) . "%";
 			echo "</td>";
 			echo "<td>";
 				echo "<div class='invoice_table_product_price'>";
