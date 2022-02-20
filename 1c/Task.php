@@ -457,32 +457,6 @@ class Task
 		/* Удаляем старые значения */
 		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
 		
-		/* Обновляем текста для поиска */
-		$search_text = [];
-		foreach ($text as $arr1)
-		{
-			foreach ($arr1 as $key => $value)
-			{
-				if ($key != "name") continue;
-				$search_text[] = $value;
-			}
-		}
-		if ($vendor_code != "") $search_text[] = $vendor_code;
-		
-		/* Обновляем текст в базе данных */
-		$table_name_products_text = $wpdb->base_prefix . "elberos_commerce_products_text";
-		\Elberos\wpdb_insert_or_update
-		(
-			$table_name_products_text,
-			[
-				"id" => $product["id"],
-			],
-			[
-				"id" => $product["id"],
-				"text" => implode(" ", $search_text),
-			]
-		);
-		
 		/* Do filter elberos_commerce_1c_import_product */
 		$res = apply_filters
 		(
@@ -501,6 +475,20 @@ class Task
 			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
 		}
 		
+		/* Do action elberos_commerce_product_updated */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from " . $table_name_products . " " .
+			"where id=:id limit 1",
+			[
+				"id" => $product["id"],
+			]
+		);
+		$product = $wpdb->get_row($sql, ARRAY_A);
+		if ($product)
+		{
+			do_action('elberos_commerce_product_updated', $product);
+		}
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $code_1c; */

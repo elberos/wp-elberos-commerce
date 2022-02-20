@@ -431,7 +431,7 @@ class Helper
 	/**
 	 * Add product photo
 	 */
-	static function addProductPhoto($product_id, $photo_id)
+	static function addProductPhoto($product_id, $photo_id, $pos=0)
 	{
 		global $wpdb;
 		
@@ -455,8 +455,42 @@ class Helper
 				[
 					"product_id" => $product_id,
 					"photo_id" => $photo_id,
-					"pos" => 0,
+					"pos" => $pos,
 					"is_deleted" => 0,
+				]
+			);
+		}
+	}
+	
+	
+	
+	/**
+	 * Add product category
+	 */
+	static function addProductCategory($product_id, $category_id)
+	{
+		global $wpdb;
+		
+		$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
+		
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select * from " . $table_name_categories . " " .
+			"where product_id=:product_id and category_id=:category_id limit 1",
+			[
+				"product_id" => $product_id,
+				"category_id" => $category_id,
+			]
+		);
+		$category_item = $wpdb->get_row($sql, ARRAY_A);
+		if (!$category_item)
+		{
+			$wpdb->insert
+			(
+				$table_name_categories,
+				[
+					"product_id" => $product_id,
+					"category_id" => $category_id,
 				]
 			);
 		}

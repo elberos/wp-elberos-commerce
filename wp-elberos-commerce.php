@@ -103,6 +103,9 @@ class Elberos_Commerce_Plugin
 			wp_schedule_event( time() + 60, 'twicedaily', 'elberos_commerce_twicedaily_event' );
 		}
 		add_action( 'elberos_commerce_twicedaily_event', 'Elberos_Commerce_Plugin::cron_twicedaily_event' );
+		
+		/* Product updated */
+		add_action('elberos_commerce_product_updated', 'Elberos_Commerce_Plugin::elberos_commerce_product_updated');
 	}
 	
 	
@@ -218,6 +221,51 @@ class Elberos_Commerce_Plugin
 				$table = new \Elberos\Commerce\_1C\Task_Table();
 				$table->display();
 			}
+		);
+	}
+	
+	
+	/**
+	 * Product updated
+	 */
+	public static function elberos_commerce_product_updated($product)
+	{
+		global $wpdb;
+		
+		if ($product == null) return;
+		
+		$name = $product["name"];
+		$text = json_decode($product["text"], true);
+		$vendor_code = $product["vendor_code"];
+		
+		/* Обновляем текста для поиска */
+		$search_text = [];
+		if ($name != "") $search_text[] = $name;
+		if ($vendor_code != "") $search_text[] = $vendor_code;
+		if ($text and gettype($text) == "array")
+		{
+			foreach ($text as $arr1)
+			{
+				foreach ($arr1 as $key => $value)
+				{
+					if ($key != "name") continue;
+					$search_text[] = $value;
+				}
+			}
+		}
+
+		/* Обновляем текст в базе данных */
+		$table_name_products_text = $wpdb->base_prefix . "elberos_commerce_products_text";
+		\Elberos\wpdb_insert_or_update
+		(
+			$table_name_products_text,
+			[
+				"id" => $product["id"],
+			],
+			[
+				"id" => $product["id"],
+				"text" => implode(" ", $search_text),
+			]
 		);
 	}
 	
