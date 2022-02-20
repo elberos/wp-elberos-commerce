@@ -20,6 +20,11 @@
 
 namespace Elberos\Commerce;
 
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
+
 if ( !class_exists( Invoice_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {
 

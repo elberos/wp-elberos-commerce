@@ -21,6 +21,11 @@
 
 namespace Elberos\Commerce\_1C;
 
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
+
 class Helper
 {
 	const IMPORT_STATUS_PLAN = 0;

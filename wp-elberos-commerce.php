@@ -23,6 +23,9 @@
  * limitations under the License.
  */
 
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
 
 if ( !class_exists( 'Elberos_Commerce_Plugin' ) ) 
 {
@@ -68,7 +71,6 @@ class Elberos_Commerce_Plugin
 				include __DIR__ . "/entity/Category.php";
 				include __DIR__ . "/entity/Classifier.php";
 				include __DIR__ . "/entity/Invoice.php";
-				include __DIR__ . "/entity/Offer.php";
 				include __DIR__ . "/entity/PriceType.php";
 				include __DIR__ . "/entity/Product.php";
 				include __DIR__ . "/entity/ProductParam.php";

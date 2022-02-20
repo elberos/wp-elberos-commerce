@@ -20,6 +20,11 @@
 
 namespace Elberos\Commerce;
 
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
+
 if ( !class_exists( Product::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
 

@@ -18,8 +18,12 @@
  *  limitations under the License.
  */
 
-
 namespace Elberos\Commerce;
+
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
 
 if ( !class_exists( Settings::class ) ) 
 {

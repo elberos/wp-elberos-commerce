@@ -21,6 +21,11 @@
 
 namespace Elberos\Commerce\_1C;
 
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
+
 class Import
 {
 	var $import = null;

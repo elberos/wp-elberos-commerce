@@ -18,7 +18,13 @@
  *  limitations under the License.
  */
 
+
 namespace Elberos\Commerce\_1C;
+
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
 
 if ( !class_exists( Import_Table::class ) && class_exists( \Elberos\Table::class ) ) 
 {

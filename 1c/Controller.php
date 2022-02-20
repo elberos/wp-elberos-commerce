@@ -22,6 +22,10 @@
 namespace Elberos\Commerce\_1C;
 
 
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
+
 class Controller
 {
 	static $max_size = 8 * 1024 * 1024;

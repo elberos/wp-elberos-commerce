@@ -18,7 +18,13 @@
  *  limitations under the License.
  */
 
+
 namespace Elberos\Commerce\_1C;
+
+
+/* Check if Wordpress */
+if (!defined('ABSPATH')) exit;
+
 
 if ( !class_exists( Task_Struct::class ) && class_exists( \Elberos\StructBuilder::class ) ) 
 {
