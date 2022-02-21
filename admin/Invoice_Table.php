@@ -67,8 +67,8 @@ class Invoice_Table extends \Elberos\Table
 					"id",
 					"status",
 					"status_pay",
-					"client_id",
 					"email",
+					"client_id",
 					"name",
 					"price",
 					"gmtime_add",
@@ -223,6 +223,7 @@ class Invoice_Table extends \Elberos\Table
 			"invoice_id",
 			"status",
 			"status_pay",
+			"client_email",
 			"client_id",
 		];
 	}
@@ -246,6 +247,13 @@ class Invoice_Table extends \Elberos\Table
 			?>
 			<input type="text" name="client_id" class="web_form_value" placeholder="ID клиента"
 				value="<?= esc_attr( isset($_GET["client_id"]) ? $_GET["client_id"] : "" ) ?>">
+			<?php
+		}
+		else if ($item_name == "client_email")
+		{
+			?>
+			<input type="text" name="client_email" class="web_form_value" placeholder="E-mail клиента"
+				value="<?= esc_attr( isset($_GET["client_email"]) ? $_GET["client_email"] : "" ) ?>">
 			<?php
 		}
 		else if ($item_name == "status")
@@ -319,6 +327,25 @@ class Invoice_Table extends \Elberos\Table
 		{
 			$params["where"][] = "client_id = :client_id";
 			$params["args"]["client_id"] = (int)$_GET["client_id"];
+		}
+		
+		/* client_email */
+		if (isset($_GET["client_email"]))
+		{
+			$res = apply_filters
+			(
+				'elberos_commerce_find_client_by_email',
+				[
+					"client_id" => null,
+					"client_email" => $_GET["client_email"],
+				]
+			);
+			$client_id = $res["client_id"];
+			if ($client_id > 0)
+			{
+				$params["where"][] = "client_id = :client_id";
+				$params["args"]["client_id"] = (int)$client_id;
+			}
 		}
 		
 		/* status */
@@ -418,6 +445,9 @@ class Invoice_Table extends \Elberos\Table
 		}
 		.invoice_table_product_row_total_3 {
 			text-align: center;
+		}
+		.invoice_table_product_title_row{
+			padding-bottom: 5px;
 		}
 		</style>
 		<?php
@@ -524,47 +554,130 @@ class Invoice_Table extends \Elberos\Table
 			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
 			$discount_value = isset($basket["discount_value"]) ? $basket["discount_value"] : "";
 			
+			$info_ammount = $offer_price * $product_count;
+			if ($discount_value > 0 && $discount_value <= 100)
+			{
+				$info_ammount = $info_ammount * (1 - $discount_value / 100);
+			}
+			
 			echo "<tr class='invoice_table_product_row'>";
 			
+			/* Title td */
 			echo "<td class='invoice_table_product_title_td'>";
-				echo "<div class='invoice_table_product_image'>";
-					echo "<img src='" . esc_attr( $product_main_photo_url ) . "' />";
-				echo "</div>";
-				echo "<div class='invoice_table_product_title'>";
-					echo "<div class='invoice_table_product_title_row'>";
-						echo esc_html( $product_name );
-					echo "</div>";
-					echo "<div class='invoice_table_product_title_row'>";
-						echo "Артикул: <span class='value'>" . esc_html($product_vendor_code) . "</span>";
-					echo "</div>";
-					echo "<div class='invoice_table_product_title_row'>";
-						echo "";
-					echo "</div>";
-				echo "</div>";
+				
+				$text = "";
+				$text .= "<div class='invoice_table_product_image'>";
+					$text .= "<img src='" . esc_attr( $product_main_photo_url ) . "' />";
+				$text .= "</div>";
+				$text .= "<div class='invoice_table_product_title'>";
+					$text .= "<div class='invoice_table_product_title_row'>";
+						$text .= esc_html( $product_name );
+					$text .= "</div>";
+					$text .= "<div class='invoice_table_product_title_row'>";
+						$text .= "Артикул: <span class='value'>" . esc_html($product_vendor_code) . "</span>";
+					$text .= "</div>";
+					$text .= "<div class='invoice_table_product_title_row'>";
+						$text .= "";
+					$text .= "</div>";
+				$text .= "</div>";
+				
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "title_td",
+					]
+				);
+				echo $res["text"];
+				
 			echo "</td>";
+			
+			/* product_price */
 			echo "<td>";
-				echo "<div class='invoice_table_product_price'>";
-					echo esc_html( \Elberos\formatMoney($offer_price) );
-				echo "</div>";
+				$text = "";
+				$text .= "<div class='invoice_table_product_price'>";
+					$text .= esc_html( \Elberos\formatMoney($offer_price) );
+				$text .= "</div>";
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "product_price",
+					]
+				);
+				echo $res["text"];
 			echo "</td>";
+			
+			/* offer_unit */
 			echo "<td>";
-				echo esc_html($offer_unit);
+				$text = esc_html($offer_unit);
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "offer_unit",
+					]
+				);
+				echo $res["text"];
 			echo "</td>";
+			
+			/* product_count */
 			echo "<td>";
-				echo esc_html($product_count);
+				$text = esc_html($product_count);
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "product_count",
+					]
+				);
+				echo $res["text"];
 			echo "</td>";
+			
+			/* discount_value */
 			echo "<td>";
-				echo esc_html($discount_value) . "%";
+				$text = esc_html($discount_value) . "%";
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "discount_value",
+					]
+				);
+				echo $res["text"];
 			echo "</td>";
+			
+			/* product_price */
 			echo "<td>";
-				echo "<div class='invoice_table_product_price'>";
-					echo esc_html( \Elberos\formatMoney($offer_price * $product_count) );
-				echo "</div>";
+				$text = "";
+				$text .= "<div class='invoice_table_product_price'>";
+					$text .= esc_html( \Elberos\formatMoney($info_ammount) );
+				$text .= "</div>";
+				$res = apply_filters
+				(
+					'elberos_commerce_admin_invoice_table_item_td',
+					[
+						"basket" => $basket,
+						"text" => $text,
+						"row" => "product_price",
+					]
+				);
+				echo $res["text"];
 			echo "</td>";
 			
 			echo "</tr>";
 			
-			$basket_sum_total += $offer_price * $product_count;
+			$basket_sum_total += $info_ammount;
 		}
 		
 		echo "<tr class='invoice_table_product_row_total'>";

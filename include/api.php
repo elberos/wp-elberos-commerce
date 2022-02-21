@@ -243,7 +243,7 @@ class Api
 		/* Get products data */
 		$basket_data = \Elberos\Commerce\Api::getBasketProducts($basket);
 		
-		/* Clear basket data */
+		/* Filter basket data */
 		$basket_data = array_map
 		(
 			function ($item)
@@ -268,7 +268,7 @@ class Api
 				
 				$res = apply_filters
 				(
-					'elberos_commerce_basket_clear_data',
+					'elberos_commerce_basket_data_filter',
 					[
 						"old_data" => $item,
 						"new_data" => $new_data,
@@ -284,6 +284,9 @@ class Api
 		/* Send data */
 		$form_data = isset($_POST['data']) ? $_POST['data'] : [];
 		
+		/* Calculate price */
+		$basket_price = static::getBasketPrice($basket_data);
+		
 		/* Validation */
 		$res = apply_filters
 		(
@@ -291,11 +294,13 @@ class Api
 			[
 				'validation'=>[],
 				'form_data'=>$form_data,
-				'basket_data'=>$basket_data
+				'basket_data'=>$basket_data,
+				'basket_price'=>$basket_price,
 			]
 		);
 		$form_data = $res['form_data'];
 		$basket_data = $res['basket_data'];
+		$basket_price = $res['basket_price'];
 		
 		/* If error */
 		$validation = $res['validation'];
@@ -312,8 +317,16 @@ class Api
 			];
 		}
 		
-		/* Calculate price */
-		$basket_price = static::getBasketPrice($basket_data);
+		/* If error */
+		if ($res['code'] < 0)
+		{
+			return
+			[
+				"type" => "validation",
+				"message" => $res["message"],
+				"code" => $res["code"],
+			];
+		}
 		
 		/* Find client */
 		$find_client_res =
@@ -410,7 +423,7 @@ class Api
 		{
 			return
 			[
-				"type" => "before_res_error",
+				"type" => "basket_before_error",
 				"message" => $before_res["message"],
 				"code" => $before_res["code"],
 			];
@@ -513,7 +526,7 @@ class Api
 				continue;
 			}
 			
-			$basket[] =
+			$basket_item =
 			[
 				"count" => $count,
 				"offer_id" => (int) (isset($offer_item["offer_id"]) ? $offer_item["offer_id"] : 0),
@@ -538,6 +551,18 @@ class Api
 				"product_xml" => isset($product_item["xml"]) ? $product_item["xml"] : "",
 				"product_item" => $product_item,
 			];
+			
+			$res = apply_filters
+			(
+				'elberos_commerce_basket_data_item',
+				[
+					"basket_item" => $basket_item,
+					"offer_item" => $offer_item,
+					"product_item" => $product_item,
+				]
+			);
+			
+			$basket[] = $res["basket_item"];
 		}
 		
 		return $basket;

@@ -1401,7 +1401,7 @@ class Controller
 				$client_code_1c = \Elberos\mb_trim( (string)$contragent->Ид );
 				$res = apply_filters
 				(
-					'elberos_commerce_basket_find_client_by_code_1c',
+					'elberos_commerce_find_client_by_code_1c',
 					[
 						"client_id" => null,
 						"client_code_1c" => $client_code_1c,
