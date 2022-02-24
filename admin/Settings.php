@@ -66,6 +66,8 @@ class Settings
 			"elberos_commerce_1c_password",
 			"elberos_commerce_1c_file_max_size",
 			"elberos_commerce_1c_file_default_size",
+			"elberos_commerce_1c_invoice_encode",
+			"elberos_commerce_1c_max_task",
 			"elberos_commerce_invoice_admin_email",
 			"elberos_commerce_products_photos_term_id",
 		];
@@ -85,7 +87,11 @@ class Settings
 			$item[$field_name] = static::get_key($field_name, '');
 		}
 		
-		/* Default value */
+		/* Default values */
+		if ($item["elberos_commerce_1c_max_task"] == "")
+		{
+			$item["elberos_commerce_1c_max_task"] = 1000000;
+		}
 		if ($item["elberos_commerce_1c_file_max_size"] == "")
 		{
 			$item["elberos_commerce_1c_file_max_size"] = "12";
@@ -194,6 +200,38 @@ class Settings
 				name="elberos_commerce_1c_file_max_size" type="text" style="width: 100%"
 				value="<?php echo esc_attr($item['elberos_commerce_1c_file_max_size'])?>" >
 		</p>
+		
+		<!-- 1C Max Task -->
+		<p>
+		    <label for="elberos_commerce_1c_max_task">
+				<?php _e('1C Max Task:', 'elberos-commerce')?>
+			</label>
+		<br>
+            <input id="elberos_commerce_1c_max_task"
+				name="elberos_commerce_1c_max_task" type="text" style="width: 100%"
+				value="<?php echo esc_attr($item['elberos_commerce_1c_max_task'])?>" >
+		</p>
+		
+		<!-- 1C invoice -->
+		<p>
+		    <label for="elberos_commerce_1c_invoice_encode">
+				<?php _e('1C Invoice encode:', 'elberos-commerce')?>
+			</label>
+		<br>
+			<select id="elberos_commerce_1c_invoice_encode" name="elberos_commerce_1c_invoice_encode"
+				style="width: 100%"
+			>
+				<option value="utf8"
+					<?= \Elberos\is_value_selected($item['elberos_commerce_1c_invoice_encode'], "utf8") ?>>UTF-8
+				</option>
+				<option value="windows1251"
+					<?= \Elberos\is_value_selected($item['elberos_commerce_1c_invoice_encode'], "windows1251") ?>>
+					Windows-1251
+				</option>
+			</select>
+		</p>
+		
+		
 		
 		<?php
 	}

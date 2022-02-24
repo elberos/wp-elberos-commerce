@@ -62,6 +62,10 @@ class Invoice extends \Elberos\StructBuilder
 				[
 					["id"=>"0", "value"=>"Новый"],
 					["id"=>"1", "value"=>"Акцептован"],
+					["id"=>"-1", "value"=>"Отменен"],
+					["id"=>"21", "value"=>"Отгружен"],
+					["id"=>"22", "value"=>"Доставлен"],
+					["id"=>"30", "value"=>"Завершен"],
 				],
 			])
 			

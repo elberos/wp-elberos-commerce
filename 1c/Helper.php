@@ -401,7 +401,11 @@ class Helper
 	{
 		global $wpdb;
 		
-		$max_task = 100000;
+		/* Max task */
+		$elberos_commerce_1c_max_task = \Elberos\get_option("elberos_commerce_1c_max_task");
+		if (!$elberos_commerce_1c_max_task) $elberos_commerce_1c_max_task = 1000000;
+		
+		/* Table name */
 		$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
 		$table_name_1c_import = $wpdb->base_prefix . "elberos_commerce_1c_import";
 		
@@ -418,7 +422,7 @@ class Helper
 				"delete from $table_name_1c_task " .
 				"where id < :task_id and status=1",
 				[
-					'task_id' => $max_task_id - $max_task,
+					'task_id' => $max_task_id - $elberos_commerce_1c_max_task,
 				]
 			);
 			//var_dump( $sql );

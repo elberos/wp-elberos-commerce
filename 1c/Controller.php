@@ -545,7 +545,7 @@ class Controller
 		$sql = "delete from " . $table_name_products_photos . " where `is_deleted` = 1";
 		$wpdb->query($sql);
 		
-		/* Оставляем последние 100 тысяч тасков */
+		/* Оставляем последние таски */
 		Helper::deleteOldTask();
 	}
 	
@@ -949,7 +949,6 @@ class Controller
 		$content->addAttribute('ВерсияСхемы', '2.08');
 		$content->addAttribute('ДатаФормирования', $dt->format('Y-m-d\TH:i:s'));
 		
-		
 		/* Results */
 		foreach ($results as $invoice)
 		{
@@ -957,23 +956,22 @@ class Controller
 			static::makeIvoiceDocument($doc, $invoice);
 		}
 		
-		/* Get XML */
-		// $xml_content = $content->asXml();
-		
-		/* Convert to Windows-1251 */
-		/*
-		$xml_content = str_replace
-		(
-			'<?xml version="1.0" encoding="UTF-8"?>',
-			'<?xml version="1.0" encoding="Windows-1251"?>',
-			$xml_content
-		);
-		$xml_content = iconv('utf-8','windows-1251',$xml_content);
-		*/
-		
 		$dom = dom_import_simplexml($content)->ownerDocument;
 		$dom->formatOutput = true;
 		$xml_content = $dom->saveXML();
+		
+		/* Convert to Windows-1251 */
+		$elberos_commerce_1c_invoice_encode = \Elberos\get_option("elberos_commerce_1c_invoice_encode");
+		if ($elberos_commerce_1c_invoice_encode == "windows1251")
+		{
+			$xml_content = str_replace
+			(
+				'<?xml version="1.0" encoding="UTF-8"?>',
+				'<?xml version="1.0" encoding="Windows-1251"?>',
+				$xml_content
+			);
+			$xml_content = iconv('utf-8','windows-1251',$xml_content);
+		}
 		
 		return $xml_content;
 	}
@@ -1038,6 +1036,7 @@ class Controller
 					(isset($form_data['lastname']) ? $form_data['lastname'] : "")
 				)
 			);
+			//var_dump($form_data);
 			if (isset($form_data['surname']))
 			{
 				$node->addChild('Фамилия', \Elberos\mb_trim($form_data['surname']));
@@ -1102,7 +1101,6 @@ class Controller
 			$address->addChild('Комментарий', $invoice['delivery']['comment']);
 		}
 		*/
-		
 		// Товары
 		static::addProducts($doc, $invoice, false, $data_nalog);
 		
@@ -1118,6 +1116,7 @@ class Controller
 			'elberos_commerce_1c_make_ivoice_document',
 			[
 				'xml'=>$doc,
+				'client'=>$client,
 				'invoice'=>$invoice,
 			]
 		);
@@ -1149,7 +1148,7 @@ class Controller
 	{
 		global $wpdb;
 		
-		/* Оставляем последние 100 тысяч тасков */
+		/* Оставляем последние таски */
 		Helper::deleteOldTask();
 		
 		/* Читаем xml */
@@ -1223,15 +1222,16 @@ class Controller
 				{
 					if ($item->getName() == 'Документ')
 					{
+						$code_1c = \Elberos\mb_trim( (string)$item->Ид );
 						$invoice_number = \Elberos\mb_trim( (string)$item->Номер );
 						
 						/* Find invoice */
 						$table_name_invoice = $wpdb->base_prefix . "elberos_commerce_invoice";
 						$sql = \Elberos\wpdb_prepare
 						(
-							"select * from $table_name_invoice where id = :id",
+							"select * from $table_name_invoice where code_1c = :code_1c limit 1",
 							[
-								'id' => $invoice_number,
+								'code_1c' => $code_1c,
 							]
 						);
 						$invoice = $wpdb->get_row($sql, ARRAY_A);
@@ -1268,7 +1268,7 @@ class Controller
 							/* Update invoice */
 							$params = apply_filters
 							(
-								'elberos_commerce_1c_update_ivoice',
+								'elberos_commerce_1c_update_invoice',
 								[
 									'xml'=>$xml,
 									'invoice'=>$invoice,
@@ -1287,7 +1287,7 @@ class Controller
 								$table_name_invoice,
 								$update_data,
 								[
-									'id' => $invoice_number,
+									'id' => $invoice['id'],
 								]
 							);
 						}
@@ -1338,6 +1338,7 @@ class Controller
 	{
 		$form_data = $update_data["form_data"];
 		$update_data["comment"] = \Elberos\mb_trim( (string) $xml->Комментарий );
+		$client_email_changed = "";
 		
 		// Контрагенты
 		$arr = $xml->Контрагенты;
@@ -1355,10 +1356,18 @@ class Controller
 				if ($agent != null && $agent->getName() == 'РеквизитыФизЛица')
 				{
 					$form_data["type"] = 1;
-					$form_data["name"] = \Elberos\mb_trim( (string)$agent->Имя );
-					$form_data["surname"] = \Elberos\mb_trim( (string)$agent->Фамилия );
-					$form_data["lastname"] = \Elberos\mb_trim( (string)$agent->Отчество );
-					
+					if ($agent->Имя->getName() == "Имя")
+					{
+						$form_data["name"] = \Elberos\mb_trim( (string)$agent->Имя );
+					}
+					if ($agent->Фамилия->getName() == "Фамилия")
+					{
+						$form_data["surname"] = \Elberos\mb_trim( (string)$agent->Фамилия );
+					}
+					if ($agent->Отчество->getName() == "Отчество")
+					{
+						$form_data["lastname"] = \Elberos\mb_trim( (string)$agent->Отчество );
+					}
 				}
 				
 				// Юр лицо
@@ -1366,9 +1375,18 @@ class Controller
 				if ($agent != null && $agent->getName() == 'РеквизитыЮрЛица')
 				{
 					$form_data["type"] = 2;
-					$form_data["company_name"] = \Elberos\mb_trim( (string)$agent->ОфициальноеНаименование );
-					$form_data["company_bin"] = \Elberos\mb_trim( (string)$agent->БИН );
-					$form_data["company_address"] = \Elberos\mb_trim( (string)$agent->ЮридическийАдрес );
+					if ($agent->ОфициальноеНаименование->getName() == "ОфициальноеНаименование")
+					{
+						$form_data["company_name"] = \Elberos\mb_trim( (string)$agent->ОфициальноеНаименование );
+					}
+					if ($agent->БИН->getName() == "БИН")
+					{
+						$form_data["company_bin"] = \Elberos\mb_trim( (string)$agent->БИН );
+					}
+					if ($agent->ЮридическийАдрес->getName() == "ЮридическийАдрес")
+					{
+						$form_data["company_address"] = \Elberos\mb_trim( (string)$agent->ЮридическийАдрес );
+					}
 				}
 				
 				// Контакты
@@ -1393,26 +1411,47 @@ class Controller
 						else if ($name == 'E-mail')
 						{
 							$form_data["email"] = $value;
+							$update_data["client_email"] = $value;
+							$client_email_changed = $value;
 						}
 						
 					}
 				}
 				
+				/* Update client id */
 				$client_code_1c = \Elberos\mb_trim( (string)$contragent->Ид );
-				$res = apply_filters
-				(
-					'elberos_commerce_find_client_by_code_1c',
-					[
-						"client_id" => null,
-						"client_code_1c" => $client_code_1c,
-					]
-				);
-				
-				$update_data["client_id"] = $res["client_id"];
-				$update_data["client_code_1c"] = $client_code_1c;
+				if ($client_code_1c)
+				{
+					$res = apply_filters
+					(
+						'elberos_commerce_find_client_by_code_1c',
+						[
+							"client_id" => null,
+							"client_code_1c" => $client_code_1c,
+						]
+					);
+					
+					$update_data["client_id"] = $res["client_id"];
+					$update_data["client_code_1c"] = $client_code_1c;
+				}
+				else
+				{
+					if ($client_email_changed)
+					{
+						$res = apply_filters
+						(
+							'elberos_commerce_find_client_by_email',
+							[
+								"client_email" => $client_email_changed,
+							]
+						);
+						
+						$update_data["client_id"] = $res["client_id"];
+					}
+				}
 				$update_data["form_data"] = $form_data;
 				
-				continue;
+				break;
 			}
 		}
 		
@@ -1428,6 +1467,7 @@ class Controller
 	{
 		/* Цена */
 		$update_data["price"] = \Elberos\mb_trim( (string)$xml->Сумма );
+		$update_data["comment"] = \Elberos\mb_trim( (string)$xml->Комментарий );
 		
 		$name1 = 'Товары';
 		$name2 = 'Товар';
@@ -1506,6 +1546,32 @@ class Controller
 		$arr["offer_price"] = \Elberos\mb_trim( (string)$xml->ЦенаЗаЕдиницу );
 		$arr["count"] = \Elberos\mb_trim( (string)$xml->Количество );
 		
+		/* Скидки */
+		$discount = 0;
+		$Скидки = $xml->Скидки;
+		if ($Скидки != null && $Скидки->getName() == 'Скидки')
+		{
+			$Скидка = $Скидки->Скидка;
+			if ($Скидка != null && $Скидка->getName() == 'Скидка')
+			{
+				$Процент = (string) $Скидка->Процент;
+				$УчтеноВСумме = (string) $Скидка->УчтеноВСумме;
+				if ($УчтеноВСумме == "true")
+				{
+					$discount += $Процент;
+				}
+			}
+		}
+		if ($discount > 0)
+		{
+			$arr["discount_type"] = "percent";
+			$arr["discount_value"] = $discount;
+		}
+		else
+		{
+			if (isset($arr["discount_value"])) $arr["discount_value"] = 0;
+		}
+		
 		/* Find product */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
 		$sql = \Elberos\wpdb_prepare
@@ -1531,7 +1597,7 @@ class Controller
 	
 		$res = apply_filters
 		(
-			'elberos_commerce_1c_update_ivoice_product_item',
+			'elberos_commerce_1c_update_invoice_product_item',
 			[
 				'xml'=>$xml,
 				'arr'=>$arr,
