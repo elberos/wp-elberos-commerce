@@ -399,6 +399,7 @@ class Api
 			"utm" => $utm,
 			"price" => $basket_price,
 			"client_id" => $client_id,
+			"client_email" => isset($form_data["email"]) ? $form_data["email"] : "",
 			"client_code_1c" => $client_code_1c,
 			"gmtime_add" => \Elberos\dbtime(),
 			"gmtime_change" => \Elberos\dbtime(),
