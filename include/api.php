@@ -733,7 +733,6 @@ class Api
 			"SELECT
 				t1.id as price_id,
 				t1.price_type_id,
-				t1.price_type_code_1c,
 				t1.price,
 				t1.currency,
 				t1.unit,
@@ -742,11 +741,12 @@ class Api
 				t2.id as offer_id,
 				t2.product_id as product_id,
 				t2.code_1c as offer_code_1c,
-				t2.xml as offer_xml
+				t2.xml as offer_xml,
+				t3.code_1c as price_type_code_1c
 			FROM {$wpdb->base_prefix}elberos_commerce_products_offers as t1
 			INNER JOIN {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t2
 				on (t1.id = t2.offer_id)
-			LEFT JOIN {$wpdb->base_prefix}elberos_commerce_price_types as t3
+			INNER JOIN {$wpdb->base_prefix}elberos_commerce_price_types as t3
 				on (t3.id = t2.price_type_id)
 			WHERE t1.product_id=:product_id
 			order by t1.id asc",
@@ -775,7 +775,6 @@ class Api
 				"select
 					t1.id as price_id,
 					t1.price_type_id,
-					t1.price_type_code_1c,
 					t1.price,
 					t1.currency,
 					t1.unit,
@@ -784,10 +783,13 @@ class Api
 					t2.id as offer_id,
 					t2.product_id as product_id,
 					t2.code_1c as offer_code_1c,
-					t2.xml as offer_xml
+					t2.xml as offer_xml,
+					t3.code_1c as price_type_code_1c
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
 				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as t2
 					on (t2.id = t1.offer_id)
+				inner join {$wpdb->base_prefix}elberos_commerce_price_types as t3
+					on (t3.id = t1.price_type_id)
 				where t1.id in (" . implode(",", array_fill(0, count($price_ids), "%d")) . ") ",
 				$price_ids
 			);

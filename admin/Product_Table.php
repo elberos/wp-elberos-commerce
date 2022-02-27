@@ -413,6 +413,10 @@ class Product_Table extends \Elberos\Table
 			{
 				$product_update["main_category_id"] = $main_category_id;
 			}
+			else
+			{
+				$product_update["main_category_id"] = null;
+			}
 		}
 		
 		/* Добавление фото */
@@ -459,6 +463,10 @@ class Product_Table extends \Elberos\Table
 			{
 				$product_update["main_photo_id"] = $main_photo_id;
 			}
+			else
+			{
+				$product_update["main_photo_id"] = null;
+			}
 		}
 		
 		/* Обновление товара */
@@ -500,13 +508,15 @@ class Product_Table extends \Elberos\Table
 					$offer_price_id = $offer["offer_price_id"];
 					$offer_price_type_id = $offer["price_type_id"];
 					$offer_price = $offer["price"];
+					$offer_price_unit = $offer["unit"];
 					if ($offer_price_id > 0)
 					{
 						$wpdb->update
 						(
 							$offers_prices_table_name,
 							[
-								"price" => $offer_price
+								"price" => $offer_price,
+								"unit" => $offer_price_unit,
 							],
 							['id' => $offer_price_id]
 						);
@@ -521,6 +531,7 @@ class Product_Table extends \Elberos\Table
 								"offer_id" => ($offer_id > 0) ? $offer_id : $main_offer_id,
 								"price_type_id" => $offer_price_type_id,
 								"price" => $offer_price,
+								"unit" => $offer_price_unit,
 							]
 						);
 						$offer_price_id = $wpdb->insert_id;
@@ -1043,7 +1054,7 @@ class Product_Table extends \Elberos\Table
 			padding: 5px;
 			text-align: center;
 		}
-		.elberos-commerce-product-offers-item-price{
+		.elberos-commerce-product-offers input{
 			width: 100px;
 		}
 		.elberos-commerce-product-offers-add{
@@ -1671,12 +1682,15 @@ class Product_Table extends \Elberos\Table
 							value="<?= esc_attr($offer['price_type_id']) ?>"
 						>
 						<input type="input" name="offers[items][<?= $index ?>][price]"
-							class="elberos-commerce-product-offers-item-price"
 							value="<?= esc_attr($offer['price']) ?>"
 						>
 					</td>
 					<td><?= esc_html($offer['currency']) ?></td>
-					<td><?= esc_html($offer['unit']) ?></td>
+					<td>
+						<input type="input" name="offers[items][<?= $index ?>][unit]"
+							value="<?= esc_attr($offer['unit']) ?>"
+						>
+					</td>
 					<td><button type="button" class="button button--delete">Delete</button></td>
 				</tr>
 			<?php } ?>
@@ -1743,7 +1757,6 @@ class Product_Table extends \Elberos\Table
 				)
 				.append(
 					jQuery(document.createElement('input'))
-					.addClass("elberos-commerce-product-offers-item-price")
 					.attr("type", "input")
 					.attr("name", "offers[items][" + index + "][price]")
 					.attr("value", "")
@@ -1756,6 +1769,12 @@ class Product_Table extends \Elberos\Table
 			.append
 			(
 				jQuery(document.createElement('td'))
+				.append(
+					jQuery(document.createElement('input'))
+					.attr("type", "input")
+					.attr("name", "offers[items][" + index + "][price]")
+					.attr("value", "")
+				)
 			)
 			.append
 			(
