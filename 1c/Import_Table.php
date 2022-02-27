@@ -269,44 +269,106 @@ class Import_Table extends \Elberos\Table
 	}
 	
 	
+	/**
+	 * Show filter wrap
+	 */
+	function show_filter_wrap()
+	{
+		?>
+		<style>
+		.tablenav .extra_tablenav_filter_wrap{
+			display: inline-block;
+			vertical-align: top;
+			position: relative;
+			top: -1px;
+		}
+		.tablenav .extra_tablenav_filter{
+			display: flex;
+			padding-top: 0px;
+			padding-bottom: 0px;
+		}
+		.tablenav .dosearch{
+			margin-left: 5px;
+		}
+		</style>
+		<div class="extra_tablenav_filter_wrap">
+			<div class="extra_tablenav_filter">
+				<?php $this->extra_tablenav_before() ?>
+				<?php $this->show_filter() ?>
+				<?php $this->extra_tablenav_after() ?>
+				<input type="button" class="button dosearch" value="Поиск">
+			</div>
+		</div>
+		<?php
+	}
+	
+	
 	
 	/**
-	 * Prepare table items
+	 * Returns true if show filter
 	 */
-	function prepare_table_items()
+	function is_show_filter()
+	{
+		list($_,$result) = apply_filters("elberos_table_is_show_filter_" . get_called_class(), [$this,true]);
+		return $result;
+	}
+	
+	
+	
+	/**
+	 * Returns filter elements
+	 */
+	function get_filter()
+	{
+		return [
+			"is_error",
+		];
+	}
+	
+	
+	
+	/**
+	 * Show filter item
+	 */
+	function show_filter_item($item_name)
+	{
+		if ($item_name == "is_error")
+		{
+			?>
+			<select name="is_error" class="web_form_value">
+				<option value="">Ошибка?</option>
+				<option value="1" <?= \Elberos\is_get_selected("is_error", "1") ?>>Есть ошибки</option>
+				<option value="0" <?= \Elberos\is_get_selected("is_error", "0") ?>>Без ошибок</option>
+			</select>
+			<?php
+		}
+	}
+	
+	
+	
+	/**
+	 * Process items params
+	 */
+	function prepare_table_items_filter($params)
 	{
 		global $wpdb;
 		
-		$args = [];
-		$where = [];
+		$params = parent::prepare_table_items_filter($params);
 		
-		/* Is deleted */
-		if (isset($_GET["is_deleted"]) && $_GET["is_deleted"] == "true")
+		/* Is error */
+		if (isset($_GET["is_error"]))
 		{
-			$where[] = "is_deleted=1";
-		}
-		else
-		{
-			$where[] = "is_deleted=0";
+			if ($_GET["is_error"] == "1")
+			{
+				$params["where"][] = "error > 0";
+			}
+			else
+			{
+				$params["where"][] = "error = 0";
+			}
 		}
 		
-		$per_page = $this->per_page();
-		list($items, $total_items, $pages, $page) = \Elberos\wpdb_query
-		([
-			"table_name" => $this->get_table_name(),
-			"where" => implode(" and ", $where),
-			"args" => $args,
-			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
-			"per_page" => $per_page,
-			//"log" => true,
-		]);
-		
-		$this->items = $items;
-		$this->set_pagination_args(array(
-			'total_items' => $total_items, 
-			'per_page' => $per_page,
-			'total_pages' => ceil($total_items / $per_page) 
-		));
+		return $params;
 	}
 	
 	

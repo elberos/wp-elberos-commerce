@@ -990,12 +990,10 @@ class Task
 						$table_name_products_offers_prices,
 						[
 							"offer_id" => $offer_id,
-							"price_type_code_1c" => $price_code_1c,
 						],
 						[
 							"offer_id" => $offer_id,
 							"price_type_id" => $price_type_id,
-							"price_type_code_1c" => $price_code_1c,
 							"price" => $price,
 							"currency" => $currency,
 							"coefficient" => $coefficient,

@@ -655,7 +655,6 @@ class Api
 				"select
 					t1.id as price_id,
 					t1.price_type_id,
-					t1.price_type_code_1c,
 					t1.price,
 					t1.currency,
 					t1.unit,
@@ -663,10 +662,13 @@ class Api
 					t1.name as offer_price_name,
 					t2.id as offer_id,
 					t2.product_id as product_id,
-					t2.code_1c as offer_code_1c
+					t2.code_1c as offer_code_1c,
+					t3.code_1c as price_type_code_1c
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
 				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as t2
 					on (t2.id = t1.offer_id)
+				inner join {$wpdb->base_prefix}elberos_commerce_price_types as t3
+					on (t3.id = t1.price_type_id)
 				where t2.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
 				$products_id
 			);

@@ -285,7 +285,29 @@ class Product_Table extends \Elberos\Table
 	 */
 	function do_get_item()
 	{
+		global $wpdb;
+		
 		parent::do_get_item();
+		
+		/* Создание товара */
+		if ($this->form_item_id == 0)
+		{
+			$table_name = $wpdb->base_prefix . "elberos_commerce_classifiers";
+			$sql = "SELECT * FROM $table_name as t limit 1";
+			
+			$classifier = $wpdb->get_row($sql, ARRAY_A);
+			if ($classifier)
+			{
+				$this->form_item['classifier_id'] = $classifier["id"];
+			}
+			else
+			{
+				$this->form_item['classifier_id'] = 0;
+			}
+		}
+		
+		if (!isset($this->form_item["text"])) $this->form_item["text"] = "";
+		if (!isset($this->form_item["main_category_id"])) $this->form_item["main_category_id"] = "";
 	}
 	
 	
@@ -315,8 +337,33 @@ class Product_Table extends \Elberos\Table
 	 */
 	function process_item($item, $old_item)
 	{
+		global $wpdb;
+		
 		$product_text = stripslashes_deep(isset($_POST['product_text']) ? $_POST['product_text'] : []);
 		$item["text"] = json_encode($product_text);
+		
+		/* Создание товара */
+		$item_id = isset($old_item["id"]) ? $old_item["id"] : 0;
+		if ($item_id == 0)
+		{
+			$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_catalogs";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"SELECT * FROM {$table_name_catalogs} WHERE classifier_id=:classifier_id limit 1",
+				[
+					"classifier_id" => $old_item["classifier_id"]
+				]
+			);
+			$catalog = $wpdb->get_row($sql, ARRAY_A);
+			if ($catalog)
+			{
+				$item["catalog_id"] = $catalog["id"];
+			}
+		}
+		
+		/* Обновляем slug */
+		$item["slug"] = sanitize_title($item["name"]);
+		
 		return $item;
 	}
 	
@@ -329,6 +376,8 @@ class Product_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
+		$product_update = [];
+		
 		/* Добавление категорий */
 		if ($success)
 		{
@@ -337,7 +386,7 @@ class Product_Table extends \Elberos\Table
 			(
 				"delete from $table_name_categories where product_id=:product_id",
 				[
-					"product_id" => $item["id"],
+					"product_id" => $this->form_item_id,
 				]
 			);
 			$wpdb->query($sql);
@@ -351,11 +400,18 @@ class Product_Table extends \Elberos\Table
 					(
 						$table_name_categories,
 						[
-							"product_id" => $item["id"],
+							"product_id" => $this->form_item_id,
 							"category_id" => $category,
 						]
 					);
 				}
+			}
+			
+			/* Главная категория */
+			$main_category_id = isset($_POST["main_category_id"]) ? $_POST["main_category_id"] : null;
+			if ($main_category_id > 0)
+			{
+				$product_update["main_category_id"] = $main_category_id;
 			}
 		}
 		
@@ -367,12 +423,13 @@ class Product_Table extends \Elberos\Table
 			(
 				"delete from $table_name_products_photos where product_id=:product_id",
 				[
-					"product_id" => $item["id"],
+					"product_id" => $this->form_item_id,
 				]
 			);
 			$wpdb->query($sql);
 			
 			$pos = 0;
+			$main_photo_id = null;
 			$product_photo = isset($_POST['product_photo']) ? $_POST['product_photo'] : [];
 			if (gettype($product_photo) == 'array')
 			{
@@ -382,16 +439,152 @@ class Product_Table extends \Elberos\Table
 					(
 						$table_name_products_photos,
 						[
-							"product_id" => $item["id"],
+							"product_id" => $this->form_item_id,
 							"photo_id" => $photo["id"],
 							"pos" => $pos,
 						]
 					);
+					
+					if ($pos == 0)
+					{
+						$main_photo_id = $photo["id"];
+					}
+					
 					$pos++;
 				}
 			}
+			
+			/* Главное фото */
+			if ($main_photo_id != null)
+			{
+				$product_update["main_photo_id"] = $main_photo_id;
+			}
 		}
 		
+		/* Обновление товара */
+		if (count($product_update) > 0)
+		{
+			$table_name = $this->get_table_name();
+			$wpdb->update($table_name, $product_update, ['id' => $this->form_item_id]);
+		}
+		
+		/* Обновление предложений */
+		if ($success)
+		{
+			$offers = isset($_POST["offers"]) ? $_POST["offers"] : [];
+			$main_offer_id = isset($offers["main_offer_id"]) ? $offers["main_offer_id"] : null;
+			$offers_items = isset($offers["items"]) ? $offers["items"] : [];
+			$offers_prices_id = [];
+			
+			$offers_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers";
+			$offers_prices_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
+			
+			if (gettype($offers_items) == "array" && count($offers_items) > 0)
+			{
+				if ($main_offer_id == null)
+				{
+					$wpdb->insert
+					(
+						$offers_table_name,
+						[
+							"product_id" => $this->form_item_id,
+							"offer_params" => "[]",
+						]
+					);
+					$main_offer_id = $wpdb->insert_id;
+				}
+				
+				foreach ($offers_items as $offer)
+				{
+					$offer_id = $offer["offer_id"];
+					$offer_price_id = $offer["offer_price_id"];
+					$offer_price_type_id = $offer["price_type_id"];
+					$offer_price = $offer["price"];
+					if ($offer_price_id > 0)
+					{
+						$wpdb->update
+						(
+							$offers_prices_table_name,
+							[
+								"price" => $offer_price
+							],
+							['id' => $offer_price_id]
+						);
+						
+					}
+					else
+					{
+						$wpdb->insert
+						(
+							$offers_prices_table_name,
+							[
+								"offer_id" => ($offer_id > 0) ? $offer_id : $main_offer_id,
+								"price_type_id" => $offer_price_type_id,
+								"price" => $offer_price,
+							]
+						);
+						$offer_price_id = $wpdb->insert_id;
+					}
+					$offers_prices_id[] = $offer_price_id;
+				}
+			}
+			
+			/* Удаление предложений */
+			$sql = \Elberos\wpdb_prepare
+			(
+				"SELECT offers_prices.* FROM {$wpdb->base_prefix}elberos_commerce_products_offers_prices as offers_prices
+				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as offers
+					on (offers.id = offers_prices.offer_id)
+				where offers.product_id=:product_id
+				order by offers_prices.id asc",
+				[
+					"product_id" => $this->form_item_id
+				]
+			);
+			$product_offers = $wpdb->get_results($sql, ARRAY_A);
+			foreach ($product_offers as $product_offer)
+			{
+				if (!in_array($product_offer["id"], $offers_prices_id))
+				{
+					$wpdb->delete
+					(
+						$offers_prices_table_name,
+						[
+							"id" => $product_offer["id"],
+						]
+					);
+				}
+			}
+		}
+	}
+	
+	
+	
+	/**
+	 * Process item end
+	 */
+	function process_item_end($old_item, $action, $success)
+	{
+		global $wpdb;
+		
+		if ($success)
+		{
+			/* Do action elberos_commerce_product_updated */
+			$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from " . $table_name_products . " " .
+				"where id=:id limit 1",
+				[
+					"id" => $this->form_item_id,
+				]
+			);
+			$product = $wpdb->get_row($sql, ARRAY_A);
+			if ($product)
+			{
+				do_action('elberos_commerce_product_updated', $product);
+			}
+		}
 	}
 	
 	
@@ -425,6 +618,7 @@ class Product_Table extends \Elberos\Table
 		return [
 			"catalog_id",
 			"category_id",
+			"is_photo",
 			"vendor_code",
 			"name",
 			"product_id",
@@ -503,6 +697,16 @@ class Product_Table extends \Elberos\Table
 				value="<?= esc_attr( isset($_GET["vendor_code"]) ? $_GET["vendor_code"] : "" ) ?>">
 			<?php
 		}
+		else if ($item_name == "is_photo")
+		{
+			?>
+			<select name="photo" class="web_form_value">
+				<option value="">Фото ?</option>
+				<option value="1" <?= \Elberos\is_get_selected("photo", "1") ?>>Есть фото</option>
+				<option value="0" <?= \Elberos\is_get_selected("photo", "0") ?>>Без фото</option>
+			</select>
+			<?php
+		}
 		else if ($item_name == "name")
 		{
 			?>
@@ -572,6 +776,19 @@ class Product_Table extends \Elberos\Table
 		{
 			$params["where"][] = "name like :name";
 			$params["args"]["name"] = "%" . $wpdb->esc_like(\Elberos\mb_trim($_GET["name"])) . "%";
+		}
+		
+		/* Photo */
+		if (isset($_GET["photo"]))
+		{
+			if ($_GET["photo"] == "1")
+			{
+				$params["where"][] = "main_photo_id is not null";
+			}
+			else
+			{
+				$params["where"][] = "main_photo_id is null";
+			}
 		}
 		
 		/* code 1c */
@@ -655,6 +872,8 @@ class Product_Table extends \Elberos\Table
 			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
 		wp_enqueue_script( 'vue',
 			'/wp-content/plugins/wp-elberos-core/assets/vue.min.js', false );
+		wp_enqueue_script( 'sortable.js',
+			'/wp-content/plugins/wp-elberos-core/assets/sortablejs/Sortable.min.js', false );
 		?>
 		<style>
 		.elberos-commerce td.main_photo_id{
@@ -684,15 +903,21 @@ class Product_Table extends \Elberos\Table
 			font-size: 0;
 			padding-bottom: 5px;
 		}
-		.elberos-commerce .product_category_name, .elberos-commerce .product_category_buttons
+		.elberos-commerce .product_category_main_button,
+		.elberos-commerce .product_category_name,
+		.elberos-commerce .product_category_buttons
 		{
 			display: inline-block;
-			vertical-align: top;
+			vertical-align: middle;
 			font-size: 14px;
+		}
+		.elberos-commerce .product_category_main_button
+		{
+			width: 20px;
 		}
 		.elberos-commerce .product_category_name
 		{
-			width: calc(100% - 65px);
+			width: calc(100% - 85px);
 		}
 		.elberos-commerce .product_category_buttons
 		{
@@ -756,6 +981,7 @@ class Product_Table extends \Elberos\Table
 			position: relative;
 			display: inline-block;
 			vertical-align: top;
+			cursor: pointer;
 			margin: 5px;
 		}
 		.elberos-commerce .product_photo .button-delete
@@ -780,6 +1006,9 @@ class Product_Table extends \Elberos\Table
 		.add_or_edit_form_right{
 			width: calc(40% - 25px);
 			margin-left: 20px;
+		}
+		.add_or_edit_form_buttons{
+			width: 100%;
 		}
 		.elberos-commerce-product-params{
 			margin-bottom: 20px;
@@ -813,6 +1042,12 @@ class Product_Table extends \Elberos\Table
 		.elberos-commerce-product-offers th, .elberos-commerce-product-offers td{
 			padding: 5px;
 			text-align: center;
+		}
+		.elberos-commerce-product-offers-item-price{
+			width: 100px;
+		}
+		.elberos-commerce-product-offers-add{
+			padding-top: 10px;
 		}
 		</style>
 		<?php
@@ -879,8 +1114,6 @@ class Product_Table extends \Elberos\Table
 	function display_add_or_edit()
 	{
 		parent::display_add_or_edit();
-		$this->show_offers();
-		$this->show_params();
 		$this->show_relative();
 	}
 	
@@ -902,6 +1135,8 @@ class Product_Table extends \Elberos\Table
 		$this->show_photos();
 		echo '</div>';
 		echo '<div class="clear"></div>';
+		$this->show_offers();
+		$this->show_params();
 	}
 	
 	
@@ -947,7 +1182,7 @@ class Product_Table extends \Elberos\Table
 		$langs = \Elberos\wp_langs();
 		
 		// Get products text
-		$product_text = json_decode($this->form_item["text"], true);
+		$product_text = ($this->form_item != null) ? json_decode($this->form_item["text"], true) : [];
 		
 		?>
 		<div class="elberos-commerce products_text">
@@ -1071,6 +1306,8 @@ class Product_Table extends \Elberos\Table
 		);
 		$categories = $wpdb->get_results($sql, ARRAY_A);
 		
+		$main_category_id = $this->form_item["main_category_id"];
+		
 		?>
 		
 		<div class='elberos-commerce elberos-commerce-categories' >
@@ -1095,9 +1332,16 @@ class Product_Table extends \Elberos\Table
 						?>
 						
 						<div class='product_category' data-id='<?= esc_attr($find_category['id']) ?>'>
+							<div class='product_category_main_button'>
+								<input type="radio" name="main_category_id" value="<?= esc_attr($find_category['id']) ?>"
+									<?= \Elberos\is_value_checked($main_category_id, $find_category['id'])?>
+								>
+							</div>
 							<div class='product_category_name'><?= esc_html($find_category['name']) ?></div>
 							<div class='product_category_buttons'>
-								<button data-id='<?= esc_attr($find_category['id']) ?>' type='button'>
+								<button data-id='<?= esc_attr($find_category['id']) ?>' type='button'
+									class="button button--delete"
+								>
 									Delete
 								</button>
 							</div>
@@ -1144,6 +1388,18 @@ class Product_Table extends \Elberos\Table
 						.append
 						(
 							jQuery(document.createElement('div'))
+							.addClass('product_category_main_button')
+							.append
+							(
+								jQuery(document.createElement('input'))
+								.attr("name", "main_category_id")
+								.attr("type", "radio")
+								.attr("value", value)
+							)
+						)
+						.append
+						(
+							jQuery(document.createElement('div'))
 							.addClass('product_category_name')
 							.text(value_name)
 						)
@@ -1154,6 +1410,7 @@ class Product_Table extends \Elberos\Table
 							.append
 							(
 								jQuery(document.createElement('button'))
+								.addClass('button').addClass('button--delete')
 								.attr('type', 'button')
 								.attr('data-id', value)
 								.text('Delete')
@@ -1171,7 +1428,7 @@ class Product_Table extends \Elberos\Table
 					
 					jQuery(this).val("");
 				});
-				jQuery(document).on('click', '.product_category button', '', function(){
+				jQuery(document).on('click', '.product_category .button--delete', '', function(){
 					var data_id = jQuery(this).attr('data-id');
 					var $items = jQuery('.product_category');
 					for (var i=0; i<$items.length; i++)
@@ -1239,6 +1496,13 @@ class Product_Table extends \Elberos\Table
 			</div>
 			
 			<script>
+				jQuery(document).ready(function(){
+					new Sortable(jQuery(".product_photos").get(0), {
+						animation: 150,
+						ghostClass: 'blue-background-class'
+					});
+				});
+				
 				jQuery(document).on('click', '.product_photos .button-delete', '', function(){
 					var data_id = jQuery(this).attr('data-id');
 					var $items = jQuery('.product_photo');
@@ -1350,10 +1614,20 @@ class Product_Table extends \Elberos\Table
 		
 		$product_offers = [];
 		
+		/* Список типов цен */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT * FROM {$wpdb->base_prefix}elberos_commerce_price_types WHERE classifier_id=:classifier_id",
+			[
+				"classifier_id" => $this->form_item["classifier_id"]
+			]
+		);
+		$price_types = $wpdb->get_results($sql, ARRAY_A);
+		
 		/* Список оферов у товара */
 		$sql = \Elberos\wpdb_prepare
 		(
-			"SELECT t1.*, t2.price_type_id, t2.price_type_code_1c,
+			"SELECT t1.*, t1.id as offer_id, t2.id as offer_price_id, t2.price_type_id,
 				t2.name, t2.price, t2.currency, t2.coefficient, t2.unit,
 				t3.name as price_type_name
 			FROM {$wpdb->base_prefix}elberos_commerce_products_offers as t1
@@ -1368,6 +1642,7 @@ class Product_Table extends \Elberos\Table
 			]
 		);
 		$product_offers = $wpdb->get_results($sql, ARRAY_A);
+		$main_offer_id = 0;
 		
 		?>
 		<div class='elberos-commerce elberos-commerce-product-offers'>
@@ -1380,17 +1655,116 @@ class Product_Table extends \Elberos\Table
 					<th>Ед. изм.</th>
 					<th></th>
 				</tr>
-			<?php foreach ($product_offers as $offer) { ?>
+			<?php foreach ($product_offers as $index => $offer) {
+				if (!$main_offer_id) $main_offer_id = $offer["offer_id"];
+			?>
 				<tr class='elberos-commerce-product-offers-item'>
 					<td> <?= esc_html($offer['price_type_name']) ?></td>
-					<td> <?= esc_html($offer['price']) ?></td>
-					<td> <?= esc_html($offer['currency']) ?></td>
-					<td> <?= esc_html($offer['unit']) ?></td>
-					<td> <?= esc_html($offer['name']) ?></td>
+					<td>
+						<input type="hidden" name="offers[items][<?= $index ?>][offer_price_id]"
+							value="<?= esc_attr($offer['offer_price_id']) ?>"
+						>
+						<input type="hidden" name="offers[items][<?= $index ?>][offer_id]"
+							value="<?= esc_attr($offer['offer_id']) ?>"
+						>
+						<input type="hidden" name="offers[items][<?= $index ?>][price_type_id]"
+							value="<?= esc_attr($offer['price_type_id']) ?>"
+						>
+						<input type="input" name="offers[items][<?= $index ?>][price]"
+							class="elberos-commerce-product-offers-item-price"
+							value="<?= esc_attr($offer['price']) ?>"
+						>
+					</td>
+					<td><?= esc_html($offer['currency']) ?></td>
+					<td><?= esc_html($offer['unit']) ?></td>
+					<td><button type="button" class="button button--delete">Delete</button></td>
 				</tr>
 			<?php } ?>
 			</table>
+			<?php if ($main_offer_id > 0) { ?>
+				<input type="hidden" name="offers[main_offer_id]" value=<?= esc_attr($main_offer_id) ?>>
+			<?php } ?>
+			<div class="elberos-commerce-product-offers-add">
+				<select name="offers_price_type_id" class="offers_price_type_id">
+					<?php foreach ($price_types as $price_type){ ?>
+					<option value="<?= esc_attr($price_type["id"]) ?>"
+						data-code-1c="<?= esc_attr($price_type["code_1c"]) ?>"
+					>
+						<?= esc_html($price_type["name"]) ?>
+					</option>
+					<?php } ?>
+				</select>
+				<input type="button" class="button button-add-product-offers" value="Добавить цену">
+			</div>
 		</div>
+		<script>
+		jQuery(document).on('click', ".elberos-commerce-product-offers .button--delete", function(){
+			$(this).parents(".elberos-commerce-product-offers-item").remove();
+		});
+		jQuery(".elberos-commerce-product-offers .button-add-product-offers").click(function(){
+			
+			var price_type_id = jQuery('.offers_price_type_id').val();
+			var price_name = "";
+			jQuery('.offers_price_type_id option').each(function(){
+				var value = $(this).attr("value");
+				if (value == price_type_id){
+					price_name = $(this).text();
+				}
+			});
+			var index = jQuery('.elberos-commerce-product-offers table tr').length - 1;
+			
+			var tr = jQuery(document.createElement('tr'))
+			.addClass("elberos-commerce-product-offers-item")
+			.append
+			(
+				jQuery(document.createElement('td'))
+				.text(price_name)
+			)
+			.append
+			(
+				jQuery(document.createElement('td'))
+				.append(
+					jQuery(document.createElement('input'))
+					.attr("type", "hidden")
+					.attr("name", "offers[items][" + index + "][offer_price_id]")
+					.attr("value", "0")
+				)
+				.append(
+					jQuery(document.createElement('input'))
+					.attr("type", "hidden")
+					.attr("name", "offers[items][" + index + "][offer_id]")
+					.attr("value", <?= json_encode($main_offer_id) ?>)
+				)
+				.append(
+					jQuery(document.createElement('input'))
+					.attr("type", "hidden")
+					.attr("name", "offers[items][" + index + "][price_type_id]")
+					.attr("value", price_type_id)
+				)
+				.append(
+					jQuery(document.createElement('input'))
+					.addClass("elberos-commerce-product-offers-item-price")
+					.attr("type", "input")
+					.attr("name", "offers[items][" + index + "][price]")
+					.attr("value", "")
+				)
+			)
+			.append
+			(
+				jQuery(document.createElement('td'))
+			)
+			.append
+			(
+				jQuery(document.createElement('td'))
+			)
+			.append
+			(
+				jQuery(document.createElement('td'))
+				.append('<button type="button" class="button button--delete">Delete</button>')
+			);
+			jQuery('.elberos-commerce-product-offers table').append(tr);
+		});
+		</script>
 		<?php
 	}
 	
