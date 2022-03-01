@@ -288,22 +288,26 @@ class Api
 		$basket_price = static::getBasketPrice($basket_data);
 		
 		/* Validation */
-		$res = apply_filters
+		$filter_chain_data =
+		[
+			'code'=>0,
+			'message'=>"",
+			'validation'=>[],
+			'form_data'=>$form_data,
+			'basket_data'=>$basket_data,
+			'basket_price'=>$basket_price,
+		];
+		$filter_chain_data = apply_filters
 		(
 			'elberos_commerce_basket_validation',
-			[
-				'validation'=>[],
-				'form_data'=>$form_data,
-				'basket_data'=>$basket_data,
-				'basket_price'=>$basket_price,
-			]
+			$filter_chain_data
 		);
-		$form_data = $res['form_data'];
-		$basket_data = $res['basket_data'];
-		$basket_price = $res['basket_price'];
+		$form_data = $filter_chain_data['form_data'];
+		$basket_data = $filter_chain_data['basket_data'];
+		$basket_price = $filter_chain_data['basket_price'];
 		
 		/* If error */
-		$validation = $res['validation'];
+		$validation = $filter_chain_data['validation'];
 		if ($validation != null && count($validation) > 0)
 		{
 			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
@@ -318,33 +322,30 @@ class Api
 		}
 		
 		/* If error */
-		if ($res['code'] < 0)
+		if ($filter_chain_data['code'] < 0)
 		{
 			return
 			[
 				"type" => "validation",
-				"message" => $res["message"],
-				"code" => $res["code"],
+				"message" => $filter_chain_data["message"],
+				"code" => $filter_chain_data["code"],
 			];
 		}
 		
 		/* Find client */
-		$find_client_res =
-		[
-			'code' => 0,
-			'message' => '',
-			'register' => false,
-			'client_id' => null,
-			'form_data' => $form_data,
-			'validation' => [],
-			'basket' => $basket,
-			'basket_data' => $basket_data,
-			'item' => null,
-		];
-		$find_client_res = apply_filters('elberos_commerce_basket_find_client', $find_client_res);
+		$filter_chain_data["code"] = 0;
+		$filter_chain_data["message"] = '';
+		$filter_chain_data["client"] = null;
+		$filter_chain_data["client_id"] = null;
+		$filter_chain_data["client_register"] = false;
+		$filter_chain_data["form_data"] = $form_data;
+		$filter_chain_data["validation"] = [];
+		$filter_chain_data["basket"] = $basket;
+		$filter_chain_data["basket_data"] = $basket_data;
+		$filter_chain_data = apply_filters('elberos_commerce_basket_find_client', $filter_chain_data);
 		
 		/* Find client validation error */
-		$validation = isset($find_client_res['validation']) ? $find_client_res['validation'] : null;
+		$validation = isset($filter_chain_data['validation']) ? $filter_chain_data['validation'] : null;
 		if ($validation != null && count($validation) > 0)
 		{
 			$validation_error = isset($validation["error"]) ? $validation["error"] : null;
@@ -359,20 +360,20 @@ class Api
 		}
 		
 		/* Find client error */
-		if ($find_client_res['code'] < 0)
+		if ($filter_chain_data['code'] < 0)
 		{
 			return
 			[
 				"type" => "find_client_error",
-				"message" => $find_client_res["message"],
-				"code" => $find_client_res["code"],
+				"message" => $filter_chain_data["message"],
+				"code" => $filter_chain_data["code"],
 			];
 		}
 		
-		$client = isset($find_client_res['client']) ? $find_client_res['client'] : [];
+		$client = isset($filter_chain_data['client']) ? $filter_chain_data['client'] : [];
 		$client_id = isset($client['id']) ? $client['id'] : null;
 		$client_code_1c = isset($client['code_1c']) ? $client['code_1c'] : '';
-		$form_data = isset($find_client_res['form_data']) ? $find_client_res['form_data'] : null;
+		$form_data = isset($filter_chain_data['form_data']) ? $filter_chain_data['form_data'] : null;
 		
 		$comment = isset($form_data["comment"]) ? $form_data["comment"] : "";
 		if (isset($form_data["comment"]))
@@ -406,27 +407,25 @@ class Api
 		];
 		
 		/* Basket before */
-		$before_res = apply_filters
+		$filter_chain_data["code"] = 0;
+		$filter_chain_data["message"] = '';
+		$filter_chain_data["table_data"] = $table_data;
+		
+		$filter_chain_data = apply_filters
 		(
 			'elberos_commerce_basket_before',
-			[
-				'code' => 0,
-				'message' => '',
-				'table_data'=>$table_data,
-				'find_client_res'=>$find_client_res,
-			]
+			$filter_chain_data
 		);
-		$table_data = $before_res["table_data"];
-		$find_client_res = $before_res["find_client_res"];
+		$table_data = $filter_chain_data["table_data"];
 		
 		/* Before error */
-		if ($before_res['code'] < 0)
+		if ($filter_chain_data['code'] < 0)
 		{
 			return
 			[
 				"type" => "basket_before_error",
-				"message" => $before_res["message"],
-				"code" => $before_res["code"],
+				"message" => $filter_chain_data["message"],
+				"code" => $filter_chain_data["code"],
 			];
 		}
 		
@@ -464,13 +463,11 @@ class Api
 		static::api_clear_basket($site);
 		
 		/* Basket after */
+		$filter_chain_data["invoice"] = $invoice;
 		do_action
 		(
 			'elberos_commerce_basket_after',
-			[
-				'invoice'=>$invoice,
-				'find_client_res'=>$find_client_res,
-			]
+			$filter_chain_data
 		);
 		
 		return
