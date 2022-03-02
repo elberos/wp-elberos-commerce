@@ -410,6 +410,8 @@ class Api
 		$filter_chain_data["code"] = 0;
 		$filter_chain_data["message"] = '';
 		$filter_chain_data["table_data"] = $table_data;
+		unset( $filter_chain_data["basket_data"] );
+		unset( $filter_chain_data["form_data"] );
 		
 		$filter_chain_data = apply_filters
 		(

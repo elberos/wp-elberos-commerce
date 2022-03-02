@@ -163,7 +163,8 @@ class Controller
 		set_time_limit(600);
 		@ini_set( 'upload_max_size' , '512M' );
 		@ini_set( 'post_max_size', '512M');
-		
+		libxml_use_internal_errors(true);
+
 		$type = isset($_GET['type']) ? $_GET['type'] : "";
 		$mode = isset($_GET['mode']) ? $_GET['mode'] : "";
 		if (!defined('DOING_AJAX'))
@@ -246,16 +247,21 @@ class Controller
 			return false;
 		}
 		
-		session_start();
-		
-		$res = [];
-		$res[] = "success";
-		$res[] = "PHPSESSID";
-		$res[] = session_id();
-		
-		echo implode("\n", $res) . "\n";
-		
-		$_SESSION["elberos_1c_login"] = true;
+		if (session_start())
+		{
+			$res = [];
+			$res[] = "success";
+			$res[] = "PHPSESSID";
+			$res[] = session_id();
+			
+			echo implode("\n", $res) . "\n";
+			
+			$_SESSION["elberos_1c_login"] = true;
+		}
+		else
+		{
+			echo "Failed start session\n";
+		}
 		
 		return true;
 	}
@@ -456,7 +462,14 @@ class Controller
 			else
 			{
 				/* Wait message */
-				sleep( mt_rand(10, 20) );
+				if (!WP_DEBUG)
+				{
+					sleep( mt_rand(10, 20) );
+				}
+				else
+				{
+					sleep(1);
+				}
 				
 				$progress = Helper::getTaskProgress($item['id']);
 				$total = Helper::getTaskTotal($item['id']);
@@ -474,6 +487,12 @@ class Controller
 		else if ($item['status'] == Helper::IMPORT_STATUS_WORK)
 		{
 			list($item, $progress) = static::catalogImportWork($item);
+		}
+		
+		/* Если загружено с ошибкой, и при этом cgi запрос завершен, то вывести ошибку при следующем обращении */
+		if ($fastcgi_finish && $item['status'] == -1)
+		{
+			$item['status'] = 2;
 		}
 		
 		/* Обновляем запись в базе данных */
@@ -855,10 +874,10 @@ class Controller
 				if ($discount_type == "percent" && $discount_value > 0 && $discount_value <= 100)
 				{
 					$product->addChild('Сумма', $offer_price * $product_count * (1 - $discount_value/100));
-					$xml_discounts = $product->addChild('Скидки', $offer_price);
-					$xml_discount = $xml_discounts->addChild('Скидка', $offer_price);
-					$xml_discounts->addChild('Процент', $discount_value);
-					$xml_discounts->addChild('УчтеноВСумме', true);
+					$xml_discounts = $product->addChild('Скидки');
+					$xml_discount = $xml_discounts->addChild('Скидка');
+					$xml_discount->addChild('Процент', $discount_value);
+					$xml_discount->addChild('УчтеноВСумме', true);
 				}
 				else
 				{
@@ -1551,14 +1570,16 @@ class Controller
 		$Скидки = $xml->Скидки;
 		if ($Скидки != null && $Скидки->getName() == 'Скидки')
 		{
-			$Скидка = $Скидки->Скидка;
-			if ($Скидка != null && $Скидка->getName() == 'Скидка')
+			foreach ($Скидки->children() as $Скидка)
 			{
-				$Процент = (string) $Скидка->Процент;
-				$УчтеноВСумме = (string) $Скидка->УчтеноВСумме;
-				if ($УчтеноВСумме == "true")
+				if ($Скидка != null && $Скидка->getName() == 'Скидка')
 				{
-					$discount += $Процент;
+					$Процент = (double) $Скидка->Процент;
+					$УчтеноВСумме = (string) $Скидка->УчтеноВСумме;
+					if ($УчтеноВСумме == "true" || $УчтеноВСумме == "1")
+					{
+						$discount += $Процент;
+					}
 				}
 			}
 		}
@@ -1571,6 +1592,9 @@ class Controller
 		{
 			if (isset($arr["discount_value"])) $arr["discount_value"] = 0;
 		}
+		
+		//var_dump($Скидки->getName());
+		//var_dump($discount);
 		
 		/* Find product */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
@@ -1601,6 +1625,7 @@ class Controller
 			[
 				'xml'=>$xml,
 				'arr'=>$arr,
+				'product_row'=>$product_row,
 			]
 		);
 		
