@@ -609,6 +609,7 @@ class Api
 		$params = [];
 		$photos = [];
 		$offers = [];
+		$offers_prices = [];
 		$photo_size = isset($settings["photo_size"]) ? $settings["photo_size"] : "medium";
 		if (gettype($products_id) == "array" && count($products_id) > 0)
 		{
@@ -652,6 +653,16 @@ class Api
 			$sql = $wpdb->prepare
 			(
 				"select
+					t1.*
+				from {$wpdb->base_prefix}elberos_commerce_products_offers as t1
+				where t1.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				$products_id
+			);
+			$offers = $wpdb->get_results($sql, ARRAY_A);
+			
+			$sql = $wpdb->prepare
+			(
+				"select
 					t1.id as price_id,
 					t1.price_type_id,
 					t1.price,
@@ -661,6 +672,7 @@ class Api
 					t1.name as offer_price_name,
 					t2.id as offer_id,
 					t2.product_id as product_id,
+					t2.count as count,
 					t2.code_1c as offer_code_1c,
 					t3.code_1c as price_type_code_1c
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1
@@ -671,7 +683,7 @@ class Api
 				where t2.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
 				$products_id
 			);
-			$offers = $wpdb->get_results($sql, ARRAY_A);
+			$offers_prices = $wpdb->get_results($sql, ARRAY_A);
 		}
 		
 		/* Обработка элементов */
@@ -712,6 +724,20 @@ class Api
 					return $offer["product_id"] == $item["id"];
 				}
 			);
+			$item['offers_prices'] = array_filter
+			(
+				$offers_prices,
+				function ($offer_price) use ($item)
+				{
+					return $offer_price["product_id"] == $item["id"];
+				}
+			);
+			
+			$item['params'] = array_values($item['params']);
+			$item['photos'] = array_values($item['photos']);
+			$item['offers'] = array_values($item['offers']);
+			$item['offers_prices'] = array_values($item['offers_prices']);
+			
 			$photo_id = $item["main_photo_id"];
 			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, $photo_size);
 		}
@@ -724,7 +750,7 @@ class Api
 	/**
 	 * Возвращает список оферов у товара
 	 */
-	static function getProductOffers($product_id)
+	static function getProductOffersPrices($product_id)
 	{
 		global $wpdb;
 		$sql = \Elberos\wpdb_prepare
@@ -753,8 +779,8 @@ class Api
 				"product_id" => $product_id,
 			]
 		);
-		$product_offers = $wpdb->get_results($sql, ARRAY_A);
-		return $product_offers;
+		$product_offers_prices = $wpdb->get_results($sql, ARRAY_A);
+		return $product_offers_prices;
 	}
 	
 	

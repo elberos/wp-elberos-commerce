@@ -961,6 +961,7 @@ class Task
 				"xml" => $xml_str,
 				"offer_params" => json_encode($offer_params),
 				"count" => $count,
+				"in_stock" => $count > 0,
 				"prepare_delete" => 0,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 			]
