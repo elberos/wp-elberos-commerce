@@ -531,7 +531,7 @@ class Api
 				"count" => $count,
 				"offer_id" => (int) (isset($offer_item["offer_id"]) ? $offer_item["offer_id"] : 0),
 				"offer_price_id" => (int) (isset($offer_item["price_id"]) ? $offer_item["price_id"] : 0),
-				"offer_price" => (int) (isset($offer_item["price"]) ? $offer_item["price"] : 0),
+				"offer_price" => (double) (isset($offer_item["price"]) ? $offer_item["price"] : 0),
 				"offer_currency" => isset($offer_item["currency"]) ? $offer_item["currency"] : "",
 				"offer_unit" => isset($offer_item["unit"]) ? $offer_item["unit"] : "",
 				"offer_coefficient" => isset($offer_item["coefficient"]) ? $offer_item["coefficient"] : "",
