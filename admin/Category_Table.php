@@ -62,7 +62,7 @@ class Category_Table extends \Elberos\Table
 			"admin_table",
 			function ($struct)
 			{
-				$struct->editField("image_file_id", [
+				$struct->editField("image_id", [
 					//"form_show" => false,
 					"form_render" => function($struct, $field, $item)
 					{
@@ -89,7 +89,7 @@ class Category_Table extends \Elberos\Table
 					"id",
 					"name",
 					"code_1c",
-					"image_file_id",
+					"image_id",
 				];
 				
 				$struct->form_fields =
@@ -98,7 +98,8 @@ class Category_Table extends \Elberos\Table
 					"slug",
 					"code_1c",
 					"show_in_catalog",
-					"image_file_id",
+					"image_id",
+					"image_file_path",
 				];
 				
 				return $struct;
@@ -854,6 +855,8 @@ class Category_Table extends \Elberos\Table
 				{
 					$form.find('.image_file_path_image').attr('src', '');
 				}
+				
+				$form.trigger('setFormData', [{"data":data}]);
 			},
 			
 			/**

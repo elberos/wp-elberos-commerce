@@ -1075,10 +1075,6 @@ class Controller
 		}
 		else if ($form_data_type == 2)
 		{
-			if (isset($form_data['company_bin']))
-			{
-				$client->addChild('ИНН', \Elberos\mb_trim($form_data['company_bin']));
-			}
 			$node = $client->addChild('РеквизитыЮрЛица');
 			if (isset($form_data['company_name']))
 			{
@@ -1150,10 +1146,7 @@ class Controller
 	{
 		global $wpdb;
 		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
-		$sql = $wpdb->prepare
-		(
-			"update " . $table_name . " set export_status=1 where export_status=0"
-		);
+		$sql = "update " . $table_name . " set export_status=1 where export_status=0";
 		$wpdb->query($sql);
 		echo "success";
 	}

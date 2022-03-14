@@ -138,7 +138,7 @@ class Admin_Api
 		$res = static::checkIsAdmin();
 		if ($res) return $res;
 		
-		$item = isset($_POST["item"]) ? $_POST["item"] : null;
+		$item = isset($_POST["item"]) ? stripslashes_deep($_POST["item"]) : null;
 		if (!$item)
 		{
 			return
@@ -148,17 +148,23 @@ class Admin_Api
 			];
 		}
 		
+		require_once dirname(__DIR__) . "/admin/Category_Table.php";
+		
+		$struct = \Elberos\Commerce\Category_Table::createStruct();
+		
 		$id = isset($item["id"]) ? $item["id"]: "";
-		$name = isset($item["name"]) ? $item["name"] : "";
-		$code_1c = isset($item["code_1c"]) ? $item["code_1c"] : "";
-		$image_file_id = isset($item["image_id"]) ? $item["image_id"] : "";
-		$image_file_path = isset($item["image_file_path"]) ? $item["image_file_path"] : "";
-		$parent_category_id = isset($item["parent_category_id"]) ? $item["parent_category_id"] : 0;
-		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"] : 0;
-		$show_in_catalog = isset($item["show_in_catalog"]) ? $item["show_in_catalog"] : 0;
+		$process_item = $struct->update([], $item);
+		$process_item = $struct->processItem($process_item);
+		
+		if ($process_item["slug"] == "")
+		{
+			$process_item["slug"] = sanitize_title($process_item["slug"]);
+		}
 		
 		$action = "";
 		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';
+		
+		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"] : 0;
 		
 		/* Update */
 		if ($id != "")
@@ -167,13 +173,7 @@ class Admin_Api
 			$wpdb->update
 			(
 				$table_name,
-				[
-					"name" => $name,
-					"code_1c" => $code_1c,
-					"image_id" => $image_file_id,
-					"image_file_path" => $image_file_path,
-					"show_in_catalog" => $show_in_catalog,
-				],
+				$process_item,
 				[
 					"id" => $id,
 				]
@@ -187,15 +187,7 @@ class Admin_Api
 			$wpdb->insert
 			(
 				$table_name,
-				[
-					"name" => $name,
-					"code_1c" => $code_1c,
-					"image_id" => $image_file_id,
-					"image_file_path" => $image_file_path,
-					"classifier_id" => $classifier_id,
-					"parent_category_id" => $parent_category_id,
-					"show_in_catalog" => $show_in_catalog,
-				]
+				$process_item
 			);
 			$id = $wpdb->insert_id;
 		}
