@@ -234,9 +234,9 @@ class Elberos_Commerce_Plugin
 		
 		if ($product == null) return;
 		
-		$name = $product["name"];
-		$text = json_decode($product["text"], true);
-		$vendor_code = $product["vendor_code"];
+		$name = isset($product["name"]) ? $product["name"] : "";
+		$text = @json_decode(isset($product["text"]) ? $product["text"] : null, true);
+		$vendor_code = isset($product["vendor_code"]) ? $product["vendor_code"] : "";
 		
 		/* Обновляем текста для поиска */
 		$search_text = [];

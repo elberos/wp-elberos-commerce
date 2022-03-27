@@ -282,7 +282,7 @@ class Api
 		);
 		
 		/* Send data */
-		$form_data = isset($_POST['data']) ? $_POST['data'] : [];
+		$form_data = isset($_POST['data']) ? stripslashes_deep($_POST['data']) : [];
 		
 		/* Calculate price */
 		$basket_price = static::getBasketPrice($basket_data);
@@ -388,7 +388,7 @@ class Api
 		$secret_code = wp_generate_password(12, false, false);
 		
 		/* Get utm */
-		$utm = isset($_POST["utm"]) ? $_POST["utm"] : [];
+		$utm = isset($_POST["utm"]) ? stripslashes_deep($_POST["utm"]) : [];
 		
 		/* Table data */
 		$table_data = [

@@ -991,6 +991,7 @@ class Task
 						$table_name_products_offers_prices,
 						[
 							"offer_id" => $offer_id,
+							"price_type_id" => $price_type_id,
 						],
 						[
 							"offer_id" => $offer_id,
