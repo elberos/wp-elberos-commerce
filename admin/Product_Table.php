@@ -993,7 +993,11 @@ class Product_Table extends \Elberos\Table
 			display: inline-block;
 			vertical-align: top;
 			cursor: pointer;
+			max-width: 80%;
 			margin: 5px;
+		}
+		.elberos-commerce .product_photo img{
+			max-width: 100%;
 		}
 		.elberos-commerce .product_photo .button-delete
 		{
