@@ -1281,6 +1281,50 @@ class Controller
 								$invoice, $item, $update_data, true
 							);
 							
+							/* Remove product */
+							$product_ids = [];
+							
+							$arr = $item->Товары;
+							if ($arr != null && $arr->getName() == 'Товары')
+							{
+								foreach ($arr->children() as $product_xml)
+								{
+									if ($product_xml->getName() != 'Товар')
+									{
+										continue;
+									}
+									$product_ids[] = \Elberos\mb_trim( (string)$product_xml->Ид );
+								}
+							}
+							
+							$arr = $item->Услуги;
+							if ($arr != null && $arr->getName() == 'Услуги')
+							{
+								foreach ($arr->children() as $product_xml)
+								{
+									if ($product_xml->getName() != 'Услуга')
+									{
+										continue;
+									}
+									$product_ids[] = \Elberos\mb_trim( (string)$product_xml->Ид );
+								}
+							}
+							
+							/* Удаляем товары, которых нет в xml */
+							if (isset($update_data["basket_data"]))
+							{
+								foreach ($update_data["basket_data"] as $key => $arr)
+								{
+									$arr_product_code_1c = $arr["product_code_1c"];
+									if (!in_array($arr_product_code_1c, $product_ids))
+									{
+										unset($update_data["basket_data"][$key]);
+									}
+								}
+							}
+							
+							$update_data["basket_data"] = array_values($update_data["basket_data"]);
+							
 							/* Update invoice */
 							$params = apply_filters
 							(
@@ -1560,6 +1604,7 @@ class Controller
 		$arr["product_vendor_code"] = \Elberos\mb_trim( (string)$xml->Артикул );
 		$arr["product_name"] = \Elberos\mb_trim( (string)$xml->Наименование );
 		$arr["offer_price"] = \Elberos\mb_trim( (string)$xml->ЦенаЗаЕдиницу );
+		$arr["offer_unit"] = \Elberos\mb_trim( (string)$xml->Единица );
 		$arr["count"] = \Elberos\mb_trim( (string)$xml->Количество );
 		
 		/* Скидки */
@@ -1587,7 +1632,7 @@ class Controller
 		}
 		else
 		{
-			if (isset($arr["discount_value"])) $arr["discount_value"] = 0;
+			if (!isset($arr["discount_value"])) $arr["discount_value"] = 0;
 		}
 		
 		//var_dump($Скидки->getName());
