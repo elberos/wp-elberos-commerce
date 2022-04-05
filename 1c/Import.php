@@ -74,12 +74,14 @@ class Import
 		$products_update_only = mb_strtolower((string) ($xml->Каталог->attributes()->СодержитТолькоИзменения));
 		if ($products_update_only === "нет" ||
 			$products_update_only === "false" ||
-			$products_update_only === false ||
-			$products_update_only === 0)
+			$products_update_only === "0")
 		{
 			$update_only = false;
 		}
-		else
+		
+		if ($products_update_only === "да" ||
+			$products_update_only === "true" ||
+			$products_update_only === "1")
 		{
 			$update_only = true;
 		}
@@ -105,12 +107,14 @@ class Import
 		$offers_update_only = mb_strtolower((string) ($xml->attributes()->СодержитТолькоИзменения));
 		if ($offers_update_only === "нет" ||
 			$offers_update_only === "false" ||
-			$offers_update_only === false ||
-			$offers_update_only === 0)
+			$offers_update_only === "0")
 		{
 			$update_only = false;
 		}
-		else
+		
+		if ($offers_update_only === "да" ||
+			$offers_update_only === "true" ||
+			$offers_update_only === "1")
 		{
 			$update_only = true;
 		}
@@ -233,6 +237,7 @@ class Import
 				]
 			);
 			$update_only = $res["update_only"];
+			
 			if (!$update_only)
 			{
 				/* Сбрасываем флаг just_show_in_catalog */
