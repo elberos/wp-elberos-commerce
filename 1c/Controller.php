@@ -1171,6 +1171,18 @@ class Controller
 		$content = file_get_contents("php://input");
 		$error_message = null;
 		
+		/* Сохранить файл */
+		$filename = trim(isset($_GET["filename"]) ? $_GET["filename"] : "");
+		if ($filename != "")
+		{
+			$filename = basename($filename);
+			$filename = preg_replace("/[^a-z0-9\.]/i", '', $filename);
+			$filefolder = ABSPATH . "wp-content/uploads/1c_uploads";
+			$filepath = $filefolder . "/" . $filename;
+			file_put_contents($filepath, $content);
+			// var_dump( $_SERVER );
+		}
+		
 		try
 		{
 			@ob_start();
@@ -1227,6 +1239,8 @@ class Controller
 				$table_name_1c_task,
 				$insert_data
 			);
+			
+			// var_dump( $wpdb->last_error ); 
 			
 			$error_message = "";
 			$task_id = $wpdb->insert_id;
@@ -1330,7 +1344,7 @@ class Controller
 							(
 								'elberos_commerce_1c_update_invoice',
 								[
-									'xml'=>$xml,
+									'xml'=>$item,
 									'invoice'=>$invoice,
 									'update_data'=>$update_data,
 								]
@@ -1350,6 +1364,12 @@ class Controller
 									'id' => $invoice['id'],
 								]
 							);
+							/*
+							if ($invoice['id'] == 1009)
+							{
+								var_dump( $update_data ); 
+							}
+							*/
 						}
 						
 					}
