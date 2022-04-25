@@ -78,6 +78,7 @@ class Product_Table extends \Elberos\Table
 					"id",
 					"catalog_id",
 					"category_id",
+					"main_page_pos",
 					"main_photo_id",
 					"vendor_code",
 					"name",
@@ -89,6 +90,7 @@ class Product_Table extends \Elberos\Table
 					"catalog_id",
 					"show_in_catalog",
 					"show_in_top",
+					"main_page_pos",
 					"vendor_code",
 					"name",
 					"code_1c",
@@ -830,6 +832,8 @@ class Product_Table extends \Elberos\Table
 			$params["where"][] = "show_in_top=1";
 			$params["where"][] = "is_deleted=0";
 		}
+		
+		$params["order_by"] = "main_page_pos desc, id desc";
 		
 		return $params;
 	}
