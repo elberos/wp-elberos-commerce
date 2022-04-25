@@ -73,6 +73,13 @@ class Product extends \Elberos\StructBuilder
 			
 			->addField
 			([
+				"api_name" => "main_page_pos",
+				"label" => "Позиция в каталоге",
+				"type" => "input",
+			])
+			
+			->addField
+			([
 				"api_name" => "vendor_code",
 				"label" => "Артикул",
 				"type" => "input",

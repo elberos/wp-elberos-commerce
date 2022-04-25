@@ -228,6 +228,18 @@ class Invoice extends \Elberos\StructBuilder
 			])
 			->addField
 			([
+				"api_name" => "address",
+				"label" => "Адрес доставки",
+				"type" => "input",
+				"virtual" => true,
+				"column_value" => function ($struct, $item)
+				{
+					$form_data = @json_decode($item["form_data"], true);
+					return isset($form_data["address"]) ? $form_data["address"] : "";
+				}
+			])
+			->addField
+			([
 				"api_name" => "comment",
 				"label" => "Комментарий",
 				"type" => "input",

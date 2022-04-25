@@ -86,6 +86,7 @@ class Invoice_Table extends \Elberos\Table
 					"company_bin",
 					"email",
 					"phone",
+					"address",
 					"comment",
 					"price",
 					"price_pay",
