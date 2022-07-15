@@ -1,4 +1,4 @@
--- Adminer 4.7.6 MySQL dump
+-- Adminer 4.8.1 MySQL 5.5.5-10.8.2-MariaDB-1:10.8.2+maria~focal dump
 
 SET NAMES utf8;
 SET time_zone = '+00:00';
@@ -7,46 +7,27 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
-DROP TABLE IF EXISTS `wp1_elberos_commerce_1c_import`;
-CREATE TABLE `wp1_elberos_commerce_1c_import` (
+DROP TABLE IF EXISTS `wp1_elberos_clients`;
+CREATE TABLE `wp1_elberos_clients` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `session_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `filename` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '0-plan,1-done,2-work',
-  `error_code` int(11) NOT NULL,
-  `error_message` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `progress` bigint(20) NOT NULL,
-  `total` bigint(20) NOT NULL,
-  `error` bigint(20) NOT NULL,
-  `is_deleted` tinyint(4) NOT NULL,
-  `gmtime_add` datetime NOT NULL,
-  `gmtime_end` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `session_id_status_filename` (`session_id`,`status`,`filename`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-DROP TABLE IF EXISTS `wp1_elberos_commerce_1c_task`;
-CREATE TABLE `wp1_elberos_commerce_1c_task` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `import_id` bigint(20) DEFAULT NULL,
-  `catalog_id` bigint(20) NOT NULL,
-  `classifier_id` bigint(20) NOT NULL,
-  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` tinyint(4) NOT NULL COMMENT '0-plan,1-done,2-work',
   `code_1c` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` tinyint(4) NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `data` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `error_code` int(11) NOT NULL,
-  `error_message` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `surname` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_identifier` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `company_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `company_bin` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `company_address` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `search_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recovery_password_code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recovery_password_expire` datetime DEFAULT NULL,
   `gmtime_add` datetime NOT NULL,
-  `gmtime_end` datetime DEFAULT NULL,
+  `is_deleted` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `import_id` (`import_id`),
-  KEY `code_1c` (`code_1c`),
-  KEY `type` (`type`),
-  KEY `error_code` (`error_code`),
-  CONSTRAINT `wp1_elberos_commerce_1c_task_ibfk_1` FOREIGN KEY (`import_id`) REFERENCES `wp1_elberos_commerce_1c_import` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -59,8 +40,7 @@ CREATE TABLE `wp1_elberos_commerce_catalogs` (
   `is_deleted` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `classifier_id` (`classifier_id`),
-  KEY `code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_catalogs_ibfk_1` FOREIGN KEY (`classifier_id`) REFERENCES `wp1_elberos_commerce_classifiers` (`id`) ON UPDATE CASCADE
+  KEY `code_1c` (`code_1c`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -136,8 +116,7 @@ CREATE TABLE `wp1_elberos_commerce_params` (
   `gmtime_1c_change` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `classifier_id` (`classifier_id`),
-  KEY `code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_params_ibfk_1` FOREIGN KEY (`classifier_id`) REFERENCES `wp1_elberos_commerce_classifiers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `code_1c` (`code_1c`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -153,8 +132,7 @@ CREATE TABLE `wp1_elberos_commerce_params_values` (
   `gmtime_1c_change` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `param_id` (`param_id`),
-  KEY `code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_params_values_ibfk_1` FOREIGN KEY (`param_id`) REFERENCES `wp1_elberos_commerce_params` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `code_1c` (`code_1c`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -171,8 +149,7 @@ CREATE TABLE `wp1_elberos_commerce_price_types` (
   `is_deleted` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `classifier_id` (`classifier_id`),
-  KEY `code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_price_types_ibfk_1` FOREIGN KEY (`classifier_id`) REFERENCES `wp1_elberos_commerce_classifiers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `code_1c` (`code_1c`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -184,10 +161,10 @@ CREATE TABLE `wp1_elberos_commerce_products` (
   `main_category_id` bigint(20) DEFAULT NULL,
   `show_in_catalog` tinyint(4) NOT NULL COMMENT '0-не показывать, 1-показывать',
   `show_in_top` tinyint(4) NOT NULL COMMENT '1-показывать на главной',
+  `main_page_pos` bigint(20) NOT NULL,
   `just_show_in_catalog` tinyint(4) NOT NULL COMMENT 'На какой статус поменять после импорта 1C',
   `price_default` double NOT NULL,
   `default_unit` bigint(20) DEFAULT NULL,
-  `default_unit_text` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `code_1c` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `vendor_code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `kod` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -200,9 +177,8 @@ CREATE TABLE `wp1_elberos_commerce_products` (
   PRIMARY KEY (`id`),
   KEY `code_1c` (`code_1c`),
   KEY `catalog_id` (`catalog_id`),
-  KEY `show_in_catalog` (`show_in_catalog`),
   KEY `vendor_code` (`vendor_code`),
-  CONSTRAINT `wp1_elberos_commerce_products_ibfk_1` FOREIGN KEY (`catalog_id`) REFERENCES `wp1_elberos_commerce_catalogs` (`id`) ON UPDATE CASCADE
+  KEY `show_in_catalog_catalog_id` (`show_in_catalog`,`catalog_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -211,9 +187,7 @@ CREATE TABLE `wp1_elberos_commerce_products_categories` (
   `product_id` bigint(20) NOT NULL,
   `category_id` bigint(20) NOT NULL,
   UNIQUE KEY `category_id_product_id` (`category_id`,`product_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `wp1_elberos_commerce_products_categories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `wp1_elberos_commerce_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `wp1_elberos_commerce_products_categories_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `wp1_elberos_commerce_products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `product_id` (`product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -230,70 +204,29 @@ CREATE TABLE `wp1_elberos_commerce_products_offers` (
   `prepare_delete` tinyint(4) NOT NULL,
   `gmtime_1c_change` datetime NOT NULL,
   PRIMARY KEY (`id`),
+  KEY `code_1c` (`code_1c`),
   KEY `product_id` (`product_id`),
-  KEY `prepare_delete` (`prepare_delete`),
-  KEY `code_1c_price_type_code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_products_offers_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `wp1_elberos_commerce_products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `prepare_delete` (`prepare_delete`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 DROP TABLE IF EXISTS `wp1_elberos_commerce_products_offers_prices`;
 CREATE TABLE `wp1_elberos_commerce_products_offers_prices` (
-  `id` bigint(20) NOT NULL DEFAULT 0,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `offer_id` bigint(20) NOT NULL,
   `price_type_id` bigint(20) NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `price` double NOT NULL,
-  `currency` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `coefficient` double NOT NULL,
-  `unit` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `currency` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'KZT',
+  `coefficient` double NOT NULL DEFAULT 1,
+  `unit` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `prepare_delete` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `offer_id_price_type_id` (`offer_id`,`price_type_id`),
   KEY `price_type_id` (`price_type_id`),
   KEY `prepare_delete` (`prepare_delete`),
-  CONSTRAINT `wp1_elberos_commerce_products_offers_prices_ibfk_1` FOREIGN KEY (`offer_id`) REFERENCES `wp1_elberos_commerce_products_offers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `wp1_elberos_commerce_products_offers_prices_ibfk_2` FOREIGN KEY (`price_type_id`) REFERENCES `wp1_elberos_commerce_price_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-DROP TABLE IF EXISTS `wp1_elberos_commerce_products_offers_prices_copy`;
-CREATE TABLE `wp1_elberos_commerce_products_offers_prices_copy` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `offer_id` bigint(20) NOT NULL,
-  `price_type_id` bigint(20) NOT NULL,
-  `price_type_code_1c` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `price` double NOT NULL,
-  `currency` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `coefficient` double NOT NULL,
-  `unit` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `prepare_delete` tinyint(4) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `offer_id` (`offer_id`),
-  KEY `price_type_id` (`price_type_id`),
-  KEY `prepare_delete` (`prepare_delete`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
-DROP TABLE IF EXISTS `wp1_elberos_commerce_products_offers_prices_old`;
-CREATE TABLE `wp1_elberos_commerce_products_offers_prices_old` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `offer_id` bigint(20) NOT NULL,
-  `price_type_id` bigint(20) NOT NULL,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `price` double NOT NULL,
-  `currency` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `coefficient` double NOT NULL,
-  `unit` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `prepare_delete` tinyint(4) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `offer_id` (`offer_id`),
-  KEY `price_type_id` (`price_type_id`),
-  KEY `prepare_delete` (`prepare_delete`),
-  CONSTRAINT `wp1_elberos_commerce_products_offers_prices_old_ibfk_1` FOREIGN KEY (`offer_id`) REFERENCES `wp1_elberos_commerce_products_offers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `wp1_elberos_commerce_products_offers_prices_old_ibfk_2` FOREIGN KEY (`price_type_id`) REFERENCES `wp1_elberos_commerce_price_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `price` (`price`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 
 DROP TABLE IF EXISTS `wp1_elberos_commerce_products_params`;
@@ -312,9 +245,7 @@ CREATE TABLE `wp1_elberos_commerce_products_params` (
   KEY `param_id_param_value_id` (`param_id`,`param_value_id`),
   KEY `key` (`key`),
   KEY `product_id_type_key` (`product_id`,`type`,`key`),
-  KEY `prepare_delete` (`prepare_delete`),
-  CONSTRAINT `wp1_elberos_commerce_products_params_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `wp1_elberos_commerce_products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `wp1_elberos_commerce_products_params_ibfk_2` FOREIGN KEY (`param_id`, `param_value_id`) REFERENCES `wp1_elberos_commerce_params_values` (`param_id`, `id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `prepare_delete` (`prepare_delete`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -325,8 +256,7 @@ CREATE TABLE `wp1_elberos_commerce_products_photos` (
   `pos` bigint(20) NOT NULL,
   `is_deleted` tinyint(4) NOT NULL,
   UNIQUE KEY `product_id_photo_id` (`product_id`,`photo_id`),
-  KEY `photo_id` (`photo_id`),
-  CONSTRAINT `wp1_elberos_commerce_products_photos_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `wp1_elberos_commerce_products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `photo_id` (`photo_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -337,7 +267,7 @@ CREATE TABLE `wp1_elberos_commerce_products_relative` (
   `relative_id` bigint(20) NOT NULL,
   `pos` bigint(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 
 DROP TABLE IF EXISTS `wp1_elberos_commerce_products_text`;
@@ -361,8 +291,7 @@ CREATE TABLE `wp1_elberos_commerce_warehouses` (
   PRIMARY KEY (`id`),
   KEY `classifier_id` (`classifier_id`),
   KEY `code_1c` (`code_1c`),
-  CONSTRAINT `wp1_elberos_commerce_warehouses_ibfk_1` FOREIGN KEY (`classifier_id`) REFERENCES `wp1_elberos_commerce_classifiers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `wp1_elberos_commerce_warehouses_ibfk_1` FOREIGN KEY (`classifier_id`) REFERENCES `old_wp1_elberos_commerce_classifiers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- 2022-03-27 11:39:57
+-- 2022-07-10 17:08:08

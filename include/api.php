@@ -438,7 +438,7 @@ class Api
 		
 		/* Insert data */
 		// $wpdb->show_errors();
-		$table_invoice = $wpdb->prefix . 'elberos_commerce_invoice';
+		$table_invoice = $wpdb->base_prefix . 'elberos_commerce_invoice';
 		$wpdb->insert
 		(
 			$table_invoice,
@@ -451,7 +451,7 @@ class Api
 		/* Get invoice */
 		$invoice = $wpdb->get_row
 		(
-			$wpdb->prepare("SELECT * FROM ".$wpdb->prefix."elberos_commerce_invoice WHERE id = %d", $invoice_id),
+			$wpdb->prepare("SELECT * FROM " . $wpdb->base_prefix . "elberos_commerce_invoice WHERE id = %d", $invoice_id),
 			ARRAY_A
 		);
 		if ($invoice)
@@ -593,6 +593,9 @@ class Api
 	public static function getProducts($products_id, $settings = [])
 	{
 		global $wpdb;
+		
+		/* Setup main blog */
+		switch_to_blog(1);
 		
 		/* Remove duplicates */
 		if (gettype($products_id) == "array" && count($products_id) > 0)
@@ -741,6 +744,9 @@ class Api
 			$photo_id = $item["main_photo_id"];
 			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, $photo_size);
 		}
+		
+		/* Restore blog */
+		restore_current_blog();
 		
 		return $items;
 	}

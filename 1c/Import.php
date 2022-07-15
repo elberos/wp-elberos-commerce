@@ -104,7 +104,7 @@ class Import
 			return $res;
 		}
 		
-		$offers_update_only = mb_strtolower((string) ($xml->attributes()->СодержитТолькоИзменения));
+		$offers_update_only = mb_strtolower((string) ($xml->ПакетПредложений->attributes()->СодержитТолькоИзменения));
 		if ($offers_update_only === "нет" ||
 			$offers_update_only === "false" ||
 			$offers_update_only === "0")
