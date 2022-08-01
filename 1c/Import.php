@@ -207,11 +207,12 @@ class Import
 			$name = implode(" ", $name);
 			
 			$classifier = Helper::findClassifierByCode( (string)$this->xml->Каталог->ИдКлассификатора );
+			$catalog = Helper::findCatalogByCode( (string)$this->xml->Каталог->Ид );
 			
-			/* Ищем каталог */
-			$catalog_code_1c = (string)$this->xml->Каталог->Ид;
-			if ($catalog_code_1c != "")
+			/* Создаем каталог */
+			if ($catalog == null)
 			{
+				$catalog_code_1c = (string)$this->xml->Каталог->Ид;
 				$catalog = \Elberos\wpdb_insert_or_update
 				(
 					$table_name_catalogs,
@@ -224,8 +225,8 @@ class Import
 						"name" => $name,
 					]
 				);
-				$catalog_id = $catalog['id'];
 			}
+			$catalog_id = $catalog ? $catalog['id'] : 0;
 			
 			/* Флаг не содержит только изменения */
 			$res = apply_filters
@@ -238,11 +239,12 @@ class Import
 			);
 			$update_only = $res["update_only"];
 			
+			/* Сбрасываем флаг just_show_in_catalog */
 			if (!$update_only)
 			{
-				/* Сбрасываем флаг just_show_in_catalog */
 				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-				$sql = "update " . $table_name_products . " set `just_show_in_catalog` = 0";
+				$sql = "update " . $table_name_products . " set `just_show_in_catalog` = 0 where `catalog_id` = '" .
+					(int)($catalog_id) . "'";
 				$wpdb->query($sql);
 			}
 		}
@@ -251,6 +253,9 @@ class Import
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
 		{
+			$catalog = Helper::findCatalogByCode( (string)$this->xml->ПакетПредложений->ИдКаталога );
+			$catalog_id = $catalog ? $catalog['id'] : 0;
+			
 			/* Флаг не содержит только изменения */
 			$res = apply_filters
 			(
@@ -260,16 +265,33 @@ class Import
 					'update_only' => false,
 				]
 			);
+			
+			/* Сбрасываем флаг prepare_delete у предложений */
 			$update_only = $res["update_only"];
 			if (!$update_only)
 			{
-				/* Сбрасываем флаг prepare_delete у предложений */
+				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
 				$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
 				$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
-				$sql = "update " . $table_name_products_offers . " set `prepare_delete` = 1";
+				
+				$sql = "update " . $table_name_products_offers . " as offers " .
+					"inner join " . $table_name_products . " as products " .
+					" on ( products.id = offers.product_id ) " .
+					" set `offers`.`prepare_delete` = 1 " .
+					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
+				;
 				$wpdb->query($sql);
-				$sql = "update " . $table_name_products_offers_prices . " set `prepare_delete` = 1";
+				
+				$sql = "update " . $table_name_products_offers_prices . " as offers_prices " .
+					"inner join " . $table_name_products_offers . " as offers " .
+					" on ( offers.id = offers_prices.offer_id) " .
+					"inner join " . $table_name_products . " as products " .
+					" on ( products.id = offers.product_id)"  .
+					" set `offers_prices`.`prepare_delete` = 1 " .
+					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
+				;
 				$wpdb->query($sql);
+				
 			}
 		}
 	}

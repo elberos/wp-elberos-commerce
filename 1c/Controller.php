@@ -30,6 +30,7 @@ class Controller
 {
 	static $max_size = 8 * 1024 * 1024;
 	static $task_run_limits = 20;
+	static $fastcgi_finish_request = false;
 	
 	
 	/**
@@ -450,7 +451,7 @@ class Controller
 		{
 			if ($is_created)
 			{
-				if (function_exists( 'fastcgi_finish_request' ))
+				if (function_exists( 'fastcgi_finish_request' ) && static::$fastcgi_finish_request)
 				{
 					echo "progress\n";
 					session_write_close();
@@ -1177,10 +1178,13 @@ class Controller
 		{
 			$filename = basename($filename);
 			$filename = preg_replace("/[^a-z0-9\.]/i", '', $filename);
-			$filefolder = ABSPATH . "wp-content/uploads/1c_uploads";
+			$filefolder = ABSPATH . "wp-content/uploads/1c_uploads/invoices";
+			if (!file_exists($filefolder))
+			{
+				mkdir($filefolder, 0755, true);
+			}
 			$filepath = $filefolder . "/" . $filename;
-			file_put_contents($filepath, $content);
-			// var_dump( $_SERVER );
+			// file_put_contents($filepath, $content);
 		}
 		
 		try
