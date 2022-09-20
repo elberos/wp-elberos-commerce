@@ -147,6 +147,26 @@ class Elberos_Commerce_Plugin
 	
 	
 	/**
+	 * Редирект на блог
+	 */
+	static function get_first_blog_redirect_url()
+	{
+		$url = get_blogaddress_by_id(1);
+		$url .= "wp-admin/admin.php";
+		$flag = "?";
+		
+		foreach ($_GET as $key => $value)
+		{
+			$url .= $flag . $key . "=" . urlencode($value);
+			$flag = "&";
+		}
+		
+		return $url;
+	}
+	
+	
+	
+	/**
 	 * Register Admin Menu
 	 */
 	public static function register_admin_menu()
@@ -157,8 +177,19 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce',
 			function ()
 			{
-				$table = new \Elberos\Commerce\Product_Table();
-				$table->display();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть список товаров</a>";
+				}
+				else
+				{
+					$table = new \Elberos\Commerce\Product_Table();
+					$table->display();
+				}
 			},
 			'/wp-content/plugins/wp-elberos-commerce/images/commerce.png',
 			30
@@ -171,8 +202,19 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-classifiers',
 			function()
 			{
-				$table = new \Elberos\Commerce\Classifier_Table();
-				$table->display();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть классификатор</a>";
+				}
+				else
+				{
+					$table = new \Elberos\Commerce\Classifier_Table();
+					$table->display();
+				}
 			}
 		);
 		
@@ -183,8 +225,19 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-invoice',
 			function()
 			{
-				$table = new \Elberos\Commerce\Invoice_Table();
-				$table->display();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть заказ в магазине</a>";
+				}
+				else
+				{
+					$table = new \Elberos\Commerce\Invoice_Table();
+					$table->display();
+				}
 			}
 		);
 		
@@ -195,7 +248,18 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-settings',
 			function()
 			{
-				\Elberos\Commerce\Settings::show();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть настройки 1С</a>";
+				}
+				else
+				{
+					\Elberos\Commerce\Settings::show();
+				}
 			}
 		);
 		
@@ -206,8 +270,19 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-1c-import',
 			function()
 			{
-				$table = new \Elberos\Commerce\_1C\Import_Table();
-				$table->display();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть импорт 1С</a>";
+				}
+				else
+				{
+					$table = new \Elberos\Commerce\_1C\Import_Table();
+					$table->display();
+				}
 			}
 		);
 		
@@ -218,8 +293,19 @@ class Elberos_Commerce_Plugin
 			'manage_options', 'elberos-commerce-1c-task',
 			function()
 			{
-				$table = new \Elberos\Commerce\_1C\Task_Table();
-				$table->display();
+				$blog_id = get_current_blog_id();
+				if ($blog_id != 1)
+				{
+					$url = static::get_first_blog_redirect_url();
+					echo "<br/>";
+					echo "<br/>";
+					echo "<a href='" . esc_attr($url) . "'>Перейдите по ссылке, чтобы открыть лог 1С</a>";
+				}
+				else
+				{
+					$table = new \Elberos\Commerce\_1C\Task_Table();
+					$table->display();
+				}
 			}
 		);
 	}
