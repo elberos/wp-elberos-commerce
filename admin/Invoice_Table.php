@@ -157,6 +157,26 @@ class Invoice_Table extends \Elberos\Table
 	
 	
 	/**
+	 * Gmtime
+	 */
+	function column_gmtime_add($item)
+	{
+		return \Elberos\wp_from_gmtime($item['gmtime_add']);
+	}
+	
+	
+	
+	/**
+	 * Gmtime
+	 */
+	function column_gmtime_pay($item)
+	{
+		return \Elberos\wp_from_gmtime($item['gmtime_pay']);
+	}
+	
+	
+	
+	/**
 	 * Process bulk action
 	 */
 	function process_bulk_action()
