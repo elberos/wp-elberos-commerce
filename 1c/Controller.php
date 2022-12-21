@@ -195,7 +195,7 @@ class Controller
 		/* Загрузка файлов */
 		else if ($type == 'catalog' && $mode == 'file')
 		{
-			static::actionCatalogUploadFiled();
+			static::actionCatalogUploadFile();
 		}
 		
 		/* Обработка файлов */
@@ -217,7 +217,7 @@ class Controller
 		/* Invoice upload */
 		else if ($type == 'sale' && $mode == 'file')
 		{
-			static::actionSaleFile();
+			static::actionSaleUploadFile();
 		}
 		
 		/* Success */
@@ -305,7 +305,7 @@ class Controller
 	/**
 	 * Загрузка файлов
 	 */
-	static function actionCatalogUploadFiled()
+	static function actionCatalogUploadFile()
 	{
 		$filefolder = ABSPATH . "wp-content/uploads/1c_uploads";
 		$file_max_size = static::getKey("elberos_commerce_1c_file_max_size", "");
@@ -674,7 +674,7 @@ class Controller
 	{
 		global $wpdb;
 		
-		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
+		$table_name = $wpdb->base_prefix . "elberos_commerce_invoice";
 		$sql = "select * from " . $table_name . " where export_status=0";
 		$results = $wpdb->get_results($sql, ARRAY_A);
 		$results = array_map
@@ -956,6 +956,8 @@ class Controller
 	 */
 	static function actionSaleQueryMakeXml($results)
 	{
+		global $wpdb;
+		
 		$dt = new \DateTime();
 		$dt->setTimezone( new \DateTimeZone( \Elberos\get_wp_timezone() ) );
 		$content = new \SimpleXMLElement
@@ -981,7 +983,8 @@ class Controller
 		$xml_content = $dom->saveXML();
 		
 		/* Convert to Windows-1251 */
-		$elberos_commerce_1c_invoice_encode = \Elberos\get_option("elberos_commerce_1c_invoice_encode");
+		$elberos_commerce_1c_invoice_encode =
+			\Elberos\get_option("elberos_commerce_1c_invoice_encode");
 		if ($elberos_commerce_1c_invoice_encode == "windows1251")
 		{
 			$xml_content = str_replace
@@ -991,6 +994,46 @@ class Controller
 				$xml_content
 			);
 			$xml_content = iconv('utf-8','windows-1251',$xml_content);
+		}
+		
+		$invoice_numbers = [];
+		foreach ($results as $invoice)
+		{
+			$invoice_numbers[] = $invoice["id"];
+		}
+		
+		/* Insert task */
+		if (count($invoice_numbers) > 0)
+		{
+			$res = apply_filters
+			(
+				'elberos_commerce_1c_insert_task',
+				[
+					'xml'=>$item,
+					'data'=>
+					[
+						"name" => "Export: " . implode(", ", $invoice_numbers),
+						"code_1c" => "",
+						"import_id" => null,
+						"catalog_id" => 0,
+						"classifier_id" => 0,
+						"type" => "invoices_export",
+						"data" => (string) $xml_content,
+						"status" => Helper::TASK_STATUS_DONE,
+						"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+						"gmtime_end" => gmdate("Y-m-d H:i:s", time()),
+					]
+				]
+			);
+			
+			$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+			$insert_data = $res["data"];
+			
+			$wpdb->insert
+			(
+				$table_name_1c_task,
+				$insert_data
+			);
 		}
 		
 		return $xml_content;
@@ -1016,17 +1059,17 @@ class Controller
 		$data_nalog = [];
 		$form_data = $invoice['form_data'];
 		$form_data_type = isset($form_data['type']) ? $form_data['type'] : 1;
-		$name = "";
+		$full_name = "";
 		if ($form_data_type == 1)
 		{
 			$name = isset($form_data['name']) ? $form_data['name'] : '';
 			$surname = isset($form_data['surname']) ? $form_data['surname'] : '';
 			$lastname = isset($form_data['lastname']) ? $form_data['lastname'] : '';
-			$name = \Elberos\mb_trim($name . ' ' . $surname . ' ' . $lastname);
+			$full_name = \Elberos\mb_trim($name . ' ' . $surname . ' ' . $lastname);
 		}
 		else if ($form_data_type == 2)
 		{
-			$name = \Elberos\mb_trim
+			$full_name = \Elberos\mb_trim
 			(
 				isset($form_data['company_name']) ? $form_data['company_name'] : ''
 			);
@@ -1037,8 +1080,8 @@ class Controller
 		$client = $clients->addChild('Контрагент');
 		$client->addChild('Ид', $invoice['client_code_1c']);
 		$client->addChild('Роль', 'Покупатель');
-		$client->addChild('Наименование', $name);
-		$client->addChild('ПолноеНаименование', $name);
+		$client->addChild('Наименование', $full_name);
+		$client->addChild('ПолноеНаименование', $full_name);
 		
 		/* Тип клиента */
 		if ($form_data_type == 1)
@@ -1048,14 +1091,7 @@ class Controller
 				$client->addChild('ИНН', \Elberos\mb_trim($form_data['user_identifier']));
 			}
 			$node = $client->addChild('РеквизитыФизЛица');
-			$node->addChild('ПолноеНаименование', 
-				\Elberos\mb_trim
-				(
-					(isset($form_data['surname']) ? $form_data['surname'] : "") . ' ' .
-					(isset($form_data['name']) ? $form_data['name'] : "") . ' ' .
-					(isset($form_data['lastname']) ? $form_data['lastname'] : "")
-				)
-			);
+			$node->addChild('ПолноеНаименование', $full_name);
 			//var_dump($form_data);
 			if (isset($form_data['surname']))
 			{
@@ -1083,7 +1119,9 @@ class Controller
 			$node = $client->addChild('РеквизитыЮрЛица');
 			if (isset($form_data['company_name']))
 			{
-				$node->addChild('ОфициальноеНаименование', \Elberos\mb_trim($form_data['company_name']) );
+				$node->addChild('ОфициальноеНаименование',
+					\Elberos\mb_trim($form_data['company_name'])
+				);
 			}
 			if (isset($form_data['company_bin']))
 			{
@@ -1091,7 +1129,9 @@ class Controller
 			}
 			if (isset($form_data['company_address']))
 			{
-				$node->addChild('ЮридическийАдрес', \Elberos\mb_trim($form_data['company_address']) );
+				$node->addChild('ЮридическийАдрес',
+					\Elberos\mb_trim($form_data['company_address'])
+				);
 			}
 		}
 		
@@ -1150,8 +1190,18 @@ class Controller
 	static function actionSaleSuccess()
 	{
 		global $wpdb;
-		$table_name = $wpdb->prefix . "elberos_commerce_invoice";
-		$sql = "update " . $table_name . " set export_status=1 where export_status=0";
+		$table_name = $wpdb->base_prefix . "elberos_commerce_invoice";
+		
+		$sql = \Elberos\wpdb_prepare
+		(
+			"update " . $table_name .
+			" set export_status=1, gmtime_1c_export=:gmtime_1c_export".
+			" where export_status=0",
+			[
+				"gmtime_1c_export" => gmdate("Y-m-d H:i:s", time()),
+			]
+		);
+		
 		$wpdb->query($sql);
 		echo "success";
 	}
@@ -1161,7 +1211,7 @@ class Controller
 	/**
 	 * Загрузка инвойсов
 	 */
-	static function actionSaleFile()
+	static function actionSaleUploadFile()
 	{
 		global $wpdb;
 		

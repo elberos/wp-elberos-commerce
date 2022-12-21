@@ -116,7 +116,8 @@ class Task_Struct extends \Elberos\StructBuilder
 					["id"=>"price_type", "value"=>"Тип цены"],
 					["id"=>"warehouse", "value"=>"Склад"],
 					["id"=>"offer", "value"=>"Предложение"],
-					["id"=>"invoices", "value"=>"Заказы"],
+					["id"=>"invoices", "value"=>"Заказы импорт"],
+					["id"=>"invoices_export", "value"=>"Заказы выгрузка"],
 				]
 			])
 			

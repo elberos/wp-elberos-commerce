@@ -55,6 +55,8 @@ class Admin_Api
 			"\\Elberos\\Commerce\\Admin_Api::add_relative_product");
 		$site->add_api("elberos_commerce_admin", "delete_relative_product",
 			"\\Elberos\\Commerce\\Admin_Api::delete_relative_product");
+		$site->add_api("elberos_commerce_admin", "invoice_1c_export_reply",
+			"\\Elberos\\Commerce\\Admin_Api::invoice_1c_export_reply");
 	}
 	
 	
@@ -345,6 +347,41 @@ class Admin_Api
 			"code" => 1,
 		];
 	}
+	
+	
+	/**
+	 * Delete relative product
+	 */
+	public static function invoice_1c_export_reply($site)
+	{
+		global $wpdb;
+		
+		/* Check is admin */
+		$res = static::checkIsAdmin();
+		if ($res) return $res;
+		
+		$table_name = $wpdb->base_prefix . "elberos_commerce_invoice";
+		$invoice_id = isset($_POST["invoice_id"]) ? $_POST["invoice_id"] : "";
+		
+		$sql = \Elberos\wpdb_prepare
+		(
+			"update " . $table_name .
+			" set export_status=0, gmtime_1c_export=null " .
+			" where id=:id",
+			[
+				"id" => $invoice_id,
+			]
+		);
+		
+		$wpdb->query($sql);
+		
+		return
+		[
+			"message" => "OK",
+			"code" => 1,
+		];
+	}
+	
 }
 
 }

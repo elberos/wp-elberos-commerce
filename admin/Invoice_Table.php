@@ -229,7 +229,10 @@ class Invoice_Table extends \Elberos\Table
 	 */
 	function is_show_filter()
 	{
-		list($_,$result) = apply_filters("elberos_table_is_show_filter_" . get_called_class(), [$this,true]);
+		list($_,$result) = apply_filters(
+			"elberos_table_is_show_filter_" . get_called_class(),
+			[$this,true]
+		);
 		return $result;
 	}
 	
@@ -334,7 +337,10 @@ class Invoice_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
-		list($_,$params) = apply_filters("elberos_table_prepare_items_params_" . get_called_class(), [$this,$params]);
+		list($_,$params) = apply_filters(
+			"elberos_table_prepare_items_params_" . get_called_class(),
+			[$this,$params]
+	);
 		
 		/* invoice_id */
 		if (isset($_GET["invoice_id"]))
@@ -404,6 +410,12 @@ class Invoice_Table extends \Elberos\Table
 	function display_css()
 	{
 		parent::display_css();
+		
+		wp_enqueue_script( 'jquery-ui-dialog' );
+		wp_enqueue_style( 'wp-jquery-ui-dialog' );
+		wp_enqueue_script( 'script.js',
+			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
+		
 		?>
 		<style>
 		.invoice_table{
@@ -418,7 +430,7 @@ class Invoice_Table extends \Elberos\Table
 		}
 		.invoice_table_label{
 			display: inline-block;
-			vertical-align: top;
+			vertical-align: middle;
 			font-weight: bold;
 			text-align: right;
 			padding-right: 10px;
@@ -426,7 +438,7 @@ class Invoice_Table extends \Elberos\Table
 		}
 		.invoice_table_content{
 			display: inline-block;
-			vertical-align: top;
+			vertical-align: middle;
 			width: calc(100% - 155px);
 			padding-left: 10px;
 		}
@@ -539,15 +551,32 @@ class Invoice_Table extends \Elberos\Table
 			if (!$value) continue;
 			//var_dump($field);
 			echo "<div class='invoice_table_row'>";
-			echo "<div class='invoice_table_label'>" . esc_html( isset($field["label"]) ? $field["label"] : "" ) .
-				":</div>";
+			echo "<div class='invoice_table_label'>" .
+				esc_html( isset($field["label"]) ? $field["label"] : "" ) . ":</div>";
 			echo "<div class='invoice_table_content'>";
 			echo esc_html( $value );
 			echo "</div>";
 			echo "</div>";
 		}
+		
+		echo "<div class='invoice_table_row'>";
+		echo "<div class='invoice_table_label'>Выгружен в 1С:</div>";
+		echo "<div class='invoice_table_content'>";
+		if ($invoice["gmtime_1c_export"])
+		{
+			echo "<span>Да (" . \Elberos\wp_from_gmtime($invoice['gmtime_1c_export']) . ")</span>";
+			echo "<button type='button'
+				class='invoice_1c_export_reply' style='cursor: pointer;margin-left: 10px;' 
+				data-invoice-id=" .	esc_attr($invoice["id"]) . ">Выгрузить повторно</button>";
+		}
+		else
+		{
+			echo "Нет";
+		}
+		echo "</div>";
 		echo "</div>";
 		
+		echo "</div>";
 		
 		echo "<div class='invoice_table_products'>";
 		/* echo "<div class='invoice_table_products_header'>Товары</div>"; */
@@ -715,6 +744,64 @@ class Invoice_Table extends \Elberos\Table
 		echo "</table>";
 		
 		echo "</div>";
+		
+		
+		?>
+		<script>
+			$('.invoice_1c_export_reply').click(function(){
+				
+				var invoice_1c_export_reply_id = $(this).attr('data-invoice-id')
+				
+				jQuery('<div> Выгрузить данный инвойс в 1С повторно? <div>').dialog({
+					title: "1C Экспорт",
+					modal:true,
+					width:600,
+					buttons: [
+						
+						{
+							text: 'Да',
+							open: function() {
+								$(this).addClass('button-primary');
+							},
+							click: function() {
+								
+								var send_data = {
+									"invoice_id": invoice_1c_export_reply_id,
+								};
+								
+								elberos_api_send
+								(
+									"elberos_commerce_admin",
+									"invoice_1c_export_reply",
+									send_data,
+									(function (obj)
+									{
+										return function(res)
+										{
+											document.location = document.location;
+										};
+									})(this),
+								);
+								
+							}
+						},
+						
+						{
+							text: 'Нет',
+							open: function() {
+								$(this).addClass('button');
+							},
+							click: function() {
+								$( this ).dialog( "close" );
+							}
+						},
+						
+					],
+				});
+			});
+		</script>
+		<?php
+		
 	}
 	
 	
