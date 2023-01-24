@@ -562,9 +562,14 @@ class Invoice_Table extends \Elberos\Table
 		echo "<div class='invoice_table_row'>";
 		echo "<div class='invoice_table_label'>Выгружен в 1С:</div>";
 		echo "<div class='invoice_table_content'>";
-		if ($invoice["gmtime_1c_export"])
+		if ($invoice["export_status"] == 1)
 		{
-			echo "<span>Да (" . \Elberos\wp_from_gmtime($invoice['gmtime_1c_export']) . ")</span>";
+			$date_time = "";
+			if ( isset($invoice["gmtime_1c_export"]) )
+			{
+				$date_time = "(" . \Elberos\wp_from_gmtime($invoice['gmtime_1c_export']) . ")";
+			}
+			echo "<span>Да " . $date_time . "</span>";
 			echo "<button type='button'
 				class='invoice_1c_export_reply' style='cursor: pointer;margin-left: 10px;' 
 				data-invoice-id=" .	esc_attr($invoice["id"]) . ">Выгрузить повторно</button>";
