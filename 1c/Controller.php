@@ -695,6 +695,44 @@ class Controller
 		$xml = static::actionSaleQueryMakeXml($results);
 		header('Content-Type: application/xml');
 		echo $xml;
+		
+		/* Insert task */
+		if (count($results) > 0)
+		{
+			$invoice_numbers = [];
+			foreach ($results as $invoice)
+			{
+				$invoice_numbers[] = $invoice["id"];
+			}
+			$res = apply_filters
+			(
+				'elberos_commerce_1c_insert_task',
+				[
+					'data'=>
+					[
+						"name" => "Export: " . implode(", ", $invoice_numbers),
+						"code_1c" => "",
+						"import_id" => null,
+						"catalog_id" => 0,
+						"classifier_id" => 0,
+						"type" => "invoices_export",
+						"data" => (string) $xml,
+						"status" => Helper::TASK_STATUS_DONE,
+						"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
+						"gmtime_end" => gmdate("Y-m-d H:i:s", time()),
+					]
+				]
+			);
+			
+			$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
+			$insert_data = $res["data"];
+			
+			$wpdb->insert
+			(
+				$table_name_1c_task,
+				$insert_data
+			);
+		}
 	}
 	
 	
@@ -1000,40 +1038,6 @@ class Controller
 		foreach ($results as $invoice)
 		{
 			$invoice_numbers[] = $invoice["id"];
-		}
-		
-		/* Insert task */
-		if (count($invoice_numbers) > 0)
-		{
-			$res = apply_filters
-			(
-				'elberos_commerce_1c_insert_task',
-				[
-					'xml'=>$item,
-					'data'=>
-					[
-						"name" => "Export: " . implode(", ", $invoice_numbers),
-						"code_1c" => "",
-						"import_id" => null,
-						"catalog_id" => 0,
-						"classifier_id" => 0,
-						"type" => "invoices_export",
-						"data" => (string) $xml_content,
-						"status" => Helper::TASK_STATUS_DONE,
-						"gmtime_add" => gmdate("Y-m-d H:i:s", time()),
-						"gmtime_end" => gmdate("Y-m-d H:i:s", time()),
-					]
-				]
-			);
-			
-			$table_name_1c_task = $wpdb->base_prefix . "elberos_commerce_1c_task";
-			$insert_data = $res["data"];
-			
-			$wpdb->insert
-			(
-				$table_name_1c_task,
-				$insert_data
-			);
 		}
 		
 		return $xml_content;
