@@ -373,7 +373,9 @@ class Task
 		
 		/* Обновляем данные параметров товара */
 		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
-		$wpdb->update($table_name_products_params, [ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]);
+		$wpdb->update($table_name_products_params,
+			[ "prepare_delete"=>1 ], [ "product_id" => $product["id"] ]
+		);
 		
 		/* Параметры товара */
 		$product_params = [];
@@ -455,7 +457,9 @@ class Task
 		}
 		
 		/* Удаляем старые значения */
-		$wpdb->delete($table_name_products_params, [ "product_id" => $product["id"], "prepare_delete" => 1 ]);
+		$wpdb->delete($table_name_products_params,
+			[ "product_id" => $product["id"], "prepare_delete" => 1 ]
+		);
 		
 		/* Do filter elberos_commerce_1c_import_product */
 		$res = apply_filters
