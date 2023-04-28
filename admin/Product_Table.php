@@ -1134,6 +1134,7 @@ class Product_Table extends \Elberos\Table
 	{
 		parent::display_add_or_edit();
 		$this->show_relative();
+		$this->show_komplekt();
 	}
 	
 	
@@ -1990,6 +1991,218 @@ class Product_Table extends \Elberos\Table
 								$('.product_related_tab_products tr').each(function(){
 									var id = $(this).attr('data-id');
 									if (id == res.relative_id)
+									{
+										$(this).remove();
+									}
+								})
+							}
+						};
+					})(this),
+				);
+			});
+			</script>
+			
+		</div>
+		<?php
+		
+	}
+	
+	public function show_komplekt()
+	{
+		global $wpdb;
+		
+		$products= [];
+		
+		/* Список оферов у товара */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"select products.* from {$wpdb->base_prefix}elberos_commerce_products_komplekt as t " .
+			"inner join {$wpdb->base_prefix}elberos_commerce_products as products " .
+				"on (t.relative_id = products.id)" .
+			"where t.product_id=:product_id order by pos desc",
+			[
+				"product_id" => $this->form_item_id
+			]
+		);
+		$products = $wpdb->get_results($sql, ARRAY_A);
+		
+		?>
+		<style>
+		.product_komplekt_tab .product_komplekt_tab_products th,
+		.product_komplekt_tab .product_komplekt_tab_products td{
+			padding: 10px;
+			text-align: center;
+		}
+		.product_komplekt_tab .product_komplekt_tab_products img{
+			height: 100px;
+			width: 100px;
+		}
+		.product_komplekt_tab_products_delete{
+			cursor: pointer;
+		}
+		</style>
+		<div class="product_komplekt_tab">
+			
+			<h2>Комплекты</h2>
+			
+			<table class="product_komplekt_tab_products">
+				<tr>
+					<th>ID товара</th>
+					<th>Название</th>
+					<th>Артикул</th>
+					<th></th>
+					<th></th>
+				</tr>
+				<?php
+					foreach ($products as $product)
+					{
+						$photo_id = $product["main_photo_id"];
+						$main_photo_url = \Elberos\get_image_url($photo_id, "thumbnail");
+						?>
+						<tr data-id="<?= $product['id'] ?>">
+							<td><?= esc_html($product["id"]) ?></td>
+							<td><?= esc_html($product["name"]) ?></td>
+							<td><?= esc_html($product["vendor_code"]) ?></td>
+							<td>
+								<img src="<?= esc_attr($main_photo_url) ?>" />
+							</th>
+							<td>
+								<button class="product_komplekt_tab_products_delete"
+									data-id="<?= $product['id'] ?>">Delete</button>
+							</td>
+						</tr>
+						<?php
+					}
+				?>
+			</table>
+			
+			<div class="product_komplekt_add">
+				
+				<label>Добавить товар</label>
+				
+				<table>
+					<tr class="product_komplekt_add_row">
+						<td>По артикулу</td>
+						<td><input class="product_komplekt_add_vendor_code_input" value="" /></td>
+						<td><button class="product_komplekt_add_vendor_code">Добавить</button></td>
+					</tr>
+					<tr class="product_komplekt_add_row">
+						<td>По ID Товара</td>
+						<td><input class="product_komplekt_add_product_id_input" value="" /></td>
+						<td><button class="product_komplekt_add_product_id">Добавить</button></td>
+					</tr>
+				</table>
+				
+			</div>
+			
+			<div class="product_komplekt__result web_form_result"></div>
+			
+			<script>
+			var $ = jQuery;
+			</script>
+			
+			<script type="text/javascript">
+			
+			function add_komplekt_product(value, text)
+			{
+				var $form = $('.product_komplekt_tab');
+				var send_data =
+				{
+					"type": "komplekt",
+					"product_id": <?= json_encode($this->form_item_id) ?>,
+					"value": value,
+					"kind": text,
+				};
+				ElberosFormSetWaitMessage($form);
+				elberos_api_send
+				(
+					"elberos_commerce_admin",
+					"add_relative_product",
+					send_data,
+					(function (obj)
+					{
+						return function(res)
+						{
+							ElberosFormSetResponse($form, res);
+							if (res.code == 1 && res.item)
+							{
+								var $row = $('<tr></tr>')
+									.attr('data-id', res.item.id)
+									.append
+									(
+										$('<td></td>').append( res.item.id )
+									)
+									.append
+									(
+										$('<td></td>').append( res.item.name )
+									)
+									.append
+									(
+										$('<td></td>').append( res.item.vendor_code )
+									)
+									.append
+									(
+										$('<td></td>').
+											append
+											(
+												$('<img />')
+													.attr('src', res.main_photo)
+											)
+									)
+									.append
+									(
+										$('<td></td>').append
+										(
+											$('<button>Delete</button>')
+												.attr('data-id', res.item.id)
+										)
+									)
+								;
+								$('.product_komplekt_tab table.product_komplekt_tab_products').append($row);
+							}
+						};
+					})(this),
+				);
+			}
+			
+			$('.product_komplekt_add_vendor_code').click(function(){
+				var value = $(this)
+					.parents('.product_komplekt_add_row')
+					.find('.product_komplekt_add_vendor_code_input')
+					.val();
+				add_komplekt_product(value, "vendor_code");
+			});
+			
+			$('.product_komplekt_add_product_id').click(function(){
+				var value = $(this)
+					.parents('.product_komplekt_add_row')
+					.find('.product_komplekt_add_product_id_input')
+					.val();
+				add_komplekt_product(value, "product_id");
+			});
+			
+			$('.product_komplekt_tab_products_delete').click(function(){
+				var id = $(this).attr("data-id");
+				var send_data =
+				{
+					"type": "komplekt",
+					"product_id": <?= json_encode($this->form_item_id) ?>,
+					"relative_id": id,
+				};
+				elberos_api_send
+				(
+					"elberos_commerce_admin",
+					"delete_relative_product",
+					send_data,
+					(function (obj)
+					{
+						return function(res)
+						{
+							if (res.code == 1)
+							{
+								$('.product_komplekt_tab_products tr').each(function(){
+									var id = $(this).attr('data-id');
+									if (id == res.komplekt_id)
 									{
 										$(this).remove();
 									}

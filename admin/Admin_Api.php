@@ -250,6 +250,7 @@ class Admin_Api
 		
 		$code = 1;
 		$item = null;
+		$type = isset($_POST["type"]) ? $_POST["type"] : "relative";
 		$kind = isset($_POST["kind"]) ? $_POST["kind"] : "";
 		$value = isset($_POST["value"]) ? $_POST["value"] : "";
 		$product_id = (int)(isset($_POST["product_id"]) ? $_POST["product_id"] : "");
@@ -257,6 +258,12 @@ class Admin_Api
 		$main_photo = null;
 		$main_photo_id = null;
 		$table_name = $wpdb->prefix . "elberos_commerce_products";
+		
+		$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
+		if ($type == "komplekt")
+		{
+			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_komplekt";
+		}
 		
 		if ($kind == "vendor_code" && $value != "")
 		{
@@ -271,7 +278,6 @@ class Admin_Api
 		
 		if ($item)
 		{
-			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
 			$sql = $wpdb->prepare("select * from " . $table_name_relative .
 				" where product_id=%d and relative_id=%d limit 1", [$product_id, $value]);
 			$relative_record = $wpdb->get_row($sql, ARRAY_A);
@@ -292,7 +298,6 @@ class Admin_Api
 		/* Add relative product */
 		if ($item)
 		{
-			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
 			$wpdb->insert
 			(
 				$table_name_relative,
@@ -310,6 +315,7 @@ class Admin_Api
 		
 		return
 		[
+			"type" => $type,
 			"kind" => $kind,
 			"value" => $value,
 			"item" => $item,
@@ -332,15 +338,21 @@ class Admin_Api
 		$res = static::checkIsAdmin();
 		if ($res) return $res;
 		
+		$type = isset($_POST["type"]) ? $_POST["type"] : "relative";
 		$product_id = isset($_POST["product_id"]) ? $_POST["product_id"] : "";
 		$relative_id = isset($_POST["relative_id"]) ? $_POST["relative_id"] : "";
 		$table_name_relative = $wpdb->prefix . "elberos_commerce_products_relative";
+		if ($type == "komplekt")
+		{
+			$table_name_relative = $wpdb->prefix . "elberos_commerce_products_komplekt";
+		}
 		$sql = $wpdb->prepare("delete from " . $table_name_relative .
 			" where product_id=%d and relative_id=%d limit 1", [$product_id, $relative_id]);
 		$wpdb->query($sql);
 		
 		return
 		[
+			"type" => $type,
 			"product_id" => $product_id,
 			"relative_id" => $relative_id,
 			"message" => "OK",
