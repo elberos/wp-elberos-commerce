@@ -658,7 +658,10 @@ class Api
 				"select
 					t1.*
 				from {$wpdb->base_prefix}elberos_commerce_products_offers as t1
-				where t1.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				where
+					t1.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ")
+					and t1.prepare_delete=0
+				",
 				$products_id
 			);
 			$offers = $wpdb->get_results($sql, ARRAY_A);
@@ -683,7 +686,10 @@ class Api
 					on (t2.id = t1.offer_id)
 				inner join {$wpdb->base_prefix}elberos_commerce_price_types as t3
 					on (t3.id = t1.price_type_id)
-				where t2.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				where
+					t2.product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ")
+					and t1.prepare_delete=0 and t2.prepare_delete=0
+				",
 				$products_id
 			);
 			$offers_prices = $wpdb->get_results($sql, ARRAY_A);
@@ -779,7 +785,7 @@ class Api
 				on (t1.id = t2.offer_id)
 			INNER JOIN {$wpdb->base_prefix}elberos_commerce_price_types as t3
 				on (t3.id = t2.price_type_id)
-			WHERE t1.product_id=:product_id
+			WHERE t1.product_id=:product_id and t1.prepare_delete=0 and t2.prepare_delete=0
 			order by t1.id asc",
 			[
 				"product_id" => $product_id,

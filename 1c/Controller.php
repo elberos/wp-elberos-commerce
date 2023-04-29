@@ -407,7 +407,8 @@ class Controller
 		$sql = \Elberos\wpdb_prepare
 		(
 			"select * from $table_name_1c_import " .
-			"where session_id = :session_id and status in (0,2) and filename = :filename and is_deleted = 0 " .
+			"where session_id = :session_id and status in (0,2) and
+				filename = :filename and is_deleted = 0 " .
 			"order by id asc",
 			[
 				'session_id' => $session_id,
@@ -490,7 +491,8 @@ class Controller
 			list($item, $progress) = static::catalogImportWork($item);
 		}
 		
-		/* Если загружено с ошибкой, и при этом cgi запрос завершен, то вывести ошибку при следующем обращении */
+		/* Если загружено с ошибкой, и при этом cgi запрос завершен,
+		то вывести ошибку при следующем обращении */
 		if ($fastcgi_finish && $item['status'] == -1)
 		{
 			$item['status'] = 2;
@@ -547,17 +549,34 @@ class Controller
 	{
 		global $wpdb;
 		
+		$last_datetime = gmdate("Y-m-d H:i:s", time() - 60*60*24*30);
+		
 		/* Показываем товары в каталоге, которые были только что загружены */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
 		$sql = "update " . $table_name_products . " set `show_in_catalog` = `just_show_in_catalog`";
 		$wpdb->query($sql);
 		
-		/* Удаляем предложения */
+		/* Удаляем старые предложения */
 		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
-		$sql = "delete from " . $table_name_products_offers . " where `prepare_delete` = 1";
+		$sql = \Elberos\wpdb_prepare(
+			"delete from " . $table_name_products_offers .
+				" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
+			[
+				"gmtime_1c_change" => $last_datetime,
+			]
+		);
 		$wpdb->query($sql);
-		$table_name_products_offers_prices = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
-		$sql = "delete from " . $table_name_products_offers_prices . " where `prepare_delete` = 1";
+		
+		/* Удаляем старые цены */
+		$table_name_products_offers_prices = $wpdb->base_prefix .
+			"elberos_commerce_products_offers_prices";
+		$sql = \Elberos\wpdb_prepare(
+			"delete from " . $table_name_products_offers_prices .
+				" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
+			[
+				"gmtime_1c_change" => $last_datetime,
+			]
+		);
 		$wpdb->query($sql);
 		
 		/* Удаляем фотографии */

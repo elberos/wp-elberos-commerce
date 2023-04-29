@@ -1006,6 +1006,7 @@ class Task
 							"unit" => $price_unit,
 							"name" => $price_name,
 							"prepare_delete" => 0,
+							"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 						]
 					);
 				}

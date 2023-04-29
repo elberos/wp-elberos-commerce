@@ -243,8 +243,9 @@ class Import
 			if (!$update_only)
 			{
 				$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-				$sql = "update " . $table_name_products . " set `just_show_in_catalog` = 0 where `catalog_id` = '" .
-					(int)($catalog_id) . "'";
+				$sql = "update " . $table_name_products .
+					" set `just_show_in_catalog` = 0 " .
+					" where `catalog_id` = '" . (int)($catalog_id) . "'";
 				$wpdb->query($sql);
 			}
 		}
