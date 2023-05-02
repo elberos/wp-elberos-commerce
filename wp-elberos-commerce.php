@@ -102,7 +102,8 @@ class Elberos_Commerce_Plugin
 		{
 			wp_schedule_event( time() + 60, 'twicedaily', 'elberos_commerce_twicedaily_event' );
 		}
-		add_action( 'elberos_commerce_twicedaily_event', 'Elberos_Commerce_Plugin::cron_twicedaily_event' );
+		add_action( 'elberos_commerce_twicedaily_event',
+			'Elberos_Commerce_Plugin::cron_twicedaily_event' );
 		
 		/* Product updated */
 		add_action('elberos_commerce_product_updated', 'Elberos_Commerce_Plugin::elberos_commerce_product_updated');

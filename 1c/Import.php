@@ -28,6 +28,7 @@ if (!defined('ABSPATH')) exit;
 
 class Import
 {
+	var $file_path = null;
 	var $import = null;
 	var $xml = null;
 	var $count_category = 0;
@@ -247,6 +248,8 @@ class Import
 					" set `just_show_in_catalog` = 0 " .
 					" where `catalog_id` = '" . (int)($catalog_id) . "'";
 				$wpdb->query($sql);
+				
+				$this->saveCurrentXML();
 			}
 		}
 		
@@ -293,10 +296,40 @@ class Import
 				;
 				$wpdb->query($sql);
 				
+				$this->saveCurrentXML();
 			}
 		}
 	}
 	
+	
+	/**
+	 * Save current xml
+	 */
+	public function saveCurrentXML()
+	{
+		$file_folder = ABSPATH . "wp-content/uploads/1c_uploads/save";
+		
+		/* Создаем папку если не была создана */
+		if (!file_exists($file_folder))
+		{
+			try
+			{
+				mkdir($file_folder, 0775);
+			}
+			catch (\Exception $e)
+			{
+			}
+		}
+		
+		$file_name = basename($this->file_path);
+		$save_file_path = $file_folder . "/" . $file_name;
+		
+		if (file_exists($this->file_path) && is_file($this->file_path))
+		{
+			$content = file_get_contents($this->file_path);
+			file_put_contents($save_file_path, $content);
+		}
+	}
 	
 	
 	/**

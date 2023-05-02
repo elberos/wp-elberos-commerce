@@ -630,6 +630,7 @@ class Controller
 		if ($xml)
 		{
 			$instance = static::createImport();
+			$instance->file_path = $file_path;
 			$instance->import = $import;
 			$instance->xml = $xml;
 			$instance->loadContent();
