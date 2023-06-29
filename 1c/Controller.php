@@ -1603,6 +1603,9 @@ class Controller
 		$update_data["price"] = \Elberos\mb_trim( (string)$xml->Сумма );
 		$update_data["comment"] = \Elberos\mb_trim( (string)$xml->Комментарий );
 		
+		/* Конвертация запятых */
+		$update_data["price"] = str_replace(",", ".", $update_data["price"]);
+		
 		$name1 = 'Товары';
 		$name2 = 'Товар';
 		
@@ -1680,6 +1683,10 @@ class Controller
 		$arr["offer_price"] = \Elberos\mb_trim( (string)$xml->ЦенаЗаЕдиницу );
 		$arr["offer_unit"] = \Elberos\mb_trim( (string)$xml->Единица );
 		$arr["count"] = \Elberos\mb_trim( (string)$xml->Количество );
+		
+		/* Конвертация запятых */
+		$arr["offer_price"] = str_replace(",", ".", $arr["offer_price"]);
+		$arr["count"] = str_replace(",", ".", $arr["count"]);
 		
 		/* Скидки */
 		$discount = 0;
