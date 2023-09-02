@@ -595,7 +595,7 @@ class Api
 		global $wpdb;
 		
 		/* Setup main blog */
-		switch_to_blog(1);
+		if (is_multisite()) switch_to_blog(1);
 		
 		/* Remove duplicates */
 		if (gettype($products_id) == "array" && count($products_id) > 0)
@@ -752,7 +752,7 @@ class Api
 		}
 		
 		/* Restore blog */
-		restore_current_blog();
+		if (is_multisite()) restore_current_blog();
 		
 		return $items;
 	}
