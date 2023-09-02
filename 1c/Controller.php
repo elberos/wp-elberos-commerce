@@ -30,7 +30,7 @@ class Controller
 {
 	static $max_size = 8 * 1024 * 1024;
 	static $task_run_limits = 20;
-	static $fastcgi_finish_request = false;
+	static $fastcgi_finish_request = true;
 	
 	
 	/**

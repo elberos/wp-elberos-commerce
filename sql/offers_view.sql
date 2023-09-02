@@ -1,3 +1,4 @@
+CREATE VIEW `wp1_elberos_commerce_products_offers_view` as
 select
 `offers_prices`.`id` AS `offer_price_id`,
 `offers_prices`.`offer_id` AS `offer_id`,
@@ -27,4 +28,6 @@ left join `wp1_elberos_commerce_products_offers_prices` as `offers_prices`
 left join `wp1_elberos_commerce_price_types` as `price_types`
     on (`offers_prices`.`price_type_id` = `price_types`.`id`)
 where
-    `offers`.`prepare_delete` = 0 and `offers_prices`.`prepare_delete` = 0
+    `offers`.`prepare_delete` = 0 and
+    `offers_prices`.`prepare_delete` = 0 and
+    `products`.`show_in_catalog` = 1;
