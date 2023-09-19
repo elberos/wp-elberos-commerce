@@ -185,6 +185,21 @@ class Controller
 			return null;
 		}
 		
+		/* Do filter elberos_commerce_1c_begin */
+		$res = apply_filters
+		(
+			'elberos_commerce_1c_begin',
+			[
+				'type' => $type,
+				'mode' => $mode,
+				'break' => false,
+			]
+		);
+		$is_break = $res["break"];
+		if ($is_break)
+		{
+			return null;
+		}
 		
 		/* Инициализация */
 		if ($mode == 'init')
