@@ -545,7 +545,8 @@ class Product_Table extends \Elberos\Table
 			/* Удаление предложений */
 			$sql = \Elberos\wpdb_prepare
 			(
-				"SELECT offers_prices.* FROM {$wpdb->base_prefix}elberos_commerce_products_offers_prices as offers_prices
+				"SELECT offers_prices.* FROM
+					{$wpdb->base_prefix}elberos_commerce_products_offers_prices as offers_prices
 				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as offers
 					on (offers.id = offers_prices.offer_id)
 				where offers.product_id=:product_id
@@ -1781,7 +1782,7 @@ class Product_Table extends \Elberos\Table
 				.append(
 					jQuery(document.createElement('input'))
 					.attr("type", "input")
-					.attr("name", "offers[items][" + index + "][price]")
+					.attr("name", "offers[items][" + index + "][unit]")
 					.attr("value", "")
 				)
 			)

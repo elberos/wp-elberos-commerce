@@ -299,24 +299,92 @@ class Task
 		
 		/* Вставляем товар в базу данных */
 		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-		$product = \Elberos\wpdb_insert_or_update
+		
+		/* Поиск товара */
+		$res = apply_filters
 		(
-			$table_name_products,
+			'elberos_commerce_1c_find_product',
 			[
-				"code_1c" => $code_1c,
-			],
-			[
-				"catalog_id" => $task["catalog_id"],
-				"code_1c" => $code_1c,
-				"vendor_code" => $vendor_code,
-				"text" => json_encode($text),
-				"name" => $name_ru,
-				"slug" => sanitize_title($name_ru),
-				"xml" => $xml_str,
-				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
-				"is_deleted" => 0,
+				'xml'=>$xml,
+				'product' => null,
 			]
 		);
+		$product = $res["product"];
+		$product_id = -1;
+		
+		/* Поиск товара по code_1c */
+		if ($product == null)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name_products " .
+				"where code_1c = :code_1c limit 1",
+				[
+					'code_1c' => $code_1c,
+				]
+			);
+			$product = $wpdb->get_row($sql, ARRAY_A);
+		}
+		
+		/* Обновление данных товара */
+		if (!$product)
+		{
+			$wpdb->insert
+			(
+				$table_name_products,
+				[
+					"code_1c" => $code_1c,
+					"catalog_id" => $task["catalog_id"],
+					"code_1c" => $code_1c,
+					"vendor_code" => $vendor_code,
+					"text" => json_encode($text),
+					"name" => $name_ru,
+					"slug" => sanitize_title($name_ru),
+					"xml" => $xml_str,
+					"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+					"is_deleted" => 0,
+				]
+			);
+			$product_id = $wpdb->insert_id;
+		}
+		else
+		{
+			$wpdb->update
+			(
+				$table_name_products,
+				[
+					"code_1c" => $code_1c,
+					"catalog_id" => $task["catalog_id"],
+					"code_1c" => $code_1c,
+					"vendor_code" => $vendor_code,
+					"text" => json_encode($text),
+					"name" => $name_ru,
+					"slug" => sanitize_title($name_ru),
+					"xml" => $xml_str,
+					"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+					"is_deleted" => 0,
+				],
+				[
+					'id' => $product['id']
+				]
+			);
+			$product_id = $product['id'];
+		}
+		
+		/* Получить product с изменениями */
+		if ($product_id > 0)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name_products " .
+				"where id = :id limit 1",
+				[
+					'id' => $product['id'],
+				]
+			);
+			$product = $wpdb->get_row($sql, ARRAY_A);
+		}
+		
 		$product_update = [];
 		
 		/* Вставка групп */

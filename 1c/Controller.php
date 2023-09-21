@@ -109,7 +109,8 @@ class Controller
 	 */
 	public static function init()
 	{
-		add_action('elberos_register_routes', '\\Elberos\\Commerce\\_1C\\Controller::elberos_register_routes');
+		add_action('elberos_register_routes',
+			'\\Elberos\\Commerce\\_1C\\Controller::elberos_register_routes');
 		add_action('elberos_commerce_1c_products_update_only', 
 			'\\Elberos\\Commerce\\_1C\\Import::elberos_commerce_1c_products_update_only');
 		add_action('elberos_commerce_1c_offers_update_only', 
