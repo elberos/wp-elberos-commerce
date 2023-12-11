@@ -162,6 +162,7 @@ class Admin_Api
 		{
 			$process_item["slug"] = sanitize_title($process_item["slug"]);
 		}
+		//var_dump($process_item);
 		
 		$action = "";
 		$table_name = $wpdb->base_prefix . 'elberos_commerce_categories';

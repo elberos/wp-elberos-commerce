@@ -459,6 +459,9 @@ class Controller
 					fastcgi_finish_request();
 					$fastcgi_finish = true;
 				}
+				
+				/* Import XML to database */
+				set_time_limit(0);
 				$item = static::catalogImportContent($item);
 			}
 			else

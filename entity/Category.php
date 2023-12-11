@@ -105,6 +105,38 @@ class Category extends \Elberos\StructBuilder
 				"label" => "Картинка",
 				"form_show" => false,
 			])
+			
+			->addField
+			([
+				"api_name" => "seo_title",
+				"label" => "Заголовок",
+				"type" => "input",
+				"group" => "seo",
+			])
+			
+			->addField
+			([
+				"api_name" => "seo_description",
+				"label" => "Описание",
+				"type" => "textarea",
+				"group" => "seo",
+			])
+			
+			->addField
+			([
+				"api_name" => "seo_focus_word",
+				"label" => "Фокусное слово",
+				"type" => "input",
+				"group" => "seo",
+			])
+			
+			->addField
+			([
+				"api_name" => "seo_tags",
+				"label" => "Тэги",
+				"type" => "tags",
+				"group" => "seo",
+			])
 		;
 	}
 	
