@@ -613,8 +613,14 @@ class Task
 					);
 					$product_update = $res["product_update"];
 					
-					$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-					$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+					if (count(array_keys($product_update)) > 0)
+					{
+						$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+						$wpdb->update(
+							$table_name_products,
+							$product_update, [ "id" => $product["id"] ]
+						);
+					}
 				}
 				
 				/* Отмечаем задачу как обработанную */
@@ -1017,14 +1023,23 @@ class Task
 		/* $task["code_1c"] = $offer_code_1c; */
 		
 		/* Do filter elberos_commerce_1c_update_product_offer */
+		$product_update = [];
 		$res = apply_filters
 		(
 			'elberos_commerce_1c_update_product_offer',
 			[
 				'xml' => $xml,
 				'product' => $product,
+				'product_update' => $product_update,
 			]
 		);
+		$product_update = $res["product_update"];
+		
+		if (count(array_keys($product_update)) > 0)
+		{
+			$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+			$wpdb->update($table_name_products, $product_update, [ "id" => $product["id"] ]);
+		}
 		
 		/* Отмечаем задачу как обработанную */
 		$task["error_code"] = 1;
