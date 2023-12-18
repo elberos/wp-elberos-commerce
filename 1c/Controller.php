@@ -508,6 +508,7 @@ class Controller
 			[
 				'status' => $item['status'],
 				'progress' => $item['progress'],
+				'import_types' => $item['import_types'],
 				'total' => $item['total'],
 				'error' => $item['error'],
 				'error_code' => $item['error_code'],
@@ -530,7 +531,7 @@ class Controller
 			/* Если закончили */
 			else if ($item['status'] == Helper::IMPORT_STATUS_DONE)
 			{
-				static::actionCatalogImportSuccess();
+				static::actionCatalogImportSuccess($item);
 				echo "success";
 			}
 			
@@ -548,44 +549,54 @@ class Controller
 	/**
 	 * Успешная загрузка каталога
 	 */
-	static function actionCatalogImportSuccess()
+	static function actionCatalogImportSuccess($item)
 	{
 		global $wpdb;
 		
-		$last_datetime = gmdate("Y-m-d H:i:s", time() - 60*60*24*30);
+		/* Тип импорта */
+		$import_types = explode(",", $item["import_types"]);
 		
 		/* Показываем товары в каталоге, которые были только что загружены */
-		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-		$sql = "update " . $table_name_products . " set `show_in_catalog` = `just_show_in_catalog`";
-		$wpdb->query($sql);
+		if (in_array("product", $import_types))
+		{
+			$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+			$sql = "update " . $table_name_products .
+				" set `show_in_catalog` = `just_show_in_catalog`";
+			$wpdb->query($sql);
+			
+			/* Удаляем фотографии */
+			$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+			$sql = "delete from " . $table_name_products_photos . " where `is_deleted` = 1";
+			$wpdb->query($sql);
+		}
 		
 		/* Удаляем старые предложения */
-		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
-		$sql = \Elberos\wpdb_prepare(
-			"delete from " . $table_name_products_offers .
-				" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
-			[
-				"gmtime_1c_change" => $last_datetime,
-			]
-		);
-		$wpdb->query($sql);
-		
-		/* Удаляем старые цены */
-		$table_name_products_offers_prices = $wpdb->base_prefix .
-			"elberos_commerce_products_offers_prices";
-		$sql = \Elberos\wpdb_prepare(
-			"delete from " . $table_name_products_offers_prices .
-				" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
-			[
-				"gmtime_1c_change" => $last_datetime,
-			]
-		);
-		$wpdb->query($sql);
-		
-		/* Удаляем фотографии */
-		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
-		$sql = "delete from " . $table_name_products_photos . " where `is_deleted` = 1";
-		$wpdb->query($sql);
+		if (in_array("offer", $import_types))
+		{
+			$last_datetime = gmdate("Y-m-d H:i:s", time() - 60*60*24*30);
+			
+			$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+			$sql = \Elberos\wpdb_prepare(
+				"delete from " . $table_name_products_offers .
+					" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
+				[
+					"gmtime_1c_change" => $last_datetime,
+				]
+			);
+			$wpdb->query($sql);
+			
+			/* Удаляем старые цены */
+			$table_name_products_offers_prices = $wpdb->base_prefix .
+				"elberos_commerce_products_offers_prices";
+			$sql = \Elberos\wpdb_prepare(
+				"delete from " . $table_name_products_offers_prices .
+					" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
+				[
+					"gmtime_1c_change" => $last_datetime,
+				]
+			);
+			$wpdb->query($sql);
+		}
 		
 		/* Оставляем последние таски */
 		Helper::deleteOldTask();
@@ -639,6 +650,7 @@ class Controller
 			$instance->loadContent();
 			
 			/* Меняем статус */
+			$import = $instance->import;
 			$import["total"] = Helper::getTaskTotal($instance->import["id"]);
 			$import['status'] = Helper::IMPORT_STATUS_WORK;
 			$import['error_code'] = 0;

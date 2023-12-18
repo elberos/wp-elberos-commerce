@@ -153,12 +153,16 @@ class Import
 		$table_name_classifiers = $wpdb->base_prefix . "elberos_commerce_classifiers";
 		$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_catalogs";
 		
+		$import_types = [];
 		$classifier_id = 0;
 		$catalog_id = 0;
 		
 		/* Создаем классификатор */
 		$xml = $this->xml->Классификатор;
-		if ($this->xml->Классификатор != null && $this->xml->Классификатор->getName() == 'Классификатор')
+		if (
+			$this->xml->Классификатор != null &&
+			$this->xml->Классификатор->getName() == 'Классификатор'
+		)
 		{
 			/* Получаем название */
 			$name = [];
@@ -195,6 +199,9 @@ class Import
 		$xml = $this->xml->Каталог;
 		if ($this->xml->Каталог != null && $this->xml->Каталог->getName() == 'Каталог')
 		{
+			/* Тип импорта */
+			$import_types[] = "product";
+			
 			/* Получаем название */
 			$name = [];
 			if ($this->xml->Каталог->Наименование != null)
@@ -257,6 +264,10 @@ class Import
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
 		{
+			/* Тип импорта */
+			$import_types[] = "offer";
+			
+			/* Поиск каталога по коду */
 			$catalog = Helper::findCatalogByCode( (string)$this->xml->ПакетПредложений->ИдКаталога );
 			$catalog_id = $catalog ? $catalog['id'] : 0;
 			
@@ -299,6 +310,8 @@ class Import
 				$this->saveCurrentXML();
 			}
 		}
+		
+		$this->import['import_types'] = implode(",", $import_types);
 	}
 	
 	
