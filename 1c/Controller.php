@@ -291,6 +291,8 @@ class Controller
 	 */
 	static function actionInit()
 	{
+		global $wpdb;
+		
 		$res = [];
 		$res[] = "zip=no";
 		
@@ -298,6 +300,11 @@ class Controller
 		$res[] = $file_default_size * 1024 * 1024;
 		
 		echo implode("\n", $res) . "\n";
+		
+		$table_1c_import = $wpdb->base_prefix . 'elberos_commerce_1c_import';
+		$sql = "update " . $table_1c_import . " set `status` = -1, `error` = `error` + 1 " .
+			" where `status` in (0,2) and is_deleted = 0";
+		$wpdb->query($sql);
 	}
 	
 	

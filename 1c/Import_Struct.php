@@ -78,6 +78,7 @@ class Import_Struct extends \Elberos\StructBuilder
 					["id"=>"0", "value"=>"План"],
 					["id"=>"1", "value"=>"Выполнено"],
 					["id"=>"2", "value"=>"В процессе"],
+					["id"=>"-1", "value"=>"Ошибка"],
 				]
 			])
 			
