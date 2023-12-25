@@ -559,9 +559,18 @@ class Controller
 		/* Показываем товары в каталоге, которые были только что загружены */
 		if (in_array("product", $import_types))
 		{
+			$gmtime_1c_change = gmdate("Y-m-d H:i:s");
+			
 			$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
-			$sql = "update " . $table_name_products .
-				" set `show_in_catalog` = `just_show_in_catalog`";
+			$sql = \Elberos\wpdb_prepare(
+				"update " . $table_name_products .
+				" set `show_in_catalog` = `just_show_in_catalog`, " .
+				" `gmtime_1c_change` = :gmtime_1c_change " .
+				" where `show_in_catalog` != `just_show_in_catalog` ",
+				[
+					"gmtime_1c_change" => $gmtime_1c_change,
+				]
+			);
 			$wpdb->query($sql);
 			
 			/* Удаляем фотографии */
