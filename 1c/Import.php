@@ -292,7 +292,7 @@ class Import
 				$sql = "update " . $table_name_products_offers . " as offers " .
 					"inner join " . $table_name_products . " as products " .
 					" on ( products.id = offers.product_id ) " .
-					" set `offers`.`prepare_delete` = 1 " .
+					" set `offers`.`prepare_delete_just` = 1 " .
 					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
 				;
 				$wpdb->query($sql);
@@ -302,7 +302,7 @@ class Import
 					" on ( offers.id = offers_prices.offer_id) " .
 					"inner join " . $table_name_products . " as products " .
 					" on ( products.id = offers.product_id)"  .
-					" set `offers_prices`.`prepare_delete` = 1 " .
+					" set `offers_prices`.`prepare_delete_just` = 1 " .
 					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
 				;
 				$wpdb->query($sql);

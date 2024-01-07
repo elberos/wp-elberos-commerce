@@ -301,9 +301,45 @@ class Controller
 		
 		echo implode("\n", $res) . "\n";
 		
+		/* Устанавливаем флаг ошибки для зависших импортов */
 		$table_1c_import = $wpdb->base_prefix . 'elberos_commerce_1c_import';
 		$sql = "update " . $table_1c_import . " set `status` = -1, `error` = `error` + 1 " .
 			" where `status` in (0,2) and is_deleted = 0";
+		$wpdb->query($sql);
+		
+		/* Устанавливаем флаг just_show_in_catalog */
+		$table_name_products = $wpdb->base_prefix . "elberos_commerce_products";
+		$sql = \Elberos\wpdb_prepare(
+			"update " . $table_name_products .
+			" set `just_show_in_catalog` = `show_in_catalog` " .
+			" where `just_show_in_catalog` != `show_in_catalog` ",
+			[
+			]
+		);
+		$wpdb->query($sql);
+		
+		/* Устанавливаем флаг prepare_delete_just */
+		$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+		$sql = \Elberos\wpdb_prepare(
+			"update " . $table_name_products_offers .
+			" set `prepare_delete_just` = `prepare_delete` " .
+			" where `prepare_delete_just` != `prepare_delete` ",
+			[
+			]
+		);
+		$wpdb->query($sql);
+		
+		/* Устанавливаем флаг prepare_delete_just */
+		$table_name_products_offers_prices = $wpdb->base_prefix .
+			"elberos_commerce_products_offers_prices"
+		;
+		$sql = \Elberos\wpdb_prepare(
+			"update " . $table_name_products_offers_prices .
+			" set `prepare_delete_just` = `prepare_delete` " .
+			" where `prepare_delete_just` != `prepare_delete` ",
+			[
+			]
+		);
 		$wpdb->query($sql);
 	}
 	
@@ -586,12 +622,39 @@ class Controller
 			$wpdb->query($sql);
 		}
 		
-		/* Удаляем старые предложения */
+		/* Обновляем цены */
 		if (in_array("offer", $import_types))
 		{
+			$gmtime_1c_change = gmdate("Y-m-d H:i:s");
 			$last_datetime = gmdate("Y-m-d H:i:s", time() - 60*60*24*30);
 			
 			$table_name_products_offers = $wpdb->base_prefix . "elberos_commerce_products_offers";
+			$table_name_products_offers_prices = $wpdb->base_prefix .
+				"elberos_commerce_products_offers_prices";
+			
+			/* Устанавливаем флаг prepare_delete */
+			$sql = \Elberos\wpdb_prepare(
+				"update " . $table_name_products_offers .
+				" set `prepare_delete` = `prepare_delete_just`, " .
+				" `gmtime_1c_change` = :gmtime_1c_change " .
+				" where `prepare_delete` != `prepare_delete_just` ",
+				[
+					"gmtime_1c_change" => $gmtime_1c_change,
+				]
+			);
+			$wpdb->query($sql);
+			$sql = \Elberos\wpdb_prepare(
+				"update " . $table_name_products_offers_prices .
+				" set `prepare_delete` = `prepare_delete_just`, " .
+				" `gmtime_1c_change` = :gmtime_1c_change " .
+				" where `prepare_delete` != `prepare_delete_just` ",
+				[
+					"gmtime_1c_change" => $gmtime_1c_change,
+				]
+			);
+			$wpdb->query($sql);
+			
+			/* Удаляем старые предложения */
 			$sql = \Elberos\wpdb_prepare(
 				"delete from " . $table_name_products_offers .
 					" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
@@ -602,8 +665,6 @@ class Controller
 			$wpdb->query($sql);
 			
 			/* Удаляем старые цены */
-			$table_name_products_offers_prices = $wpdb->base_prefix .
-				"elberos_commerce_products_offers_prices";
 			$sql = \Elberos\wpdb_prepare(
 				"delete from " . $table_name_products_offers_prices .
 					" where `prepare_delete` = 1 and `gmtime_1c_change`<:gmtime_1c_change",
