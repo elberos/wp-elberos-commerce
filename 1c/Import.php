@@ -153,12 +153,16 @@ class Import
 		$table_name_classifiers = $wpdb->base_prefix . "elberos_commerce_classifiers";
 		$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_catalogs";
 		
+		$import_types = [];
 		$classifier_id = 0;
 		$catalog_id = 0;
 		
 		/* Создаем классификатор */
 		$xml = $this->xml->Классификатор;
-		if ($this->xml->Классификатор != null && $this->xml->Классификатор->getName() == 'Классификатор')
+		if (
+			$this->xml->Классификатор != null &&
+			$this->xml->Классификатор->getName() == 'Классификатор'
+		)
 		{
 			/* Получаем название */
 			$name = [];
@@ -195,6 +199,9 @@ class Import
 		$xml = $this->xml->Каталог;
 		if ($this->xml->Каталог != null && $this->xml->Каталог->getName() == 'Каталог')
 		{
+			/* Тип импорта */
+			$import_types[] = "product";
+			
 			/* Получаем название */
 			$name = [];
 			if ($this->xml->Каталог->Наименование != null)
@@ -257,6 +264,10 @@ class Import
 		$xml = $this->xml->ПакетПредложений;
 		if ($xml != null && $xml->getName() == 'ПакетПредложений')
 		{
+			/* Тип импорта */
+			$import_types[] = "offer";
+			
+			/* Поиск каталога по коду */
 			$catalog = Helper::findCatalogByCode( (string)$this->xml->ПакетПредложений->ИдКаталога );
 			$catalog_id = $catalog ? $catalog['id'] : 0;
 			
@@ -281,7 +292,7 @@ class Import
 				$sql = "update " . $table_name_products_offers . " as offers " .
 					"inner join " . $table_name_products . " as products " .
 					" on ( products.id = offers.product_id ) " .
-					" set `offers`.`prepare_delete` = 1 " .
+					" set `offers`.`prepare_delete_just` = 1 " .
 					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
 				;
 				$wpdb->query($sql);
@@ -291,7 +302,7 @@ class Import
 					" on ( offers.id = offers_prices.offer_id) " .
 					"inner join " . $table_name_products . " as products " .
 					" on ( products.id = offers.product_id)"  .
-					" set `offers_prices`.`prepare_delete` = 1 " .
+					" set `offers_prices`.`prepare_delete_just` = 1 " .
 					"where `products`.`catalog_id`='" . (int)($catalog_id) . "'"
 				;
 				$wpdb->query($sql);
@@ -299,6 +310,8 @@ class Import
 				$this->saveCurrentXML();
 			}
 		}
+		
+		$this->import['import_types'] = implode(",", $import_types);
 	}
 	
 	

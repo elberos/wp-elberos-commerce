@@ -258,6 +258,7 @@ class Task_Table extends \Elberos\Table
 					<option value="0" <?= \Elberos\is_get_selected("status", "0") ?>>Запланировано</option>
 					<option value="1" <?= \Elberos\is_get_selected("status", "1") ?>>Выполнено</option>
 					<option value="2" <?= \Elberos\is_get_selected("status", "2") ?>>В процессе</option>
+					<option value="3" <?= \Elberos\is_get_selected("status", "3") ?>>Не изменено</option>
 				</select>
 				<select name="is_error" class="web_form_value">
 					<option value="">Ошибка?</option>

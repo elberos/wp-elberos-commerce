@@ -30,7 +30,6 @@ if ( !class_exists( Category_Table::class ) && class_exists( \Elberos\Table::cla
 
 class Category_Table extends \Elberos\Table 
 {
-	
 	/**
 	 * Table name
 	 */
@@ -41,7 +40,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Page name
 	 */
@@ -49,7 +47,6 @@ class Category_Table extends \Elberos\Table
 	{
 		return "elberos-commerce-classifiers";
 	}
-	
 	
 	
 	/**
@@ -62,6 +59,7 @@ class Category_Table extends \Elberos\Table
 			"admin_table",
 			function ($struct)
 			{
+				/* Render field image_id */
 				$struct->editField("image_id", [
 					//"form_show" => false,
 					"form_render" => function($struct, $field, $item)
@@ -100,6 +98,10 @@ class Category_Table extends \Elberos\Table
 					"show_in_catalog",
 					"image_id",
 					"image_file_path",
+					"seo_title",
+					"seo_description",
+					"seo_focus_word",
+					"seo_tags",
 				];
 				
 				return $struct;
@@ -110,7 +112,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Init struct
 	 */
@@ -118,7 +119,6 @@ class Category_Table extends \Elberos\Table
 	{
 		parent::initStruct();
 	}
-	
 	
 	
 	/**
@@ -134,7 +134,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Get bulk action name
 	 */
@@ -142,7 +141,6 @@ class Category_Table extends \Elberos\Table
 	{
 		return "sub";
 	}
-	
 	
 	
 	/**
@@ -154,7 +152,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Get bulk id
 	 */
@@ -162,7 +159,6 @@ class Category_Table extends \Elberos\Table
 	{
 		return (isset($_REQUEST['sub_id']) ? $_REQUEST['sub_id'] : $default);
 	}
-	
 	
 	
 	/**
@@ -174,7 +170,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/* Заполнение колонки cb */
 	function column_cb($item)
     {
@@ -183,7 +178,6 @@ class Category_Table extends \Elberos\Table
             $item['id']
         );
     }
-	
 	
 	
 	/**
@@ -207,7 +201,6 @@ class Category_Table extends \Elberos\Table
 			)
 		;
 	}
-	
 	
 	
 	/**
@@ -235,7 +228,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Process bulk action
 	 */
@@ -257,7 +249,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Get item
 	 */
@@ -265,7 +256,6 @@ class Category_Table extends \Elberos\Table
 	{
 		parent::do_get_item();
 	}
-	
 	
 	
 	/**
@@ -281,7 +271,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Item validate
 	 */
@@ -289,7 +278,6 @@ class Category_Table extends \Elberos\Table
 	{
 		return "";
 	}
-	
 	
 	
 	/**
@@ -340,7 +328,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * CSS
 	 */
@@ -353,18 +340,20 @@ class Category_Table extends \Elberos\Table
 		wp_enqueue_script( 'jquery-ui-accordion' );
 		wp_enqueue_script( 'jquery-ui-autocomplete' );
 		wp_enqueue_script( 'jquery-ui-slider' );
-		wp_enqueue_script( 'jquery.contextMenu.min.js', 
+		wp_enqueue_script( 'jquery.contextMenu.min.js',
 			'/wp-content/plugins/wp-elberos-core/assets/jQuery-contextMenu/jquery.contextMenu.min.js', false );
-		wp_enqueue_style( 'jquery.contextMenu.min.css', 
+		wp_enqueue_style( 'jquery.contextMenu.min.css',
 			'/wp-content/plugins/wp-elberos-core/assets/jQuery-contextMenu/jquery.contextMenu.min.css', false );
-		wp_enqueue_style( 'fancytree.css', 
+		wp_enqueue_style( 'fancytree.css',
 			'/wp-content/plugins/wp-elberos-core/assets/fancytree/skin-win8/ui.fancytree.min.css', false );
-		wp_enqueue_script( 'fancytree.js', 
+		wp_enqueue_script( 'fancytree.js',
 			'/wp-content/plugins/wp-elberos-core/assets/fancytree/jquery.fancytree-all.min.js', false );
-		wp_enqueue_script( 'script.js', 
-			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
-		wp_enqueue_style( 'dialog.css', 
+		wp_enqueue_script( 'script.js',
+			'/wp-content/plugins/wp-elberos-core/assets/script.js', false, "202401081" );
+		wp_enqueue_style( 'dialog.css',
 			'/wp-content/plugins/wp-elberos-core/assets/dialog.css', false );
+		wp_enqueue_style( 'web_form.css',
+			'/wp-content/plugins/wp-elberos-core/assets/web_form.css', false );
 		?>
 		<script>
 		//var $ = jQuery.noConflict();
@@ -400,6 +389,27 @@ class Category_Table extends \Elberos\Table
 		.elberos_form .web_form_result, .elberos_dialog .web_form_result{
 			text-align: center;
 			padding-top: 5px;
+		}
+		.elberos_form_edit_category .cursor, .elberos_form_edit_category a.cursor
+		{
+			cursor: pointer;
+		}
+		.elberos_form_edit_category .nav-tab-data
+		{
+			display: none;
+			margin: 10px 5px;
+		}
+		.elberos_form_edit_category .nav-tab-data.nav-tab-data-active
+		{
+			display: block;
+		}
+		.elberos_form_edit_category .elberos_input_tags__wrap{
+			border-radius: 4px;
+			border: 1px solid #8c8f94;
+			width: 100%;
+		}
+		.elberos_input_tags__tag{
+			border-radius: 4px;
 		}
 		</style>
 		<script>
@@ -440,7 +450,6 @@ class Category_Table extends \Elberos\Table
 		</script>
 		<?php
 	}
-	
 	
 	
 	/**
@@ -514,33 +523,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
-	/**
-	 * Display form sub
-	 */
-	function display_form_sub()
-	{
-		$page_name = $this->get_page_name();
-		$item = $this->form_item;
-		?>
-		
-		<div style="clear: both;"></div>
-		
-		<?php
-	}
-	
-	
-	
-	/**
-	 * Returns form title
-	 */
-	function get_form_title($item)
-	{
-		return _e($item['id'] > 0 ? 'Редактировать категорию' : 'Добавить категорию', 'elberos-commerce');
-	}
-	
-	
-	
 	/**
 	 * Returns table title
 	 */
@@ -548,7 +530,6 @@ class Category_Table extends \Elberos\Table
 	{
 		return "Категории";
 	}
-	
 	
 	
 	/**
@@ -568,7 +549,6 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
-	
 	/**
 	 * Display action
 	 */
@@ -579,11 +559,130 @@ class Category_Table extends \Elberos\Table
 	}
 	
 	
+	/**
+	 * Display form sub
+	 */
+	function display_form_sub()
+	{
+		$page_name = $this->get_page_name();
+		$item = $this->form_item;
+		?>
+		
+		<div style="clear: both;"></div>
+		
+		<?php
+	}
+	
+	
+	/**
+	 * Returns form title
+	 */
+	function get_form_title($item)
+	{
+		return _e($item['id'] > 0 ? 'Редактировать категорию' : 'Добавить категорию', 'elberos-commerce');
+	}
+	
+	
+	/**
+	 * Display form id
+	 */
 	function display_form_id()
 	{
 		?>
 		<input type='hidden' class='web_form_value' name='id' data-name='id' />
 		<?php
+	}
+	
+	
+	/**
+	 * Display form
+	 */
+	function display_form()
+	{
+		if ($this->form_item == null)
+		{
+			return;
+		}
+		
+		$tabs = [
+			[
+				"key" => "main",
+				"title" => "Main",
+			],
+			[
+				"key" => "seo",
+				"title" => "SEO",
+			],
+		];
+		$key = "main";
+		
+		?>
+		<nav class="nav-tab-wrapper">
+			<?php
+			foreach ($tabs as $arr)
+			{
+				?><a class="nav-tab cursor <?= $key == $arr['key'] ? "nav-tab-active" : "" ?>"
+					data-tab="elberos_form_category_<?= esc_attr($arr['key']) ?>"
+					data-key="elberos_form_category"
+				>
+					<?= esc_html($arr['title']) ?>
+				</a><?php
+			}
+			?>
+		</nav>
+		
+		<div class='nav-tab-data <?= $key == "main" ? "nav-tab-data-active" : "" ?>'
+			data-tab="elberos_form_category_<?= esc_attr($tabs[0]['key']) ?>"
+			data-key="elberos_form_category"
+		>
+			<?php
+				$this->display_form_id();
+				echo $this->struct->renderForm(
+					$this->form_item, $this->form_item['id'] > 0 ? "edit" : "add"
+				);
+			?>
+		</div>
+		<div class='nav-tab-data <?= $key == "seo" ? "nav-tab-data-active" : "" ?>'
+			data-tab="elberos_form_category_<?= esc_attr($tabs[1]['key']) ?>"
+			data-key="elberos_form_category"
+		>
+			<?php
+				echo $this->struct->renderForm(
+					$this->form_item, $this->form_item['id'] > 0 ? "edit" : "add",
+					[
+						"group" => "seo"
+					]
+				);
+			?>
+		</div>
+		
+		<script>
+		jQuery('.elberos_form_edit_category .nav-tab').click(function(){
+			var data_key = jQuery(this).attr('data-key');
+			var data_tab = jQuery(this).attr('data-tab');
+			jQuery(this).parent('.nav-tab-wrapper').find('.nav-tab').removeClass('nav-tab-active');
+			jQuery(this).addClass('nav-tab-active');
+			
+			var $items = jQuery('.nav-tab-data');
+			for (var i=0; i<$items.length; i++)
+			{
+				var $item = jQuery($items[i]);
+				var item_data_key = jQuery($item).attr('data-key');
+				var item_data_tab = jQuery($item).attr('data-tab');
+				if (data_key == item_data_key)
+				{
+					$item.removeClass('nav-tab-data-active');
+					if (data_tab == item_data_tab)
+					{
+						$item.addClass('nav-tab-data-active');
+					}
+				}
+			}
+		});
+		</script>
+		
+		<?php
+		echo $this->struct->renderJS($this->form_item, $this->form_item['id'] > 0 ? "edit" : "add");
 	}
 	
 	
