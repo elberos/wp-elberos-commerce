@@ -94,6 +94,7 @@ class Product_Table extends \Elberos\Table
 					"vendor_code",
 					"name",
 					"code_1c",
+					"count_in_stock",
 				];
 				
 				/* Запрос каталога */
@@ -366,6 +367,12 @@ class Product_Table extends \Elberos\Table
 		/* Обновляем slug */
 		$item["slug"] = sanitize_title($item["name"]);
 		
+		/* Делаем trim */
+		foreach ($item as $field_name => $value)
+		{
+			$item[$field_name] = \Elberos\mb_trim($value);
+		}
+		
 		return $item;
 	}
 	
@@ -504,6 +511,21 @@ class Product_Table extends \Elberos\Table
 					$main_offer_id = $wpdb->insert_id;
 				}
 				
+				/* Обновление количества товара */
+				$count_in_stock = isset($_POST['count_in_stock']) ? $_POST['count_in_stock'] : [];
+				$wpdb->update
+				(
+					$offers_table_name,
+					[
+						"count" => $count_in_stock,
+						"in_stock" => $count_in_stock > 0,
+					],
+					[
+						"id" => $main_offer_id,
+					]
+				);
+				
+				/* Обновление цен */
 				foreach ($offers_items as $offer)
 				{
 					$offer_id = $offer["offer_id"];
@@ -1665,9 +1687,19 @@ class Product_Table extends \Elberos\Table
 		$product_offers = $wpdb->get_results($sql, ARRAY_A);
 		$main_offer_id = 0;
 		
+		$count_in_stock = isset($product_offers[0]) ? $product_offers[0]["count"] : 0;
+		
 		?>
 		<div class='elberos-commerce elberos-commerce-product-offers'>
+			
 			<label>Предложения товара</label>
+			
+			<div class="web_form_row" data-name="count_in_stock" style="width: 60%;">
+				<div class="web_form_label">Количество товара</div>
+				<input id="value_count_in_stock_60903" type="text" class="web_form_input web_form_value web_form_input--text" placeholder="" name="count_in_stock" data-name="count_in_stock" value="<?= esc_attr($count_in_stock) ?>">
+				<div class="web_form_field_result" data-name="count_in_stock" data-default="&nbsp;">&nbsp;</div>
+			</div>
+			
 			<table>
 				<tr class='elberos-commerce-product-offers-head'>
 					<th>Тип цены</th>

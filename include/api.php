@@ -529,25 +529,36 @@ class Api
 			$basket_item =
 			[
 				"count" => $count,
-				"offer_id" => (int) (isset($offer_item["offer_id"]) ? $offer_item["offer_id"] : 0),
-				"offer_price_id" => (int) (isset($offer_item["price_id"]) ? $offer_item["price_id"] : 0),
-				"offer_price" => (double) (isset($offer_item["price"]) ? $offer_item["price"] : 0),
-				"offer_currency" => isset($offer_item["currency"]) ? $offer_item["currency"] : "",
-				"offer_unit" => isset($offer_item["unit"]) ? $offer_item["unit"] : "",
-				"offer_coefficient" => isset($offer_item["coefficient"]) ? $offer_item["coefficient"] : "",
-				"offer_code_1c" => isset($offer_item["offer_code_1c"]) ? $offer_item["offer_code_1c"] : "",
-				"offer_price_type_id" => (int) (isset($offer_item["price_type_id"]) ? $offer_item["price_type_id"] : 0),
-				"offer_price_code_1c" =>
-					isset($offer_item["price_type_code_1c"]) ? $offer_item["price_type_code_1c"] : "",
+				"offer_id" => (int) (isset($offer_item["offer_id"]) ?
+					$offer_item["offer_id"] : 0),
+				"offer_price_id" => (int) (isset($offer_item["price_id"]) ?
+					$offer_item["price_id"] : 0),
+				"offer_price" => (double) (isset($offer_item["price"]) ?
+					$offer_item["price"] : 0),
+				"offer_currency" => isset($offer_item["currency"]) ?
+					$offer_item["currency"] : "",
+				"offer_unit" => isset($offer_item["unit"]) ?
+					$offer_item["unit"] : "",
+				"offer_coefficient" => isset($offer_item["coefficient"]) ?
+					$offer_item["coefficient"] : "",
+				"offer_code_1c" => isset($offer_item["offer_code_1c"]) ?
+					$offer_item["offer_code_1c"] : "",
+				"offer_price_type_id" => (int) (isset($offer_item["price_type_id"]) ?
+					$offer_item["price_type_id"] : 0),
+				"offer_price_code_1c" => isset($offer_item["price_type_code_1c"]) ?
+					$offer_item["price_type_code_1c"] : "",
 				"offer_xml" => isset($offer_item["offer_xml"]) ? $offer_item["offer_xml"] : "",
 				"product_id" => isset($product_item["id"]) ? $product_item["id"] : "",
 				"product_code_1c" => isset($product_item["code_1c"]) ? $product_item["code_1c"] : "",
 				"product_name" => isset($product_item["name"]) ? $product_item["name"] : "",
 				"product_params" => isset($product_item["params"]) ? $product_item["params"] : [],
-				"product_main_photo_id" => isset($product_item["main_photo_id"]) ? $product_item["main_photo_id"] : 0,
-				"product_main_photo_url" => isset($product_item["main_photo_url"]) ? $product_item["main_photo_url"] : 0,
+				"product_main_photo_id" => isset($product_item["main_photo_id"]) ?
+					$product_item["main_photo_id"] : 0,
+				"product_main_photo_url" => isset($product_item["main_photo_url"]) ?
+					$product_item["main_photo_url"] : 0,
 				"product_text" => isset($product_item["text"]) ? $product_item["text"] : [],
-				"product_vendor_code" => isset($product_item["vendor_code"]) ? $product_item["vendor_code"] : "",
+				"product_vendor_code" => isset($product_item["vendor_code"]) ?
+					$product_item["vendor_code"] : "",
 				"product_xml" => isset($product_item["xml"]) ? $product_item["xml"] : "",
 				"product_item" => $product_item,
 			];
@@ -741,14 +752,23 @@ class Api
 					return $offer_price["product_id"] == $item["id"];
 				}
 			);
-			
 			$item['params'] = array_values($item['params']);
 			$item['photos'] = array_values($item['photos']);
 			$item['offers'] = array_values($item['offers']);
 			$item['offers_prices'] = array_values($item['offers_prices']);
-			
+		}
+		
+		/* Get main photo */
+		$photo_ids = array_map(
+			function ($item){ return $item["main_photo_id"]; }, $items
+		);
+		$photos = \Elberos\get_images_url($photo_ids, $photo_size);
+		
+		/* Параметры товара */
+		foreach ($items as &$item)
+		{
 			$photo_id = $item["main_photo_id"];
-			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, $photo_size);
+			$item["main_photo_url"] = isset($photos[$photo_id]) ? $photos[$photo_id] : null;
 		}
 		
 		/* Restore blog */
