@@ -99,6 +99,7 @@ class Task_Struct extends \Elberos\StructBuilder
 					["id"=>"0", "value"=>"Запланировано"],
 					["id"=>"1", "value"=>"Выполнено"],
 					["id"=>"2", "value"=>"В процессе"],
+					["id"=>"3", "value"=>"Не изменено"],
 				]
 			])
 			

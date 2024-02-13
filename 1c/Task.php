@@ -200,54 +200,73 @@ class Task
 		$code_1c = \Elberos\mb_trim( (string)$xml->Ид );
 		$parent_category_code_1c = (string)$xml->ParentID;
 		$parent_category_id = 0;
+		$parent_category = null;
+		
+		/* Отмечаем задачу как неизменено */
+		$task["status"] = Helper::TASK_STATUS_UNCHANGED;
 		
 		/* Ищем parent категорию */
-		if ($parent_category_code_1c != "")
+		$parent_category = Helper::findCategoryByCode($parent_category_code_1c);
+		if ($parent_category)
 		{
-			$sql = \Elberos\wpdb_prepare
-			(
-				"select * from $table_name_categories " .
-				"where code_1c = :code_1c limit 1",
-				[
-					"code_1c" => $parent_category_code_1c,
-				]
-			);
-			$parent_category = $wpdb->get_row($sql, ARRAY_A);
-			if ($parent_category)
-			{
-				$parent_category_id = $parent_category['id'];
-			}
+			$parent_category_id = $parent_category['id'];
 		}
 		
 		/* Получаем название категории */
 		$names = Helper::getNamesByXml($xml, 'Наименование');
 		$name_ru = isset($names['ru']) ? $names['ru'] : '';
+		$slug = sanitize_title($name_ru);
 		
 		/* Вставляем категорию в базу данных */
-		$category = \Elberos\wpdb_insert_or_update
-		(
-			$table_name_categories,
-			[
-				"code_1c" => $code_1c,
-			],
-			[
+		$category = Helper::findCategoryByCode($code_1c);
+		if (!$category)
+		{
+			$wpdb->insert($table_name_categories, [
 				"parent_category_id" => $parent_category_id,
 				"classifier_id" => $task["classifier_id"],
 				"code_1c" => $code_1c,
 				"name" => $name_ru,
-				"slug" => sanitize_title($name_ru),
+				"slug" => $slug,
 				"xml" => $xml_str,
 				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
 				"is_deleted" => 0,
-			]
-		);
+			]);
+			$task["status"] = Helper::TASK_STATUS_DONE;
+		}
+		else
+		{
+			if (
+				$category['parent_category_id'] != $parent_category_id ||
+				$category['code_1c'] != $code_1c ||
+				$category['name'] != $name_ru ||
+				$category['slug'] != $slug ||
+				$category['is_deleted'] == 1
+			)
+			{
+				$wpdb->update(
+					$table_name_categories,
+					[
+						"parent_category_id" => $parent_category_id,
+						"code_1c" => $code_1c,
+						"name" => $name_ru,
+						"slug" => $slug,
+						"xml" => $xml_str,
+						"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+						"is_deleted" => 0,
+					],
+					[
+						"id" => $category["id"],
+					]
+				);
+				$task["status"] = Helper::TASK_STATUS_DONE;
+			}
+		}
 		
 		/* Код 1с */
 		/* $task["code_1c"] = $code_1c; */
 		
 		/* Отмечаем задачу как обработанную */
 		$task["error_code"] = 1;
-		$task["status"] = Helper::TASK_STATUS_DONE;
 		
 		return $task;
 	}

@@ -36,11 +36,12 @@ class Helper
 	const TASK_STATUS_PLAN = 0;
 	const TASK_STATUS_DONE = 1;
 	const TASK_STATUS_WORK = 2;
+	const TASK_STATUS_UNCHANGED = 3;
 	const TASK_STATUS_ERROR = -1;
 	
 	static $catalogs = [];
 	static $classifiers = [];
-	static $categories = [];
+	static $categories = null;
 	static $price_types = [];
 	static $product_params = [];
 	static $product_params_values = [];
@@ -126,6 +127,23 @@ class Helper
 	}
 	
 	
+	/**
+	 * Load all categories
+	 */
+	static function loadAllCategories()
+	{
+		global $wpdb;
+		$table_name = $wpdb->base_prefix . "elberos_commerce_categories";
+		$sql = "select * from " . $table_name;
+		$items = $wpdb->get_results($sql, ARRAY_A);
+		static::$categories = [];
+		foreach ($items as $item)
+		{
+			$code_1c = $item['code_1c'];
+			static::$categories[$code_1c] = $item;
+		}
+	}
+	
 	
 	/**
 	 * Find category by 1c code
@@ -135,6 +153,11 @@ class Helper
 		global $wpdb;
 		
 		if ($code_1c == "") return null;
+		
+		if (static::$categories == null)
+		{
+			static::loadAllCategories();
+		}
 		
 		if (!array_key_exists($code_1c, static::$categories))
 		{

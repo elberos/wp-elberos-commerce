@@ -349,7 +349,7 @@ class Category_Table extends \Elberos\Table
 		wp_enqueue_script( 'fancytree.js',
 			'/wp-content/plugins/wp-elberos-core/assets/fancytree/jquery.fancytree-all.min.js', false );
 		wp_enqueue_script( 'script.js',
-			'/wp-content/plugins/wp-elberos-core/assets/script.js', false );
+			'/wp-content/plugins/wp-elberos-core/assets/script.js', false, "202401081" );
 		wp_enqueue_style( 'dialog.css',
 			'/wp-content/plugins/wp-elberos-core/assets/dialog.css', false );
 		wp_enqueue_style( 'web_form.css',
