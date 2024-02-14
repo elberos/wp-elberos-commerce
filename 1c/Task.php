@@ -403,6 +403,14 @@ class Task
 			);
 			$product = $wpdb->get_row($sql, ARRAY_A);
 		}
+		else
+		{
+			/* Отмечаем задачу как ошибку */
+			$task["error_code"] = -1;
+			$task["error_message"] = "Product not found";
+			$task["status"] = Helper::TASK_STATUS_ERROR;
+			return $task;
+		}
 		
 		$product_update = [];
 		
@@ -1044,31 +1052,112 @@ class Task
 			}
 		}
 		
-		/* Вставляем параметр в базу данных */
-		$offer = \Elberos\wpdb_insert_or_update
+		/* Поиск офера */
+		$sql = \Elberos\wpdb_prepare
 		(
-			$table_name_products_offers,
+			"select * from $table_name_products_offers " .
+			"where code_1c = :code_1c and product_id = :product_id limit 1",
 			[
-				"code_1c" => $offer_code_1c,
-			],
-			[
-				"product_id" => $product['id'],
-				"code_1c" => $offer_code_1c,
-				"name" => $name_ru,
-				"xml" => $xml_str,
-				"offer_params" => json_encode($offer_params),
-				"count" => $count,
-				"in_stock" => $count > 0,
-				"prepare_delete" => 0,
-				"prepare_delete_just" => 0,
-				"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+				'product_id' => $product['id'],
+				'code_1c' => $offer_code_1c,
 			]
 		);
-		$offer_id = $offer['id'];
+		$offer = $wpdb->get_row($sql, ARRAY_A);
+		$offer_id = -1;
+		
+		/* Поиск офера у которого пустой код */
+		if (!$offer)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name_products_offers " .
+				"where code_1c = '' and product_id = :product_id limit 1",
+				[
+					'product_id' => $product['id'],
+					'code_1c' => $offer_code_1c,
+				]
+			);
+			$offer = $wpdb->get_row($sql, ARRAY_A);
+		}
+		
+		if (!$offer)
+		{
+			$wpdb->insert
+			(
+				$table_name_products_offers,
+				[
+					"product_id" => $product['id'],
+					"code_1c" => $offer_code_1c,
+					"name" => $name_ru,
+					"xml" => $xml_str,
+					"offer_params" => json_encode($offer_params),
+					"count" => $count,
+					"in_stock" => $count > 0,
+					"prepare_delete" => 0,
+					"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+				]
+			);
+			$offer_id = $wpdb->insert_id;
+		}
+		else
+		{
+			$wpdb->update
+			(
+				$table_name_products_offers,
+				[
+					"product_id" => $product['id'],
+					"code_1c" => $offer_code_1c,
+					"name" => $name_ru,
+					"xml" => $xml_str,
+					"offer_params" => json_encode($offer_params),
+					"count" => $count,
+					"in_stock" => $count > 0,
+					"prepare_delete" => 0,
+					"gmtime_1c_change" => gmdate("Y-m-d H:i:s"),
+				],
+				[
+					'id' => $offer['id']
+				]
+			);
+			$offer_id = $offer['id'];
+		}
+		
+		/* Получить offer с изменениями */
+		if ($offer_id > 0)
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"select * from $table_name_products_offers " .
+				"where id = :id limit 1",
+				[
+					'id' => $offer_id,
+				]
+			);
+			$offer = $wpdb->get_row($sql, ARRAY_A);
+		}
+		else
+		{
+			/* Отмечаем задачу как ошибку */
+			$task["error_code"] = -1;
+			$task["error_message"] = "Offer not found";
+			$task["status"] = Helper::TASK_STATUS_ERROR;
+			return $task;
+		}
+		
+		/* Устанавливаем флаг prepare_delete для цен */
+		$wpdb->update(
+			$table_name_products_offers_prices,
+			[
+				"prepare_delete_just" => 1
+			],
+			[
+				"offer_id" => $offer_id
+			]
+		);
 		
 		/* Обновляем цены */
 		$items = $xml->Цены;
-		if ($items != null && $items->getName() == 'Цены')
+		if ($offer_id > 0 && $items != null && $items->getName() == 'Цены')
 		{
 			foreach ($items->children() as $item)
 			{
