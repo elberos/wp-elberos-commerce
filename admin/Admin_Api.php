@@ -375,16 +375,33 @@ class Admin_Api
 		
 		$table_name = $wpdb->base_prefix . "elberos_commerce_invoice";
 		$invoice_id = isset($_POST["invoice_id"]) ? $_POST["invoice_id"] : "";
+		$export_status = isset($_POST["export_status"]) ? $_POST["export_status"] : 0;
 		
-		$sql = \Elberos\wpdb_prepare
-		(
-			"update " . $table_name .
-			" set export_status=0, gmtime_1c_export=null " .
-			" where id=:id",
-			[
-				"id" => $invoice_id,
-			]
-		);
+		if ($export_status == "-1")
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"update " . $table_name .
+				" set export_status=-1, gmtime_1c_export=:gmtime_1c_export " .
+				" where id=:id",
+				[
+					"id" => $invoice_id,
+					"gmtime_1c_export" => gmdate("Y-m-d H:i:s", time()),
+				]
+			);
+		}
+		else
+		{
+			$sql = \Elberos\wpdb_prepare
+			(
+				"update " . $table_name .
+				" set export_status=0, gmtime_1c_export=null " .
+				" where id=:id",
+				[
+					"id" => $invoice_id,
+				]
+			);
+		}
 		
 		$wpdb->query($sql);
 		
