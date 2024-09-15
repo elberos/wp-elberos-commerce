@@ -562,7 +562,10 @@ class Api
 				]
 			);
 			
-			$basket[] = $res["basket_item"];
+			if ($res["basket_item"])
+			{
+				$basket[] = $res["basket_item"];
+			}
 		}
 		
 		return $basket;
@@ -817,9 +820,14 @@ class Api
 					t1.unit,
 					t1.coefficient,
 					t1.name as offer_price_name,
+					t1.prepare_delete as offer_price_delete,
 					t2.id as offer_id,
 					t2.product_id as product_id,
 					t2.code_1c as offer_code_1c,
+					t2.count as offer_count,
+					t2.in_stock as offer_in_stock,
+					t2.offer_params as offer_params,
+					t2.prepare_delete as offer_delete,
 					t2.xml as offer_xml,
 					t3.code_1c as price_type_code_1c
 				from {$wpdb->base_prefix}elberos_commerce_products_offers_prices as t1

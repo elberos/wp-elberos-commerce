@@ -603,10 +603,14 @@ class Invoice_Table extends \Elberos\Table
 			$offer_unit = isset($basket["offer_unit"]) ? $basket["offer_unit"] : "";
 			$offer_price_id = isset($basket["offer_price_id"]) ? $basket["offer_price_id"] : "";
 			$offer_price = isset($basket["offer_price"]) ? $basket["offer_price"] : "";
+			$product_id = isset($basket["product_id"]) ? $basket["product_id"] : "";
 			$product_name = isset($basket["product_name"]) ? $basket["product_name"] : "";
 			$product_count = isset($basket["count"]) ? $basket["count"] : "";
 			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
 			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
+			$product_1c_code = isset($basket["product_code_1c"]) ? $basket["product_code_1c"] : "";
+			$offer_code_1c = isset($basket["offer_code_1c"]) ? $basket["offer_code_1c"] : "";
+			$offer_price_code_1c = isset($basket["offer_price_code_1c"]) ? $basket["offer_price_code_1c"] : "";
 			$discount_value = isset($basket["discount_value"]) ? $basket["discount_value"] : "";
 			
 			$info_ammount = $offer_price * $product_count;
@@ -625,11 +629,17 @@ class Invoice_Table extends \Elberos\Table
 					$text .= "<img src='" . esc_attr( $product_main_photo_url ) . "' />";
 				$text .= "</div>";
 				$text .= "<div class='invoice_table_product_title'>";
-					$text .= "<div class='invoice_table_product_title_row'>";
+					$text .= "<div class='invoice_table_product_title_row'><b>";
 						$text .= esc_html( $product_name );
-					$text .= "</div>";
+					$text .= "</b></div>";
 					$text .= "<div class='invoice_table_product_title_row'>";
 						$text .= "Артикул: <span class='value'>" . esc_html($product_vendor_code) . "</span>";
+					$text .= "</div>";
+					$text .= "<div class='invoice_table_product_title_row'>";
+						$text .= "ID товара: <span class='value'>" . esc_html($product_id) . "</span>";
+					$text .= "</div>";
+					$text .= "<div class='invoice_table_product_title_row'>";
+						$text .= "Код 1С: <span class='value'>" . esc_html($product_1c_code) . "</span>";
 					$text .= "</div>";
 					$text .= "<div class='invoice_table_product_title_row'>";
 						$text .= "";
