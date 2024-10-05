@@ -214,8 +214,9 @@ class Product_Table extends \Elberos\Table
 		$page_name = $this->get_page_name();
 		return sprintf
 		(
-			'<a href="?page=' . $page_name . '&action=edit&id=%s">%s</a>',
-			$item['id'], 
+			'<a href="?page=' . $page_name . '&action=edit&catalog_id=%s&id=%s">%s</a>',
+			isset($_GET["catalog_id"]) ? $_GET["catalog_id"] : 0,
+			$item['id'],
 			__('Открыть', 'elberos-commerce')
 		);
 	}
@@ -294,8 +295,17 @@ class Product_Table extends \Elberos\Table
 		/* Создание товара */
 		if ($this->form_item_id == 0)
 		{
+			$catalog_id = isset($_GET['catalog_id']) ? $_GET['catalog_id'] : 0;
+			$this->form_item['catalog_id'] = $catalog_id;
+			
+			/* Select classifier */
 			$table_name = $wpdb->base_prefix . "elberos_commerce_classifiers";
-			$sql = "SELECT * FROM $table_name as t limit 1";
+			$table_name_catalogs = $wpdb->base_prefix . "elberos_commerce_catalogs";
+			$sql = "SELECT * FROM $table_name as as classifier " .
+				"inner join " . $table_name_catalogs . " as catalogs " .
+				"on (catalogs.classifier_id=classifier.id)" .
+				"limit 1"
+			;
 			
 			$classifier = $wpdb->get_row($sql, ARRAY_A);
 			if ($classifier)
@@ -487,7 +497,8 @@ class Product_Table extends \Elberos\Table
 			$offers_prices_id = [];
 			
 			$offers_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers";
-			$offers_prices_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers_prices";
+			$offers_prices_table_name = $wpdb->base_prefix .
+				"elberos_commerce_products_offers_prices";
 			
 			if (gettype($offers_items) == "array" && count($offers_items) > 0)
 			{
@@ -654,6 +665,17 @@ class Product_Table extends \Elberos\Table
 			"show_in_catalog",
 			"show_in_top",
 		];
+	}
+	
+	
+	
+	/**
+	 * Show filter
+	 */
+	function show_filter()
+	{
+		?><input type="hidden" class="web_form_value" name="action" value="products" /><?php
+		parent::show_filter();
 	}
 	
 	
@@ -1115,12 +1137,16 @@ class Product_Table extends \Elberos\Table
 	{
 		$page_name = $this->get_page_name();
 		$action = isset($_GET['action']) ? $_GET['action'] : "edit";
+		$catalog_id = isset($_GET['catalog_id']) ? $_GET['catalog_id'] : 0;
 		$item = $this->form_item;
 		$item_id = $this->form_item_id;
+		$back_href = "?page=" . esc_attr($page_name) .
+			"&action=products&catalog_id=" . esc_attr($catalog_id)
+		;
 		?>
 		
 		<br/>
-		<a type="button" class='button-primary' href='?page=<?= $page_name ?>'> Back </a>
+		<a type="button" class='button-primary' href='<?= $back_href ?>'>Back</a>
 		<br/>
 		<br/>
 		
@@ -1188,7 +1214,74 @@ class Product_Table extends \Elberos\Table
 	function display_action()
 	{
 		$action = $this->current_action();
-		parent::display_action();
+		if ($action == "products" || $action == "edit" || $action == "add")
+		{
+			parent::display_action();
+		}
+		else
+		{
+			$this->display_catalog_list();
+		}
+	}
+	
+	
+	
+	/**
+	 * Display categories
+	 */
+	function display_catalog_list()
+	{
+		global $wpdb;
+		
+		$table_name = $wpdb->base_prefix . "elberos_commerce_catalogs";
+		$items = $wpdb->get_results(
+			"select * from `" . $table_name . "` where `is_deleted`=0 order by name",
+			ARRAY_A
+		);
+		
+		?>
+		<style>
+		.item_block{
+			display: block;
+			padding-top: 20px;
+		}
+		</style>
+		<div class="wrap">
+			<h1 class="wp-heading-inline">
+				Каталог
+			</h1>
+			<hr class="wp-header-end">
+			<?php foreach ($items as $item){ ?>
+				<div class="item_block">
+					<a href="?page=elberos-commerce&action=products&catalog_id=<?=
+						esc_attr($item["id"]) ?>">
+						<?= esc_html($item["name"]); ?>
+					</a>
+				</div>
+			<?php } ?>
+		</div>
+		<?php
+	}
+	
+	
+	
+	/**
+	 * Display table add button
+	 */
+	function display_table_add_button()
+	{
+		$page_name = $this->get_page_name();
+		$catalog_id = isset($_GET['catalog_id']) ? $_GET['catalog_id'] : 0;
+		?>
+		<a href="<?= get_admin_url(
+			get_current_blog_id(),
+			'admin.php?page=' . $page_name . '&action=add' . '&catalog_id=' . esc_attr($catalog_id)
+		);?>"
+			class="page-title-action"
+		>
+			<?php _e('Add new', 'elberos-core')?>
+		</a>
+		<?php
 	}
 	
 	

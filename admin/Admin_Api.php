@@ -155,12 +155,14 @@ class Admin_Api
 		$struct = \Elberos\Commerce\Category_Table::createStruct();
 		
 		$id = isset($item["id"]) ? $item["id"]: "";
+		$classifier_id = isset($item["classifier_id"]) ? $item["classifier_id"]: "";
 		$process_item = $struct->update([], $item);
 		$process_item = $struct->processItem($process_item);
+		$process_item["classifier_id"] = $classifier_id;
 		
 		if ($process_item["slug"] == "")
 		{
-			$process_item["slug"] = sanitize_title($process_item["slug"]);
+			$process_item["slug"] = sanitize_title($process_item["name"]);
 		}
 		//var_dump($process_item);
 		
