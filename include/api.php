@@ -650,10 +650,17 @@ class Api
 			$sql = $wpdb->prepare
 			(
 				"select * from " . $wpdb->base_prefix . "elberos_commerce_products_photos as p " .
-				"where product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") ",
+				"where product_id in (" . implode(",", array_fill(0, count($products_id), "%d")) . ") order by pos asc",
 				$products_id
 			);
 			$photos = $wpdb->get_results($sql, ARRAY_A);
+			
+			/* Load photos urls */
+			$photos_ids = array_map(function($item){ return $item["photo_id"]; }, $photos);
+			$photos_ids_main = array_map(function($item){ return $item["main_photo_id"]; }, $items);
+			$photos_ids = array_merge($photos_ids, $photos_ids_main);
+			$photos_ids = array_filter($photos_ids, function($item){ return $item > 0; });
+			$photos_urls = \Elberos\get_images_url($photos_ids);
 			
 			/* Offers */
 			$sql = $wpdb->prepare
@@ -728,6 +735,12 @@ class Api
 					return $photo["product_id"] == $item["id"];
 				}
 			);
+			foreach ($item['photos'] as &$photo)
+			{
+				$photo_id = $photo["photo_id"];
+				$photo["meta_value"] = isset($photos_urls[$photo_id]) ?
+					$photos_urls[$photo_id]["meta_value"] : null;
+			}
 			$item['offers'] = array_filter
 			(
 				$offers,
@@ -750,8 +763,25 @@ class Api
 			$item['offers'] = array_values($item['offers']);
 			$item['offers_prices'] = array_values($item['offers_prices']);
 			
+			/* Get main photo id */
 			$photo_id = $item["main_photo_id"];
-			$item["main_photo_url"] = \Elberos\get_image_url($photo_id, $photo_size);
+			$item["main_photo"] = isset($photos_urls[$photo_id]) ?
+				$photos_urls[$photo_id]["meta_value"] : null;
+			if ($item["main_photo"])
+			{
+				if (isset($item["main_photo"][$photo_size]))
+				{
+					$item["main_photo_url"] = $item["main_photo"][$photo_size]["url"];
+				}
+				else
+				{
+					$item["main_photo_url"] = $item["main_photo"]["url"];
+				}
+			}
+			else
+			{
+				$item["main_photo_url"] = null;
+			}
 		}
 		
 		/* Restore blog */
