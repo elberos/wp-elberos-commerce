@@ -66,12 +66,14 @@ class ProductParam_Table extends \Elberos\Table
 				[
 					"id",
 					"name",
+					"type",
 					"code_1c",
 				];
 				
 				$struct->form_fields =
 				[
 					"name",
+					"type",
 					"code_1c",
 				];
 				
@@ -173,11 +175,13 @@ class ProductParam_Table extends \Elberos\Table
 				$id, $item['id'], __('Редактировать', 'elberos-commerce')
 			) .
 			"&nbsp;&nbsp;" .
-			sprintf
-			(
-				'<a href="?page=' . $page_name . '&action=products_params_values&id=%s&product_param_id=%s">%s</a>',
-				$id, $item['id'], __('Значения', 'elberos-commerce')
-			)
+			(($item["type"] == "select")
+				? sprintf
+				(
+					'<a href="?page=' . $page_name . '&action=products_params_values&id=%s&product_param_id=%s">%s</a>',
+					$id, $item['id'], __('Значения', 'elberos-commerce')
+				)
+				: "")
 		;
 	}
 	

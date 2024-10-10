@@ -388,97 +388,94 @@ class Product_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
+		if (!$success) return;
+		
 		$product_update = [];
+		$classifier_id = $this->form_item["classifier_id"];
 		
 		/* Добавление категорий */
-		if ($success)
+		$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"delete from $table_name_categories where product_id=:product_id",
+			[
+				"product_id" => $this->form_item_id,
+			]
+		);
+		$wpdb->query($sql);
+		
+		$product_category = isset($_POST['product_category']) ? $_POST['product_category'] : [];
+		if (gettype($product_category) == 'array')
 		{
-			$table_name_categories = $wpdb->base_prefix . "elberos_commerce_products_categories";
-			$sql = \Elberos\wpdb_prepare
-			(
-				"delete from $table_name_categories where product_id=:product_id",
-				[
-					"product_id" => $this->form_item_id,
-				]
-			);
-			$wpdb->query($sql);
-			
-			$product_category = isset($_POST['product_category']) ? $_POST['product_category'] : [];
-			if (gettype($product_category) == 'array')
+			foreach ($product_category as $category)
 			{
-				foreach ($product_category as $category)
-				{
-					$wpdb->insert
-					(
-						$table_name_categories,
-						[
-							"product_id" => $this->form_item_id,
-							"category_id" => $category,
-						]
-					);
-				}
-			}
-			
-			/* Главная категория */
-			$main_category_id = isset($_POST["main_category_id"]) ? $_POST["main_category_id"] : null;
-			if ($main_category_id > 0)
-			{
-				$product_update["main_category_id"] = $main_category_id;
-			}
-			else
-			{
-				$product_update["main_category_id"] = null;
+				$wpdb->insert
+				(
+					$table_name_categories,
+					[
+						"product_id" => $this->form_item_id,
+						"category_id" => $category,
+					]
+				);
 			}
 		}
 		
-		/* Добавление фото */
-		if ($success)
+		/* Главная категория */
+		$main_category_id = isset($_POST["main_category_id"]) ? $_POST["main_category_id"] : null;
+		if ($main_category_id > 0)
 		{
-			$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
-			$sql = \Elberos\wpdb_prepare
-			(
-				"delete from $table_name_products_photos where product_id=:product_id",
-				[
-					"product_id" => $this->form_item_id,
-				]
-			);
-			$wpdb->query($sql);
-			
-			$pos = 0;
-			$main_photo_id = null;
-			$product_photo = isset($_POST['product_photo']) ? $_POST['product_photo'] : [];
-			if (gettype($product_photo) == 'array')
+			$product_update["main_category_id"] = $main_category_id;
+		}
+		else
+		{
+			$product_update["main_category_id"] = null;
+		}
+		
+		/* Добавление фото */
+		$table_name_products_photos = $wpdb->base_prefix . "elberos_commerce_products_photos";
+		$sql = \Elberos\wpdb_prepare
+		(
+			"delete from $table_name_products_photos where product_id=:product_id",
+			[
+				"product_id" => $this->form_item_id,
+			]
+		);
+		$wpdb->query($sql);
+		
+		$pos = 0;
+		$main_photo_id = null;
+		$product_photo = isset($_POST['product_photo']) ? $_POST['product_photo'] : [];
+		if (gettype($product_photo) == 'array')
+		{
+			foreach ($product_photo as $photo)
 			{
-				foreach ($product_photo as $photo)
+				$wpdb->insert
+				(
+					$table_name_products_photos,
+					[
+						"product_id" => $this->form_item_id,
+						"photo_id" => $photo["id"],
+						"pos" => $pos,
+					]
+				);
+				
+				if ($pos == 0)
 				{
-					$wpdb->insert
-					(
-						$table_name_products_photos,
-						[
-							"product_id" => $this->form_item_id,
-							"photo_id" => $photo["id"],
-							"pos" => $pos,
-						]
-					);
-					
-					if ($pos == 0)
-					{
-						$main_photo_id = $photo["id"];
-					}
-					
-					$pos++;
+					$main_photo_id = $photo["id"];
 				}
+				
+				$pos++;
 			}
-			
-			/* Главное фото */
-			if ($main_photo_id != null)
-			{
-				$product_update["main_photo_id"] = $main_photo_id;
-			}
-			else
-			{
-				$product_update["main_photo_id"] = null;
-			}
+		}
+		
+		/* Главное фото */
+		if ($main_photo_id != null)
+		{
+			$product_update["main_photo_id"] = $main_photo_id;
+		}
+		else
+		{
+			$product_update["main_photo_id"] = null;
 		}
 		
 		/* Обновление товара */
@@ -488,96 +485,185 @@ class Product_Table extends \Elberos\Table
 			$wpdb->update($table_name, $product_update, ['id' => $this->form_item_id]);
 		}
 		
-		/* Обновление предложений */
-		if ($success)
+		/* Получает список всех параметров у классификатора */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_params as t
+			WHERE t.classifier_id=:classifier_id
+			order by name asc",
+			[
+				"classifier_id" => $classifier_id
+			]
+		);
+		$params = $wpdb->get_results($sql, ARRAY_A);
+		
+		/* Получает список всех значений у классификатора */
+		$params_id = array_map(function($item){
+			return $item["type"] == "select" ? $item["id"] : null; },
+			$params
+		);
+		$params_id = array_filter($params_id, function($item){ return $item != null; });
+		$sql = $wpdb->prepare
+		(
+			"select id, param_id, name, code_1c from " . $wpdb->base_prefix .
+			"elberos_commerce_params_values as t " .
+			"where param_id in (" . implode(",", array_fill(0, count($params_id), "%d")) . ") order by name asc",
+			$params_id
+		);
+		$params_values = $wpdb->get_results($sql, ARRAY_A);
+		
+		/* Find param by id */
+		$find_param_by_id = function ($param_id) use ($params)
 		{
-			$offers = isset($_POST["offers"]) ? $_POST["offers"] : [];
-			$main_offer_id = isset($offers["main_offer_id"]) ? $offers["main_offer_id"] : null;
-			$offers_items = isset($offers["items"]) ? $offers["items"] : [];
-			$offers_prices_id = [];
-			
-			$offers_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers";
-			$offers_prices_table_name = $wpdb->base_prefix .
-				"elberos_commerce_products_offers_prices";
-			
-			if (gettype($offers_items) == "array" && count($offers_items) > 0)
+			foreach ($params as $param)
 			{
-				if ($main_offer_id == null)
+				if ($param["id"] == $param_id)
 				{
-					$wpdb->insert
-					(
-						$offers_table_name,
-						[
-							"product_id" => $this->form_item_id,
-							"offer_params" => "[]",
-						]
-					);
-					$main_offer_id = $wpdb->insert_id;
-				}
-				
-				foreach ($offers_items as $offer)
-				{
-					$offer_id = $offer["offer_id"];
-					$offer_price_id = $offer["offer_price_id"];
-					$offer_price_type_id = $offer["price_type_id"];
-					$offer_price = $offer["price"];
-					$offer_price_unit = $offer["unit"];
-					if ($offer_price_id > 0)
-					{
-						$wpdb->update
-						(
-							$offers_prices_table_name,
-							[
-								"price" => $offer_price,
-								"unit" => $offer_price_unit,
-							],
-							['id' => $offer_price_id]
-						);
-						
-					}
-					else
-					{
-						$wpdb->insert
-						(
-							$offers_prices_table_name,
-							[
-								"offer_id" => ($offer_id > 0) ? $offer_id : $main_offer_id,
-								"price_type_id" => $offer_price_type_id,
-								"price" => $offer_price,
-								"unit" => $offer_price_unit,
-							]
-						);
-						$offer_price_id = $wpdb->insert_id;
-					}
-					$offers_prices_id[] = $offer_price_id;
+					return $param;
 				}
 			}
+			return null;
+		};
+		
+		/* Find param value by id */
+		$find_param_value_by_id = function ($value_id) use ($params_values)
+		{
+			foreach ($params_values as $param_value)
+			{
+				if ($param_value["id"] == $value_id)
+				{
+					return $param_value;
+				}
+			}
+			return null;
+		};
+		
+		/* Обновление параметров товара */
+		$table_name_products_params = $wpdb->base_prefix . "elberos_commerce_products_params";
+		$product_params = isset($_POST["product_params"]) ? $_POST["product_params"] : [];
+		foreach ($product_params as $param_id => $value)
+		{
+			$param_value = null;
+			$param = $find_param_by_id($param_id);
+			if (!$param) continue;
+			if ($param["type"] == "select")
+			{
+				$param_value = $find_param_value_by_id($value);
+			}
 			
-			/* Удаление предложений */
-			$sql = \Elberos\wpdb_prepare
+			$param_value_id = $param_value ? $param_value["id"] : null;
+			$param_value_name = $param_value ? $param_value["name"] : $value;
+			$param_value_code_1c = $param_value ? $param_value["code_1c"] : "";
+			
+			\Elberos\wpdb_insert_or_update
 			(
-				"SELECT offers_prices.* FROM {$wpdb->base_prefix}elberos_commerce_products_offers_prices as offers_prices
-				inner join {$wpdb->base_prefix}elberos_commerce_products_offers as offers
-					on (offers.id = offers_prices.offer_id)
-				where offers.product_id=:product_id
-				order by offers_prices.id asc",
+				$table_name_products_params,
 				[
-					"product_id" => $this->form_item_id
+					"product_id" => $this->form_item_id,
+					"type" => "params",
+					"param_id" => $param_id,
+				],
+				[
+					"product_id" => $this->form_item_id,
+					"type" => "params",
+					"param_id" => $param_id,
+					"param_code_1c" => $param["code_1c"],
+					"key" => $param["name"],
+					"param_value_id" => $param_value_id,
+					"param_value_code_1c" => $param_value_code_1c,
+					"value" => $param_value_name,
+					"prepare_delete" => 0,
 				]
 			);
-			$product_offers = $wpdb->get_results($sql, ARRAY_A);
-			foreach ($product_offers as $product_offer)
+		}
+		
+		/* Обновление предложений */
+		$offers = isset($_POST["offers"]) ? $_POST["offers"] : [];
+		$main_offer_id = isset($offers["main_offer_id"]) ? $offers["main_offer_id"] : null;
+		$offers_items = isset($offers["items"]) ? $offers["items"] : [];
+		$offers_prices_id = [];
+		
+		$offers_table_name = $wpdb->base_prefix . "elberos_commerce_products_offers";
+		$offers_prices_table_name = $wpdb->base_prefix .
+			"elberos_commerce_products_offers_prices";
+		
+		if (gettype($offers_items) == "array" && count($offers_items) > 0)
+		{
+			if ($main_offer_id == null)
 			{
-				if (!in_array($product_offer["id"], $offers_prices_id))
+				$wpdb->insert
+				(
+					$offers_table_name,
+					[
+						"product_id" => $this->form_item_id,
+						"offer_params" => "[]",
+					]
+				);
+				$main_offer_id = $wpdb->insert_id;
+			}
+			
+			foreach ($offers_items as $offer)
+			{
+				$offer_id = $offer["offer_id"];
+				$offer_price_id = $offer["offer_price_id"];
+				$offer_price_type_id = $offer["price_type_id"];
+				$offer_price = $offer["price"];
+				$offer_price_unit = $offer["unit"];
+				if ($offer_price_id > 0)
 				{
-					$wpdb->delete
+					$wpdb->update
 					(
 						$offers_prices_table_name,
 						[
-							"id" => $product_offer["id"],
+							"price" => $offer_price,
+							"unit" => $offer_price_unit,
+						],
+						['id' => $offer_price_id]
+					);
+					
+				}
+				else
+				{
+					$wpdb->insert
+					(
+						$offers_prices_table_name,
+						[
+							"offer_id" => ($offer_id > 0) ? $offer_id : $main_offer_id,
+							"price_type_id" => $offer_price_type_id,
+							"price" => $offer_price,
+							"unit" => $offer_price_unit,
 						]
 					);
+					$offer_price_id = $wpdb->insert_id;
 				}
+				$offers_prices_id[] = $offer_price_id;
+			}
+		}
+		
+		/* Удаление предложений */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT offers_prices.* FROM {$wpdb->base_prefix}elberos_commerce_products_offers_prices as offers_prices
+			inner join {$wpdb->base_prefix}elberos_commerce_products_offers as offers
+				on (offers.id = offers_prices.offer_id)
+			where offers.product_id=:product_id
+			order by offers_prices.id asc",
+			[
+				"product_id" => $this->form_item_id
+			]
+		);
+		$product_offers = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($product_offers as $product_offer)
+		{
+			if (!in_array($product_offer["id"], $offers_prices_id))
+			{
+				$wpdb->delete
+				(
+					$offers_prices_table_name,
+					[
+						"id" => $product_offer["id"],
+					]
+				);
 			}
 		}
 	}
@@ -1071,6 +1157,9 @@ class Product_Table extends \Elberos\Table
 		}
 		.elberos-commerce-product-params-item-value{
 			width: calc(100% - 210px);
+		}
+		select.elberos-commerce-product-params-item-value{
+			max-width: none;
 		}
 		.elberos-commerce-product-offers{
 			margin-bottom: 20px;
@@ -1688,28 +1777,150 @@ class Product_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
+		$params = [];
 		$product_photo = [];
+		$classifier_id = $this->form_item["classifier_id"];
+		
+		/* Set param value */
+		$set_value = function (&$params, $param_value)
+		{
+			foreach ($params as $key => $param)
+			{
+				if (
+					$param["id"] == $param_value["param_id"] ||
+					$param["key"] == $param_value["key"]
+				)
+				{
+					if ($param["type"] == "select")
+					{
+						$params[$key]["value"] = $param_value["param_value_id"];
+					}
+					else
+					{
+						$params[$key]["value"] = $param_value["value"];
+					}
+					return;
+				}
+			}
+			$params[] = [
+				"id" => $param_value["param_id"],
+				"type" => "",
+				"key" => $param_value["key"],
+				"value" => $param_value["value"],
+			];
+		};
+		
+		/* Получает список всех параметров у классификатора */
+		$sql = \Elberos\wpdb_prepare
+		(
+			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_params as t
+			WHERE t.classifier_id=:classifier_id
+			order by name asc",
+			[
+				"classifier_id" => $classifier_id
+			]
+		);
+		$items = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($items as $item)
+		{
+			$params[] = [
+				"id" => $item["id"],
+				"type" => $item["type"],
+				"key" => $item["name"],
+				"value" => "",
+			];
+		}
+		
+		/* Получает список всех значений у классификатора */
+		$params_id = array_map(function($item){
+			return $item["type"] == "select" ? $item["id"] : null; },
+			$params
+		);
+		$params_id = array_filter($params_id, function($item){ return $item != null; });
+		$sql = $wpdb->prepare
+		(
+			"select id, param_id, name from " . $wpdb->base_prefix .
+			"elberos_commerce_params_values as t " .
+			"where param_id in (" . implode(",", array_fill(0, count($params_id), "%d")) . ") order by name asc",
+			$params_id
+		);
+		$items = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($items as $item)
+		{
+			foreach ($params as $key => $param)
+			{
+				if ($param["id"] == $item["param_id"])
+				{
+					if (!isset($param["options"])) $param["options"] = [];
+					$params[$key]["options"][] = [
+						"id" => $item["id"],
+						"value" => $item["name"],
+					];
+				}
+			}
+		}
 		
 		/* Список параметров у товара */
 		$sql = \Elberos\wpdb_prepare
 		(
 			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_products_params as t
 			WHERE t.product_id=:product_id
-			order by id asc",
+			order by `key` asc",
 			[
 				"product_id" => $this->form_item_id
 			]
 		);
-		$product_params = $wpdb->get_results($sql, ARRAY_A);
+		$items = $wpdb->get_results($sql, ARRAY_A);
+		foreach ($items as $item)
+		{
+			$set_value($params, $item);
+		}
 		
 		?>
 		<div class='elberos-commerce elberos-commerce-product-params'>
 			<label>Параметры товара</label>
-			<?php foreach ($product_params as $params) { ?>
+			<?php foreach ($params as $param) { ?>
 			<div class='elberos-commerce-product-params-item'>
-				<div class='elberos-commerce-product-params-item-key'><?= esc_html($params['key']) ?></div>
-				<input class='elberos-commerce-product-params-item-value' value='<?= esc_attr($params['value']) ?>' 
-					readonly type='text' />
+				<div class='elberos-commerce-product-params-item-key'>
+					<?= esc_html($param['key']) ?>
+				</div>
+				<?php
+				if ($param["type"] == "select")
+				{
+					?>
+					<select class='elberos-commerce-product-params-item-value'
+						name='product_params[<?= $param["id"] ?>]'
+					>
+						<option value="">Выберите значение</option>
+						<?php foreach ($param["options"] as $option){
+							$selected = "";
+							if ($param['value'] == $option['id']) $selected = "selected";
+						?>
+							<option <?= $selected ?> value="<?= esc_attr($option['id']) ?>">
+								<?= esc_html($option['value']) ?>
+							</option>
+						<?php } ?>
+					</select>
+					<?php
+				}
+				else if ($param["type"] == "text")
+				{
+					?>
+					<input class='elberos-commerce-product-params-item-value'
+						name='product_params[<?= $param["id"] ?>]'
+						value='<?= esc_attr($param['value']) ?>'
+						type='text' />
+					<?php
+				}
+				else
+				{
+					?>
+					<input class='elberos-commerce-product-params-item-value'
+						value='<?= esc_attr($param['value']) ?>'
+						readonly type='text' />
+					<?php
+				}
+				?>
 			</div>
 			<?php } ?>
 		</div>

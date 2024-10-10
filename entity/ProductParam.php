@@ -67,6 +67,17 @@ class ProductParam extends \Elberos\StructBuilder
 				"label" => "Название",
 				"type" => "input",
 			])
+			
+			->addField
+			([
+				"api_name" => "type",
+				"label" => "Тип",
+				"type" => "select",
+				"options" => [
+					["id"=>"text", "value"=>"Text"],
+					["id"=>"select", "value"=>"Select"],
+				],
+			])
 		;
 	}
 	
