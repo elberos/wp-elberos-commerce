@@ -351,7 +351,9 @@ class Product_Table extends \Elberos\Table
 	{
 		global $wpdb;
 		
-		$product_text = stripslashes_deep(isset($_POST['product_text']) ? $_POST['product_text'] : []);
+		$product_text = stripslashes_deep(
+			isset($_POST['product_text']) ? $_POST['product_text'] : []
+		);
 		$item["text"] = json_encode($product_text);
 		
 		/* Создание товара */
@@ -2085,7 +2087,7 @@ class Product_Table extends \Elberos\Table
 				.append(
 					jQuery(document.createElement('input'))
 					.attr("type", "input")
-					.attr("name", "offers[items][" + index + "][price]")
+					.attr("name", "offers[items][" + index + "][unit]")
 					.attr("value", "")
 				)
 			)

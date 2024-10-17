@@ -562,21 +562,33 @@ class Invoice_Table extends \Elberos\Table
 		echo "<div class='invoice_table_row'>";
 		echo "<div class='invoice_table_label'>Выгружен в 1С:</div>";
 		echo "<div class='invoice_table_content'>";
-		if ($invoice["export_status"] == 1)
+		if ($invoice["export_status"] == 1 || $invoice["export_status"] == -1)
 		{
 			$date_time = "";
 			if ( isset($invoice["gmtime_1c_export"]) )
 			{
 				$date_time = "(" . \Elberos\wp_from_gmtime($invoice['gmtime_1c_export']) . ")";
 			}
-			echo "<span>Да " . $date_time . "</span>";
+			if ($invoice["export_status"] == 1)
+			{
+				echo "<span>Да " . $date_time . "</span>";
+			}
+			else
+			{
+				echo "<span>Отменен " . $date_time . "</span>";
+			}
 			echo "<button type='button'
-				class='invoice_1c_export_reply' style='cursor: pointer;margin-left: 10px;' 
-				data-invoice-id=" .	esc_attr($invoice["id"]) . ">Выгрузить повторно</button>";
+				class='invoice_1c_export_reply' style='cursor: pointer;margin-left: 10px;'
+				data-invoice-id=" .	esc_attr($invoice["id"]) . "
+				data-export-status='0'>Выгрузить повторно</button>";
 		}
 		else
 		{
-			echo "Нет";
+			echo "<span>Нет</span>";
+			echo "<button type='button'
+				class='invoice_1c_export_reply' style='cursor: pointer;margin-left: 10px;'
+				data-invoice-id=" .	esc_attr($invoice["id"]) . "
+				data-export-status='-1'>Отменить выгрузку</button>";
 		}
 		echo "</div>";
 		echo "</div>";
@@ -603,14 +615,12 @@ class Invoice_Table extends \Elberos\Table
 			$offer_unit = isset($basket["offer_unit"]) ? $basket["offer_unit"] : "";
 			$offer_price_id = isset($basket["offer_price_id"]) ? $basket["offer_price_id"] : "";
 			$offer_price = isset($basket["offer_price"]) ? $basket["offer_price"] : "";
-			$product_id = isset($basket["product_id"]) ? $basket["product_id"] : "";
 			$product_name = isset($basket["product_name"]) ? $basket["product_name"] : "";
 			$product_count = isset($basket["count"]) ? $basket["count"] : "";
-			$product_main_photo_url = isset($basket["product_main_photo_url"]) ? $basket["product_main_photo_url"] : "";
-			$product_vendor_code = isset($basket["product_vendor_code"]) ? $basket["product_vendor_code"] : "";
-			$product_1c_code = isset($basket["product_code_1c"]) ? $basket["product_code_1c"] : "";
-			$offer_code_1c = isset($basket["offer_code_1c"]) ? $basket["offer_code_1c"] : "";
-			$offer_price_code_1c = isset($basket["offer_price_code_1c"]) ? $basket["offer_price_code_1c"] : "";
+			$product_main_photo_url = isset($basket["product_main_photo_url"]) ?
+				$basket["product_main_photo_url"] : "";
+			$product_vendor_code = isset($basket["product_vendor_code"]) ?
+				$basket["product_vendor_code"] : "";
 			$discount_value = isset($basket["discount_value"]) ? $basket["discount_value"] : "";
 			
 			$info_ammount = $offer_price * $product_count;
@@ -629,17 +639,11 @@ class Invoice_Table extends \Elberos\Table
 					$text .= "<img src='" . esc_attr( $product_main_photo_url ) . "' />";
 				$text .= "</div>";
 				$text .= "<div class='invoice_table_product_title'>";
-					$text .= "<div class='invoice_table_product_title_row'><b>";
+					$text .= "<div class='invoice_table_product_title_row'>";
 						$text .= esc_html( $product_name );
-					$text .= "</b></div>";
+					$text .= "</div>";
 					$text .= "<div class='invoice_table_product_title_row'>";
 						$text .= "Артикул: <span class='value'>" . esc_html($product_vendor_code) . "</span>";
-					$text .= "</div>";
-					$text .= "<div class='invoice_table_product_title_row'>";
-						$text .= "ID товара: <span class='value'>" . esc_html($product_id) . "</span>";
-					$text .= "</div>";
-					$text .= "<div class='invoice_table_product_title_row'>";
-						$text .= "Код 1С: <span class='value'>" . esc_html($product_1c_code) . "</span>";
 					$text .= "</div>";
 					$text .= "<div class='invoice_table_product_title_row'>";
 						$text .= "";
@@ -765,9 +769,15 @@ class Invoice_Table extends \Elberos\Table
 		<script>
 			$('.invoice_1c_export_reply').click(function(){
 				
-				var invoice_1c_export_reply_id = $(this).attr('data-invoice-id')
+				var invoice_1c_export_reply_id = $(this).attr('data-invoice-id');
+				var export_status = $(this).attr('data-export-status');
+				var text = "Выгрузить данный инвойс в 1С повторно?";
+				if (export_status == -1)
+				{
+					text = "Отменить выгрузку данного инвойса в 1С?";
+				}
 				
-				jQuery('<div> Выгрузить данный инвойс в 1С повторно? <div>').dialog({
+				jQuery('<div> ' + text + ' <div>').dialog({
 					title: "1C Экспорт",
 					modal:true,
 					width:600,
@@ -782,6 +792,7 @@ class Invoice_Table extends \Elberos\Table
 								
 								var send_data = {
 									"invoice_id": invoice_1c_export_reply_id,
+									"export_status": export_status,
 								};
 								
 								elberos_api_send
