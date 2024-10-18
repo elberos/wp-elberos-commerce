@@ -228,8 +228,7 @@ class Product_Table extends \Elberos\Table
 	 */
 	function column_main_photo_id($item)
 	{
-		$main_photo_id = $item["main_photo_id"];
-		$href = \Elberos\get_image_url($main_photo_id, "thumbnail");
+		$href = isset($item["main_photo_url"]) ? $item["main_photo_url"] : "";
 		return "<img class='product_table_main_photo_id' src='" . esc_attr($href) . "' />";
 	}
 	
@@ -982,6 +981,18 @@ class Product_Table extends \Elberos\Table
 			);
 			$this->items_categories = $wpdb->get_results($sql, ARRAY_A);
 		}
+		
+		/* Список фото */
+		$photos_id = array_map(function($item){ return $item["main_photo_id"]; }, $this->items);
+		$photos = \Elberos\get_images_url($photos_id);
+		foreach ($this->items as $pos => $item)
+		{
+			$main_photo_id = $item["main_photo_id"];
+			$photo = isset($photos[$main_photo_id]) ? $photos[$main_photo_id] : null;
+			if (!$photo) continue;
+			$photo_url = $photo["meta_value"]["sizes"]["thumbnail"]["url"];
+			$this->items[$pos]["main_photo_url"] = $photo_url;
+		}
 	}
 	
 	
@@ -1677,6 +1688,10 @@ class Product_Table extends \Elberos\Table
 		);
 		$product_photo = $wpdb->get_results($sql, ARRAY_A);
 		
+		/* URL фото */
+		$photos_id = array_map(function($item){ return $item["ID"]; }, $product_photo);
+		$photos = \Elberos\get_images_url($photos_id);
+		
 		?>
 		<div class='elberos-commerce elberos-commerce-photos'>
 			<input type='button' class='button add-photo-button' value='Добавить фото'>
@@ -1686,13 +1701,17 @@ class Product_Table extends \Elberos\Table
 			if (gettype($product_photo) == 'array') foreach ($product_photo as $photo)
 			{
 				if (!isset($photo['ID'])) continue;
-				$href = \Elberos\get_image_url($photo['ID'], "thumbnail");
+				$photo_id = $photo['ID'];
+				$photo = isset($photos[$photo_id]) ? $photos[$photo_id] : null;
+				if (!$photo) continue;
+				$href = $photo["meta_value"]["sizes"]["thumbnail"]["url"];
 				?>
-				<div class='product_photo' data-id='<?= esc_attr($photo["ID"]) ?>'>
+				<div class='product_photo' data-id='<?= esc_attr($photo_id) ?>'>
 					<img src='<?= esc_attr($href) ?>' />
-					<span class="dashicons dashicons-no-alt button-delete" data-id='<?= esc_attr($photo["ID"]) ?>'></span>
-					<input type='hidden' name='product_photo[<?= esc_attr($photo["ID"]) ?>][id]'
-						value='<?= esc_attr($photo["ID"]) ?>' />
+					<span class="dashicons dashicons-no-alt button-delete"
+						data-id='<?= esc_attr($photo_id) ?>'></span>
+					<input type='hidden' name='product_photo[<?= esc_attr($photo_id) ?>][id]'
+						value='<?= esc_attr($photo_id) ?>' />
 				</div>
 				<?php
 			}
@@ -1784,12 +1803,12 @@ class Product_Table extends \Elberos\Table
 		$classifier_id = $this->form_item["classifier_id"];
 		
 		/* Set param value */
-		$set_value = function (&$params, $param_value)
+		$set_value = function ($params, $param_value)
 		{
 			foreach ($params as $key => $param)
 			{
 				if (
-					$param["id"] == $param_value["param_id"] ||
+					($param["id"] == $param_value["param_id"] && $param_value["param_id"] != "") ||
 					$param["key"] == $param_value["key"]
 				)
 				{
@@ -1801,7 +1820,7 @@ class Product_Table extends \Elberos\Table
 					{
 						$params[$key]["value"] = $param_value["value"];
 					}
-					return;
+					return $params;
 				}
 			}
 			$params[] = [
@@ -1810,13 +1829,14 @@ class Product_Table extends \Elberos\Table
 				"key" => $param_value["key"],
 				"value" => $param_value["value"],
 			];
+			return $params;
 		};
 		
 		/* Получает список всех параметров у классификатора */
 		$sql = \Elberos\wpdb_prepare
 		(
 			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_params as t
-			WHERE t.classifier_id=:classifier_id
+			WHERE t.classifier_id=:classifier_id and t.is_deleted=0
 			order by name asc",
 			[
 				"classifier_id" => $classifier_id
@@ -1843,7 +1863,9 @@ class Product_Table extends \Elberos\Table
 		(
 			"select id, param_id, name from " . $wpdb->base_prefix .
 			"elberos_commerce_params_values as t " .
-			"where param_id in (" . implode(",", array_fill(0, count($params_id), "%d")) . ") order by name asc",
+			"where param_id in (" . implode(",", array_fill(0, count($params_id), "%d")) . ") " .
+			"and t.is_deleted=0 " .
+			"order by name asc",
 			$params_id
 		);
 		$items = $wpdb->get_results($sql, ARRAY_A);
@@ -1866,7 +1888,7 @@ class Product_Table extends \Elberos\Table
 		$sql = \Elberos\wpdb_prepare
 		(
 			"SELECT t.* FROM {$wpdb->base_prefix}elberos_commerce_products_params as t
-			WHERE t.product_id=:product_id
+			WHERE t.product_id=:product_id and t.prepare_delete=0
 			order by `key` asc",
 			[
 				"product_id" => $this->form_item_id
@@ -1875,7 +1897,7 @@ class Product_Table extends \Elberos\Table
 		$items = $wpdb->get_results($sql, ARRAY_A);
 		foreach ($items as $item)
 		{
-			$set_value($params, $item);
+			$params = $set_value($params, $item);
 		}
 		
 		?>

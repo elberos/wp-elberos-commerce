@@ -299,6 +299,7 @@ class ProductParam_Table extends \Elberos\Table
 			"table_name" => $this->get_table_name(),
 			"where" => implode(" and ", $where),
 			"args" => $args,
+			"order_by" => "name asc",
 			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
 			"per_page" => $per_page,
 		]);

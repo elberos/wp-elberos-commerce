@@ -173,6 +173,13 @@ class Controller
 			define('DOING_AJAX', true);
 		}
 		
+		$blog_id = get_current_blog_id();
+		if ($blog_id != 1)
+		{
+			echo "Wrong API URL\n";
+			return null;
+		}
+		
 		/* Проверка авторизации */
 		if ($mode == 'checkauth')
 		{

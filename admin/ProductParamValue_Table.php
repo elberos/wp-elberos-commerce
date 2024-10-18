@@ -291,6 +291,7 @@ class ProductParamValue_Table extends \Elberos\Table
 			"table_name" => $this->get_table_name(),
 			"where" => implode(" and ", $where),
 			"args" => $args,
+			"order_by" => "name asc",
 			"page" => (int) isset($_GET["paged"]) ? ($_GET["paged"] - 1) : 0,
 			"per_page" => $per_page,
 		]);
@@ -397,6 +398,17 @@ class ProductParamValue_Table extends \Elberos\Table
 	
 	
 	/**
+	 * Returns table title
+	 */
+	function get_table_title()
+	{
+		$name = ($this->product_param != null) ? $this->product_param["name"] : "";
+		return "Параметр товара '" . esc_html($name) . "'";
+	}
+	
+	
+	
+	/**
 	 * Returns form title
 	 */
 	function get_form_title($item)
@@ -407,12 +419,24 @@ class ProductParamValue_Table extends \Elberos\Table
 	
 	
 	/**
-	 * Returns table title
+	 * Display form title
 	 */
-	function get_table_title()
+	function display_form_title($item)
 	{
-		$name = ($this->product_param != null) ? $this->product_param["name"] : "";
-		return "Параметр товара '" . $name . "'";
+		$id = $_GET["id"];
+		$product_param_id = 0;
+		if (isset($item["param_id"])) $product_param_id = $item["param_id"];
+		else if (isset($_GET["product_param_id"])) $product_param_id = $_GET["product_param_id"];
+		$url = "admin.php?page=elberos-commerce-classifiers&action=products_params_values" .
+			"&id=" . $id . "&product_param_id=" . $product_param_id;
+		?>
+		<h1 class="wp-heading-inline"><?php $this->get_form_title($item) ?></h1>
+		<a href="<?php echo get_admin_url(get_current_blog_id(), $url);?>"
+			class="page-title-action"
+		>
+			<?php _e('Back', 'elberos-core')?>
+		</a>
+		<?php
 	}
 	
 	
@@ -425,8 +449,6 @@ class ProductParamValue_Table extends \Elberos\Table
 		$action = $this->current_action();
 		parent::display_action();
 	}
-	
-	
 }
 
 }
